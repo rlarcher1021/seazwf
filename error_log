@@ -1,0 +1,161 @@
+[10-Apr-2025 11:35:13 UTC] Admin action: Error log cleared by user ID: 1
+[10-Apr-2025 11:35:13 UTC] Alerts Debug: Checking current directory path: /home/rlarcher/public_html/error_log
+[10-Apr-2025 11:35:13 UTC] Alerts Debug: Found log file in current directory.
+[10-Apr-2025 11:35:13 UTC] Alerts INFO: Determined log file path: /home/rlarcher/public_html/error_log
+[10-Apr-2025 11:35:24 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+(
+    [0] => q_interviewhelp
+)
+
+[10-Apr-2025 11:35:24 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[10-Apr-2025 11:35:33 UTC] READING settings for Site ID 4: Active=1, AllowEmail=0, AllowNotify=0
+[10-Apr-2025 11:35:37 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+(
+    [0] => q_interviewhelp
+)
+
+[10-Apr-2025 11:35:37 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[10-Apr-2025 11:37:33 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+(
+    [0] => q_interviewhelp
+)
+
+[10-Apr-2025 11:37:33 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[10-Apr-2025 11:37:36 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+(
+    [0] => q_interviewhelp
+)
+
+[10-Apr-2025 11:37:36 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[10-Apr-2025 11:38:03 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+(
+    [0] => q_interviewhelp
+)
+
+[10-Apr-2025 11:38:03 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[10-Apr-2025 11:42:52 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+(
+    [0] => q_interviewhelp
+)
+
+[10-Apr-2025 11:42:52 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[10-Apr-2025 11:47:43 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+(
+    [0] => q_interviewhelp
+)
+
+[10-Apr-2025 11:47:43 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[10-Apr-2025 11:48:54 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+(
+    [0] => q_interviewhelp
+)
+
+[10-Apr-2025 11:48:54 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[10-Apr-2025 11:51:36 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+(
+    [0] => q_interviewhelp
+)
+
+[10-Apr-2025 11:51:36 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[10-Apr-2025 11:51:56 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+(
+    [0] => q_interviewhelp
+)
+
+[10-Apr-2025 11:51:56 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[10-Apr-2025 11:54:56 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+(
+    [0] => q_interviewhelp
+)
+
+[10-Apr-2025 11:54:56 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[10-Apr-2025 11:59:14 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+(
+    [0] => q_interviewhelp
+)
+
+[10-Apr-2025 11:59:14 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[10-Apr-2025 12:47:21 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+(
+    [0] => q_interviewhelp
+)
+
+[10-Apr-2025 12:47:21 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[10-Apr-2025 12:50:05 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+(
+    [0] => q_interviewhelp
+)
+
+[10-Apr-2025 12:50:05 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[10-Apr-2025 12:50:57 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+(
+    [0] => q_interviewhelp
+)
+
+[10-Apr-2025 12:50:57 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[10-Apr-2025 12:58:27 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+(
+    [0] => q_interviewhelp
+)
+
+[10-Apr-2025 12:58:27 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[10-Apr-2025 12:58:38 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+(
+    [0] => q_interviewhelp
+)
+
+[10-Apr-2025 12:58:38 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[10-Apr-2025 13:02:12 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+(
+    [0] => q_interviewhelp
+)
+
+[10-Apr-2025 13:02:12 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[10-Apr-2025 13:05:23 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+(
+    [0] => q_interviewhelp
+)
+
+[10-Apr-2025 13:05:23 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[10-Apr-2025 13:05:28 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+(
+    [0] => q_interviewhelp
+)
+
+[10-Apr-2025 13:05:28 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[10-Apr-2025 13:11:37 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+(
+    [0] => q_interviewhelp
+)
+
+[10-Apr-2025 13:11:37 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[10-Apr-2025 15:09:58 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+(
+    [0] => q_interviewhelp
+)
+
+[10-Apr-2025 15:09:58 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[10-Apr-2025 23:35:45 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+(
+    [0] => q_interviewhelp
+)
+
+[10-Apr-2025 23:35:45 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[11-Apr-2025 02:22:37 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+(
+    [0] => q_interviewhelp
+)
+
+[11-Apr-2025 02:22:37 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[11-Apr-2025 02:22:43 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+(
+    [0] => q_interviewhelp
+)
+
+[11-Apr-2025 02:22:43 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[11-Apr-2025 02:23:05 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+(
+    [0] => q_interviewhelp
+)
+
+[11-Apr-2025 02:23:05 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
