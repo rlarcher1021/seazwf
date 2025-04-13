@@ -1,0 +1,1944 @@
+/*
+ * File: main.css
+ * Path: /assets/css/main.css
+ * Created: 2024-08-01 12:45:00 MST
+ * Author: Robert Archer
+ * Updated: 2025-04-07 - Cleanup and consolidation
+ *
+ * Description: Main stylesheet for the Arizona@Work Check-In System.
+ */
+
+/* --- Base Styles & Variables --- */
+:root {
+    --color-primary: #1E3A8A;    /* Deep Navy Blue */
+    --color-primary-dark: #163075; /* Darker primary for hover */
+    --color-secondary: #FF6B35; /* Arizona Sunrise Orange */
+    --color-secondary-dark: #E85A29;/* Darker secondary for hover */
+    --color-light: #F4F5F7;     /* Soft Gray */
+    --color-white: #FFFFFF;     /* Clean White */
+    --color-gray: #6B7280;      /* Medium Gray */
+    --color-dark-gray: #4B5563; /* Dark Gray */
+    --color-border: #E5E7EB;    /* Light Border Gray */
+    --color-border-light: #eee; /* Lighter border for separators */
+    --color-success-bg: #D1FAE5;
+    --color-success-border: #6EE7B7;
+    --color-success-text: #065F46;
+    --color-error-bg: #FEE2E2;
+    --color-error-border: #F87171;
+    --color-error-text: #B91C1C;
+    --color-warning-bg: #fff3cd;
+    --color-warning-border: #ffeeba;
+    --color-warning-text: #856404;
+    --color-info-bg: #d1ecf1;
+    --color-info-border: #bee5eb;
+    --color-info-text: #0c5460;
+    --color-trend-up: #10B981;   /* Green */
+    --color-trend-down: #EF4444; /* Red */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --border-radius: 0.5rem; /* Consistent border radius */
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--color-light);
+    color: var(--color-dark-gray);
+    line-height: 1.5;
+    font-size: 16px; /* Base font size */
+}
+
+a {
+    color: var(--color-secondary);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+hr {
+    border: none;
+    border-top: 1px solid var(--color-border);
+    margin: 2rem 0;
+}
+
+
+/* --- Layout --- */
+.layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+
+/* --- Sidebar --- */
+.sidebar {
+    width: 250px;
+    background-color: var(--color-primary);
+    color: var(--color-white);
+    padding: 1.5rem;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    overflow-y: auto; /* Allow scrolling if content overflows */
+    overflow-x: hidden; /* Hide horizontal scrollbar */
+    display: flex;
+    flex-direction: column;
+}
+
+.logo { /* Container for logo in sidebar */
+    text-align: center;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 1.5rem;
+}
+
+.sidebar-logo { /* Image tag for logo in sidebar */
+    max-width: 100%; /* Fit container */
+    height: auto;
+    display: block;
+    margin: 0 auto;
+    max-height: 80px; /* Optional: Limit height */
+}
+
+.nav-menu {
+    list-style: none;
+    flex-grow: 1; /* Pushes user panel down */
+}
+
+.nav-item {
+    margin-bottom: 0.5rem;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    transition: all 0.2s ease-in-out;
+}
+
+.nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--color-white);
+    text-decoration: none;
+}
+
+.nav-link.active {
+    background-color: var(--color-secondary);
+    color: var(--color-white);
+    font-weight: 500;
+}
+
+.nav-link i {
+    margin-right: 0.75rem;
+    width: 20px;
+    text-align: center;
+    font-size: 1.1em;
+}
+
+.user-panel {
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 0;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--color-secondary);
+    color: var(--color-white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0.75rem;
+    font-weight: bold;
+    font-size: 1em;
+}
+
+.user-name {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.user-role {
+    font-size: 0.875rem;
+    opacity: 0.8;
+}
+
+.logout-btn {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    transition: all 0.2s ease-in-out;
+    margin-top: 0.5rem;
+    background-color: transparent;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+}
+
+.logout-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--color-white);
+    text-decoration: none;
+}
+
+.logout-btn i {
+    margin-right: 0.75rem;
+}
+
+
+/* --- Main Content --- */
+.main-content {
+    flex: 1;
+    margin-left: 250px; /* Same as sidebar width */
+    padding: 1.5rem;
+    background-color: var(--color-light);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.page-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--color-primary);
+}
+
+.site-selector {
+    display: flex;
+    align-items: center;
+}
+
+.site-selector label {
+    margin-right: 0.75rem;
+    font-weight: 500;
+}
+
+.site-selector select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.375rem;
+    background-color: var(--color-white);
+    min-width: 150px;
+    font-size: 0.95em;
+}
+
+
+/* --- Cards --- */
+.cards-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.card {
+    background-color: var(--color-white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.card-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--color-primary);
+}
+
+.card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: rgba(30, 58, 138, 0.1);
+    color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.card-body {
+    margin-bottom: 1rem;
+    flex-grow: 1;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    margin-bottom: 0.25rem;
+    line-height: 1.2;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--color-gray);
+}
+
+.card-footer {
+    display: flex;
+    align-items: center;
+    font-size: 0.875rem;
+    color: var(--color-gray);
+}
+.card-footer i {
+    margin-right: 0.3rem;
+}
+
+.trend-up { color: var(--color-trend-up); }
+.trend-down { color: var(--color-trend-down); }
+
+
+/* --- Tables --- */
+.table-container {
+    background-color: var(--color-white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    overflow-x: auto;
+    margin-bottom: 1.5rem;
+}
+
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.table-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--color-primary);
+}
+
+.table-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+}
+
+th, td {
+    padding: 0.75rem 1.5rem;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: middle;
+}
+
+th {
+    font-weight: 600;
+    color: var(--color-dark-gray);
+    background-color: rgba(244, 245, 247, 0.7);
+    font-size: 0.9em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+tbody tr:hover {
+    background-color: rgba(244, 245, 247, 0.5);
+}
+
+tbody td {
+    font-size: 0.95em;
+}
+
+td.actions-cell { /* Specific class for action cells */
+    white-space: nowrap;
+    text-align: right;
+}
+td.actions-cell form, td.actions-cell a, td.actions-cell button {
+    margin-left: 5px; display: inline-block; vertical-align: middle;
+}
+td.actions-cell form:first-child, td.actions-cell a:first-child { margin-left: 0; }
+
+
+/* --- Status Badges --- */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.6rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+.status-yes, .status-active {
+    background-color: var(--color-success-bg);
+    color: var(--color-success-text);
+}
+.status-no, .status-inactive {
+    background-color: var(--color-error-bg); /* Use error colors for No/Inactive */
+    color: var(--color-error-text);
+}
+
+
+/* --- Table Footer / Pagination --- */
+.table-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--color-border);
+    font-size: 0.9em;
+    color: var(--color-gray);
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.table-pagination {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.page-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.375rem;
+    background-color: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-dark-gray);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.page-btn:hover {
+    background-color: var(--color-light);
+    border-color: var(--color-gray);
+}
+.page-btn.active {
+    background-color: var(--color-primary);
+    color: var(--color-white);
+    border-color: var(--color-primary);
+}
+.page-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+
+/* --- Buttons --- */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    font-size: 0.9em;
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+    border: 1px solid transparent;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+.btn-sm {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8em;
+}
+.btn i { margin-right: 0.5rem; }
+
+.btn-primary {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-white);
+}
+.btn-primary:hover {
+    background-color: var(--color-primary-dark);
+    border-color: var(--color-primary-dark);
+    color: var(--color-white); text-decoration: none;
+}
+
+.btn-secondary {
+    background-color: var(--color-secondary);
+    border-color: var(--color-secondary);
+    color: var(--color-white);
+}
+.btn-secondary:hover {
+    background-color: var(--color-secondary-dark);
+    border-color: var(--color-secondary-dark);
+    color: var(--color-white); text-decoration: none;
+}
+
+.btn-outline {
+    background-color: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-dark-gray);
+}
+.btn-outline:hover {
+    background-color: var(--color-light);
+    border-color: var(--color-gray);
+    color: var(--color-dark-gray); text-decoration: none;
+}
+.delete-button { /* Specific style for delete buttons */
+    color: var(--color-error-text) !important;
+    border-color: var(--color-error-border) !important;
+}
+.delete-button:hover {
+    background-color: var(--color-error-text) !important;
+    color: var(--color-white) !important;
+}
+
+
+/* --- Charts Section --- */
+.charts-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-evenly; /* Distribute space evenly */
+    gap: 1.5rem; /* Space between chart containers */
+    margin-bottom: 1.5rem;
+}
+
+.chart-container {
+    background-color: var(--color-white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    padding: 1.5rem;
+    flex-grow: 1; /* Allow growing */
+    flex-shrink: 1; /* Allow shrinking */
+    min-width: 300px; /* Prevent getting too small */
+    /* Aim for roughly 2 columns on wider screens */
+    max-width: calc(50% - 0.75rem); /* Max width = 50% minus half the gap */
+    display: flex;
+    flex-direction: column;
+}
+
+.chart-header {
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-border-light);
+    flex-shrink: 0; /* Prevent header shrinking vertically */
+}
+
+.chart-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    margin: 0;
+}
+
+.chart-placeholder { /* Renamed from canvas container for clarity */
+    flex-grow: 1; /* Take remaining vertical space */
+    position: relative; /* Needed for Chart.js */
+    width: 100%;
+    min-height: 250px; /* Ensure a minimum height */
+}
+.chart-placeholder canvas {
+    max-width: 100%;
+    max-height: 100%; /* Fill the placeholder */
+}
+
+
+/* --- Admin Settings / Configurations / Reports Section --- */
+.admin-settings, .content-section {
+    background-color: var(--color-white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.settings-title, .section-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.settings-section, .subsection {
+    margin-bottom: 2rem;
+}
+
+.settings-section-title, .subsection-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-dark-gray);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+
+/* --- Forms (General within Settings/Reports/Admin) --- */
+.settings-form, .filter-form, .config-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem 1.5rem; /* Row gap, Column gap */
+}
+.form-group { margin-bottom: 1rem; } /* Default spacing */
+.form-label {
+    display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.95em;
+}
+.form-control {
+    width: 100%; padding: 0.4rem 0.75rem; border: 1px solid var(--color-border);
+    border-radius: 0.375rem; background-color: var(--color-white); font-size: 1em;
+    line-height: 1.5; transition: border-color 0.2s;
+}
+.form-control:focus {
+    outline: none; border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(30, 58, 138, 0.2);
+}
+textarea.form-control { min-height: 80px; resize: vertical; }
+
+.form-actions {
+    display: flex; gap: 1rem; margin-top: 1.5rem; flex-wrap: wrap;
+    grid-column: 1 / -1; /* Span grid columns if parent is grid */
+    justify-content: flex-end; /* Align buttons to the right by default */
+}
+.form-description { font-size: 0.85em; color: var(--color-gray); margin-top: 0.25rem; }
+
+
+/* --- Custom Tab Navigation --- */
+.tabs {
+    display: flex; border-bottom: 1px solid var(--color-border); margin-bottom: 1.5rem; flex-wrap: wrap;
+}
+.tab {
+    padding: 0.75rem 1.5rem; font-weight: 500; cursor: pointer; transition: all 0.2s;
+    border-bottom: 3px solid transparent; color: var(--color-gray); margin-bottom: -1px;
+    text-align: center; white-space: nowrap;
+}
+.tab:hover { background-color: rgba(244, 245, 247, 0.5); color: var(--color-dark-gray); }
+.tab.active { color: var(--color-primary); border-bottom-color: var(--color-primary); font-weight: 600; }
+
+
+/* --- Toggle Switch (Used in Configurations) --- */
+.toggle-switch { display: flex; align-items: center; min-height: calc(1.5em + 0.8rem + 2px); /* Match form control height approx */ }
+.toggle-switch input[type="checkbox"] { height: 0; width: 0; visibility: hidden; position: absolute; }
+.toggle-switch .toggle-label {
+    cursor: pointer; text-indent: -9999px; width: 50px; height: 26px; background: var(--color-gray);
+    display: block; border-radius: 100px; position: relative; transition: background-color 0.3s ease; margin: 0;
+}
+.toggle-switch .toggle-label .toggle-button {
+    content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px;
+    background: var(--color-white); border-radius: 90px; transition: 0.3s; box-shadow: var(--shadow-sm);
+}
+.toggle-switch input[type="checkbox"]:checked + .toggle-label { background: var(--color-success-text); } /* Use success color */
+.toggle-switch input[type="checkbox"]:checked + .toggle-label .toggle-button { left: calc(100% - 3px); transform: translateX(-100%); }
+.toggle-switch .toggle-text { margin-left: 10px; font-weight: 500; user-select: none; }
+
+
+/* --- Messages (General & Specific Pages) --- */
+.message-area {
+    padding: 0.75rem 1.25rem; margin-bottom: 1.5rem; border: 1px solid transparent;
+    border-radius: 0.375rem; text-align: center; font-size: 0.95em;
+}
+/* Use aliases for page-specific messages */
+.message-success, .info-message { /* info-message used on login */
+    color: var(--color-success-text); background-color: var(--color-success-bg); border-color: var(--color-success-border);
+}
+.message-error, .error-message { /* error-message used on login */
+    color: var(--color-error-text); background-color: var(--color-error-bg); border-color: var(--color-error-border);
+}
+.message-warning {
+    color: var(--color-warning-text); background-color: var(--color-warning-bg); border-color: var(--color-warning-border);
+}
+.message-info { /* Different from login info-message, used elsewhere? */
+    color: var(--color-info-text); background-color: var(--color-info-bg); border-color: var(--color-info-border);
+}
+
+
+/* --- Login Page --- */
+body.login-page {
+    display: flex; justify-content: center; align-items: center; min-height: 100vh;
+}
+.login-container {
+    background-color: var(--color-white); border-radius: 8px; box-shadow: var(--shadow);
+    width: 400px; padding: 30px 40px; max-width: 90%; margin: 20px;
+}
+.login-logo { text-align: center; margin-bottom: 20px; }
+.login-logo img { max-width: 200px; height: auto; }
+.login-container h1 {
+    color: var(--color-primary); font-size: 1.5rem; text-align: center; margin-bottom: 30px;
+}
+.login-footer { margin-top: 30px; text-align: center; font-size: 0.875rem; color: var(--color-gray); }
+.google-translate-container { margin-bottom: 15px; min-height: 30px; text-align: center; }
+.copyright { font-size: 0.75rem; margin-top: 10px; color: var(--color-gray); }
+
+
+/* --- Check-in Page --- */
+body.checkin-page {
+    display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 20px;
+}
+/* Specific Logo Styles for Check-in */
+.checkin-logo {
+    text-align: center;
+    margin-bottom: 0rem; /* Small gap below logo container */
+    max-width: 650px;    /* Match form max-width */
+    width: 100%;         /* Take available width up to max */
+    margin-left: auto;
+    margin-right: auto;
+}
+.checkin-logo img {
+    display: block;
+    width: 100%;         /* Logo slightly narrower than container */
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto;     /* Center the image, zero vertical margin */
+}
+/* Specific Container Styles for Check-in */
+.checkin-container {
+    background-color: var(--color-white); border-radius: 8px; box-shadow: var(--shadow);
+    width: 100%; max-width: 650px; padding: 30px 40px;
+    margin: 0 auto 2rem; /* No top margin, centered, space below */
+}
+.checkin-container h1 {
+    color: var(--color-primary); font-size: 1.5rem; text-align: center; margin-bottom: 10px;
+}
+.checkin-container h2 {
+    color: var(--color-dark-gray); font-size: 1.2rem; text-align: center; margin-bottom: 30px; font-weight: 500;
+}
+/* Check-in Form Specifics */
+.checkin-container label { font-weight: 600; font-size: 1.0em; } /* Slightly smaller label */
+.checkin-container input[type="text"],
+.checkin-container input[type="email"],
+.checkin-container select { padding: 10px; font-size: 1em; } /* Slightly smaller padding */
+.checkin-container .btn { padding: 12px; font-size: 1.1em; margin-top: 20px; } /* Slightly smaller button padding */
+
+/* Check-in Inline Name Fields */
+.checkin-container .form-row {
+    display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;
+}
+.checkin-container .form-row .form-group {
+    flex: 1; min-width: 200px; /* Adjust min-width as needed */ margin-bottom: 0;
+    display: flex; align-items: baseline; /* Baseline align label and input */ gap: 0.5rem;
+}
+.checkin-container .form-row .form-group label {
+    flex-basis: 90px; /* Adjust label width */ flex-shrink: 0; /* Prevent shrinking */
+    margin-bottom: 0; text-align: right; /* Optional: right-align label */
+}
+.checkin-container .form-row .form-group input { flex-grow: 1; } /* Input takes remaining space */
+
+/* Check-in Radio Buttons */
+.radio-group label { display: inline-block; margin-right: 20px; font-weight: normal; font-size: 1em; cursor: pointer; }
+.radio-group input[type="radio"] { margin-right: 8px; transform: scale(1.1); vertical-align: baseline; cursor: pointer; }
+.checkin-container .description { font-size: 0.9em; color: var(--color-gray); margin-bottom: 10px; margin-top: -5px; font-weight: normal; }
+
+
+/* --- Google Translate Widget --- */
+#google_translate_element { font-size: 0.9em; }
+.goog-te-gadget-simple { border: 1px solid #d4d4d4; background-color: #f9f9f9; padding: 0.3em 0.6em; border-radius: 4px; opacity: 0.8; transition: opacity 0.3s ease; }
+.goog-te-gadget-simple:hover { opacity: 1.0; }
+.goog-te-gadget-icon { display: none !important; } /* Hide icon */
+.goog-te-menu-frame { box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); border: 1px solid #d4d4d4; }
+
+
+/* --- Responsive Design --- */
+@media (max-width: 992px) { /* Tablet breakpoint */
+    .chart-container {
+        max-width: 100%; /* Allow charts full width */
+        flex-basis: 100%;
+    }
+}
+
+@media (max-width: 768px) { /* Mobile breakpoint */
+    .layout { flex-direction: column; }
+    .sidebar { width: 100%; height: auto; position: relative; }
+    .main-content { margin-left: 0; padding: 1rem; }
+    .header { padding-bottom: 1rem; flex-direction: column; align-items: flex-start; }
+    .cards-row { grid-template-columns: 1fr; }
+    .settings-form, .filter-form, .config-form { grid-template-columns: 1fr; }
+    .table-header, .table-footer { flex-direction: column; align-items: flex-start; }
+    .chart-container { max-width: 100%; flex-basis: 100%; } /* Ensure charts stack */
+
+    /* Responsive table attempt (keep commented if not fully implemented) */
+    /* Consider a dedicated responsive table library/technique */
+    /*
+    table, thead, tbody, th, td, tr { display: block; }
+    thead tr { position: absolute; top: -9999px; left: -9999px; }
+    tr { border: 1px solid #ccc; margin-bottom: 0.5rem;}
+    td { border: none; border-bottom: 1px solid #eee; position: relative; padding-left: 50%; text-align: right; }
+    td:before { position: absolute; top: 6px; left: 6px; width: 45%; padding-right: 10px; white-space: nowrap; text-align: left; font-weight: bold; content: attr(data-label); }
+    */
+}
+
+@media (max-width: 480px) { /* Smaller mobile */
+    .login-container, .checkin-container { padding: 20px; }
+    .page-title { font-size: 1.25rem; }
+    .checkin-container .form-row .form-group label { flex-basis: auto; text-align: left; } /* Stack label above input */
+    .checkin-container .form-row .form-group { flex-direction: column; align-items: flex-start; }
+}
+/* --- Check-in Page Dynamic Questions Alignment --- */
+
+/* Target each dynamic question's container (.form-group) */
+/* Ensure it's NOT the ones inside .form-row */
+.checkin-container > .form-group:not(.form-row .form-group) {
+    display: flex;        /* Arrange label and radio group horizontally */
+    align-items: baseline;/* Align text baselines */
+    margin-bottom: 1rem; /* Consistent space below each question row */
+    flex-wrap: nowrap;    /* PREVENT wrapping by default */
+    gap: 1rem;            /* Space between label and radio group */
+}
+
+/* Style the Question Label (direct child label of the form group) */
+.checkin-container > .form-group:not(.form-row .form-group) > label:first-child {
+    /* Allow label to take natural width, but don't let it shrink */
+    flex-shrink: 0;
+    padding-right: 0.5rem; /* Ensure some space before radios */
+    margin-bottom: 0; /* Override default */
+     /* Make slightly bolder for emphasis? Optional. */
+     /* font-weight: 600; */
+}
+
+/* Style the container for Yes/No radio buttons */
+.checkin-container .radio-group {
+    /* Let it take remaining space but don't force expansion */
+    /*flex-grow: 1;*/
+    display: flex; /* Arrange Yes/No labels horizontally */
+    align-items: baseline; /* Align Yes/No text */
+    gap: 1.5rem;    /* Space between Yes and No options */
+    /* Ensure it doesn't shrink below its content */
+    flex-shrink: 0;
+    /* Justify content towards the start (left) */
+    justify-content: flex-start;
+}
+
+/* Style individual Yes/No labels and inputs */
+.checkin-container .radio-group label {
+    margin-right: 0; /* Use gap for spacing */
+    display: inline-flex; /* Align radio and text */
+    align-items: baseline;
+    white-space: nowrap; /* Prevent Yes/No text wrapping */
+}
+.checkin-container .radio-group input[type="radio"] {
+    margin-right: 0.4rem; /* Space between radio and its text */
+    /* vertical-align: baseline; (Already set by label align-items) */
+}
+
+/* --- Responsive: Stack on smaller screens --- */
+@media (max-width: 700px) { /* Adjust breakpoint if needed */
+    .checkin-container > .form-group:not(.form-row .form-group) {
+        flex-wrap: wrap; /* Allow label and radios to wrap */
+        align-items: flex-start; /* Align to top when wrapping */
+    }
+    .checkin-container > .form-group:not(.form-row .form-group) > label:first-child {
+         width: 100%; /* Make label take full width when wrapping */
+         margin-bottom: 0.5rem; /* Add space below label when stacked */
+         padding-right: 0; /* No padding needed when stacked */
+    }
+    .checkin-container .radio-group {
+         width: 100%; /* Ensure radio group takes full width when wrapped */
+    }
+}  
+/* =================================== */
+/* --- Check-in Page Specific Styles --- */
+/* =================================== */
+
+/* ... other general check-in styles like .checkin-page, .checkin-container etc. ... */
+
+/* Style the container for each dynamic question (Label + Radio Group) */
+/* Target .form-group that is a direct child of .checkin-container AND NOT inside .form-row */
+.checkin-container > .form-group:not(.form-row .form-group) {
+    display: flex;         /* Arrange label and radio group horizontally */
+    align-items: baseline; /* Align text baselines */
+    flex-wrap: nowrap;     /* Prevent radio group wrapping below label initially */
+    gap: 1.5rem;           /* Space between label and start of radio group */
+    margin-bottom: 1rem;   /* Space below this question row */
+}
+
+/* Style the Question Label specifically */
+.checkin-container > .form-group:not(.form-row .form-group) > .form-label {
+    flex-basis: 45%;    /* <<< TRY Adjusting this % >>> Label takes ~45% width */
+                         /* Or use a pixel value: flex-basis: 280px; */
+    flex-shrink: 0;     /* Prevent label from shrinking */
+    text-align: left;   /* Ensure label text is left-aligned */
+    margin-bottom: 0;   /* Override default */
+    padding-right: 0.5rem; /* Small space between text and radios */
+    /* font-weight: 600; /* Optional: Make question bolder */
+}
+
+/* Style the div containing the Yes/No radios */
+.checkin-container .radio-group {
+    display: flex;       /* Arrange Yes/No labels horizontally */
+    align-items: baseline; /* Align Yes/No text */
+    /*flex-grow: 1;  */      /* Take remaining horizontal space */
+    gap: 1.5rem;         /* Space between Yes and No */
+    justify-content: flex-start; /* Align radios to the left */
+}
+
+/* Style individual Yes/No labels and their inputs */
+.checkin-container .radio-group label {
+    margin: 0;            /* Use gap for spacing */
+    display: inline-flex; /* Keep input and text together */
+    align-items: baseline;
+    white-space: nowrap;
+    font-weight: normal; /* Override potential bold from general label */
+}
+.checkin-container .radio-group input[type="radio"] {
+    margin-right: 0.4rem;
+    flex-shrink: 0; /* Prevent radio shrinking */
+    /* Adjust vertical alignment if needed relative to baseline */
+    /* position: relative; */
+    /* top: 1px; */
+}
+
+/* --- Responsive adjustment for check-in dynamic questions --- */
+@media (max-width: 700px) { /* Stacking on smaller screens */
+    .checkin-container > .form-group:not(.form-row .form-group) {
+        flex-direction: column; /* Stack label above radios */
+        align-items: flex-start;
+        flex-wrap: wrap; /* Allow wrapping within the column */
+        gap: 0.5rem;
+    }
+    .checkin-container > .form-group:not(.form-row .form-group) > .form-label {
+        flex-basis: auto; /* Reset basis */
+        width: 100%;
+        margin-bottom: 0.5rem;
+        padding-right: 0;
+    }
+    .checkin-container .radio-group {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}
+
+/* --- Ensure rules for .form-row are separate --- */
+/* These were for First/Last Name */
+.checkin-container .form-row {
+    display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;
+}
+.checkin-container .form-row .form-group {
+    flex: 1; min-width: 200px; margin-bottom: 0;
+    display: flex; align-items: baseline; gap: 0.5rem;
+}
+.checkin-container .form-row .form-group .form-label { /* More specific selector */
+    flex-basis: 90px; flex-shrink: 0; margin-bottom: 0; text-align: right;
+}
+.checkin-container .form-row .form-group .form-control { /* More specific selector */
+    flex-grow: 1;
+}
+
+/* ... rest of main.css ... */
+/* main.css */
+
+/* Container for each individual chart */
+.chart-container {
+    background-color: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 300px;
+    max-width: calc(50% - 10px); /* Adjust or remove if causing issues */
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    height: 400px; /* <<< ADD THIS LINE (Adjust px value as needed) */
+}
+
+/* Ensure chart placeholder allows canvas to fill the new height */
+.chart-placeholder {
+    flex-grow: 1; /* Allow placeholder to fill vertical space */
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    /* min-height is okay, but container height is the main constraint now */
+    min-height: 250px;
+}
+
+/* Canvas should respect container */
+.chart-placeholder canvas {
+    max-width: 100%;
+    max-height: 100%; /* Canvas max height respects placeholder height */
+}
+
+/* Responsive adjustments - MAY need height adjustment here too */
+@media (max-width: 992px) {
+    .chart-container {
+        max-width: 100%;
+        flex-basis: 100%;
+        /* You might want a different height when stacked */
+        /* height: 350px; */
+    }
+}
+
+/* ... rest of main.css ... */
+/* main.css */
+#tab-content .tab-pane {
+    display: none; /* Hide inactive panes */
+}
+#tab-content .tab-pane.active {
+    display: block; /* Show active pane */
+}
+/* checkin.php - Dynamic Question Row Styling (Revised for current structure) */
+
+/* Target the form-group specifically within the checkin form container */
+.checkin-container .form-group {
+    display: flex;              /* Enable Flexbox for the whole row */
+    justify-content: space-between; /* Push question label left, radio group right */
+    align-items: center;       /* Vertically align items in the middle */
+    margin-bottom: 1rem;       /* Space below each question row */
+    padding-bottom: 0.5rem;    /* Optional: Small padding below */
+    /* border-bottom: 1px solid #eee; /* Optional: faint line */
+    flex-wrap: wrap;           /* Allow wrapping on very small screens if needed */
+}
+
+/* Style the question label (which is direct child of form-group) */
+.checkin-container .form-group > .form-label {
+    margin-bottom: 0;          /* Remove bottom margin added by default */
+    margin-right: 1rem;        /* Space between text and the radio group */
+    /* flex-grow: 1; */              /* Allow text to take up available space */
+    text-align: left;          /* Ensure text is left-aligned */
+    padding-top: 0;            /* Adjust padding if needed for vertical alignment */
+    padding-bottom: 0;
+}
+
+/* Style the container for the radio buttons */
+.checkin-container .radio-group {
+    display: flex;            /* Use flexbox for Yes/No alignment */
+    flex-shrink: 0;           /* Prevent this block from shrinking */
+    min-width: 130px;         /* ** Adjust this width as needed ** for vertical alignment */
+    justify-content: flex-start; /* Align 'Yes'/'No' labels left within this block */
+    gap: 1.5rem;              /* Space between the 'Yes' and 'No' labels/inputs */
+    align-items: center;      /* Vertically align items within the radio group */
+}
+
+/* Style individual radio button labels within the group */
+.checkin-container .radio-group label {
+    display: flex;            /* Use flex to align input and text nicely */
+    align-items: center;      /* Vertically center radio and its text */
+    margin-bottom: 0;         /* Remove any default bottom margin */
+    font-weight: normal;      /* Ensure labels aren't bold if not desired */
+    cursor: pointer;
+}
+
+/* Add a small margin between the radio button and its text */
+.checkin-container .radio-group input[type="radio"] {
+    margin-right: 0.4rem;
+    /* Adjust vertical alignment if needed relative to text */
+    vertical-align: middle; /* Or adjust position/transform */
+}
+.checkin-container .radio-group {
+    /* ... other properties ... */
+    min-width: 140px; /* <<< Increased value */
+    /* ... other properties ... */
+}
+/* checkin.php - Dynamic Question Row Styling */
+
+.checkin-container .form-group {
+    display: flex;
+    justify-content: space-between;
+    /* align-items: center;  <-- CHANGE THIS */
+    align-items: flex-start !important;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+/* --- NO CHANGES NEEDED for the rules below --- */
+
+/* Style the question label */
+.checkin-container .form-group > .form-label {
+    margin-bottom: 0;
+    margin-right: 1rem;
+    /* flex-grow: 1; */ 
+    text-align: left;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+/* Style the container for the radio buttons */
+.checkin-container .radio-group {
+    display: flex;
+    flex-shrink: 0;
+    min-width: 140px; /* Or your adjusted value */
+    justify-content: flex-start;
+    gap: 1.5rem;
+    align-items: center; /* Keep radios vertically centered *within* their own group */
+}
+
+/* Style individual radio button labels within the group */
+.checkin-container .radio-group label {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0;
+    font-weight: normal;
+    cursor: pointer;
+}
+
+/* Add a small margin between the radio button and its text */
+.checkin-container .radio-group input[type="radio"] {
+    margin-right: 0.4rem;
+    vertical-align: middle;
+}
+.checkin-container .form-group {
+    display: flex;
+    /* ... other properties ... */
+    align-items: flex-start !important; /* Add !important */
+    /* ... other properties ... */
+}
+.checkin-container .radio-group {
+    /* ... other styles ... */
+    min-width: 140px; /* Or your adjusted value */
+    margin-left: auto; /* <<< ADD THIS LINE */
+    /* ... other styles ... */
+}
+.checkin-container .form-group {
+    display: flex;
+    /* justify-content: space-between; */ /* Keep commented out */
+    align-items: flex-start;           /* Keep */
+    width: 100%;                       /* <<< ADD THIS */
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    /* flex-wrap: wrap; <-- May not be needed if width: 100% works */
+}
+.checkin-container .form-group {
+    display: flex;
+    width: 100%;  /* <<< IS THIS DEFINITELY HERE? */
+     /* align-items: flex-start; */ /* <-- CHANGE THIS */
+    align-items: baseline;      /* <<< TO THIS */
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    /* No justify-content needed with margin-left: auto */
+}
+/* checkin.php - Dynamic Question Row Styling */
+
+.checkin-container .form-group {
+    display: flex;
+    /* align-items: flex-start; */ /* <-- CHANGE THIS */
+    align-items: baseline;      /* <<< TO THIS */
+    width: 100%;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    /* No justify-content needed with margin-left: auto */
+}
+
+/* --- NO CHANGES NEEDED for the rules below --- */
+
+/* Style the question label */
+.checkin-container .form-group > .form-label {
+    margin-bottom: 0;
+    margin-right: 1rem;
+    /* flex-grow: 1; <-- Keep commented out/deleted */
+    text-align: left;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+/* Style the container for the radio buttons */
+.checkin-container .radio-group {
+    display: flex;
+    flex-shrink: 0;
+    min-width: 140px; /* Or your adjusted value */
+    justify-content: flex-start;
+    gap: 1.5rem;
+    align-items: center; /* Keep radios vertically centered *within* their own group */
+    margin-left: auto;   /* Keep */
+}
+
+/* ... rules for radio-group label and input ... */
+/* css/main.css */
+
+/* Style the question label */
+.checkin-container .form-group > .form-label {
+    margin-bottom: 0;
+    margin-right: 1rem;
+    /* flex-grow: 1; <-- Keep commented out/deleted */
+    text-align: left;
+    padding-top: 0;
+    padding-bottom: 0;
+    max-width: 65%; /* <<< ADD THIS LINE (Adjust % as needed) */
+    /* You could also use pixels e.g., max-width: 450px; */
+}
+
+/* --- Other rules remain the same --- */
+
+.checkin-container .form-group {
+    display: flex;
+    align-items: baseline; /* Keep baseline for now based on last image */
+    width: 100%;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+}
+
+.checkin-container .radio-group {
+    display: flex;
+    flex-shrink: 0;
+    min-width: 140px; /* Or your adjusted value */
+    justify-content: flex-start;
+     margin-right: 1.5rem;
+    align-items: center;
+    margin-left: auto; /* Keep */
+}
+
+/* ... rules for radio-group label and input ... */
+/* css/main.css */
+
+/* --- Check-in Form Button Styling --- */
+
+/* Center the button container (the form itself often works well) */
+/* Make sure your form has the ID="checkin-form" */
+#checkin-form {
+  text-align: center; /* Centers inline-block elements like buttons */
+  /* Add some space above the button */
+  padding-top: 1.5rem; /* Adjust as needed */
+}
+
+/* Style the specific submit button inside the form */
+#checkin-form button[type="submit"].btn.btn-primary {
+  /* Make the button significantly wider */
+  width: 75%; /* Try starting with a percentage width */
+  max-width: 400px; /* Optional: Prevent it getting TOO wide on very large screens */
+
+  /* Increase padding for a larger feel */
+  padding: 0.8rem 1rem; /* Increase vertical (0.8rem) and horizontal (1rem) padding */
+
+  /* Optionally increase font size */
+  font-size: 1.15rem;
+
+  /* Ensure it behaves correctly for centering and width */
+  display: inline-block; /* Default for buttons, but good to be explicit */
+  vertical-align: middle; /* Helps with alignment if needed */
+}
+/* css/main.css */
+
+/* --- Check-in Form Email Description Styling --- */
+
+/* Target the label specifically associated with the email input */
+.checkin-container .form-group label[for="collect_email"].form-label {
+  display: block; /* Ensure it behaves as a block */
+  width: 100%;    /* Make it take the full width of its container */
+  max-width: none; /* IMPORTANT: Override any previous max-width limit */
+  padding-left: 0; /* Remove horizontal padding if any exists */
+  padding-right: 0;
+  box-sizing: border-box; /* Include padding/border in width calculation */
+  /* Add some space below the label before the input */
+  margin-bottom: 0.5rem; /* Adjust as needed */
+}
+
+/* Ensure the input below it also uses full width (standard for .form-control) */
+.checkin-container .form-group input#collect_email.form-control {
+  width: 100%;
+  box-sizing: border-box;
+}
+/* css/main.css */
+
+.checkin-container {
+  /* --- Keep existing styles like: --- */
+  /* background-color: #fff; */
+  /* padding: 2rem; */
+  /* margin: 2rem auto; */
+  /* max-width: 600px; */
+  /* box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); */
+
+  /* --- Modify or Add border-radius --- */
+  /* Format: top-left top-right bottom-right bottom-left */
+  border-radius: 0 0 8px 8px; /* Use 0 for top corners, original value (e.g., 8px) for bottom */
+
+  /* Optional but recommended: Prevents content from spilling out */
+  overflow: hidden;
+}
+
+/* --- Other form styles remain the same --- */
+
+/* css/main.css */
+
+/* Check-in Page Logo Styling */
+.checkin-logo {
+  /* --- Keep potentially existing styles like: --- */
+  /* width: 95%; */
+  /* max-width: 500px; */
+  /* margin: 1rem auto 0.5rem auto; */ /* Adjust margin if needed */
+  /* text-align: center; */
+
+  /* --- Add/Modify these for rounded top corners --- */
+  border-radius: 8px 8px 0 0; /* Format: top-left top-right bottom-right bottom-left. Adjust 8px as needed */
+  overflow: hidden; /* Crucial: This clips the image inside to the container's rounded shape */
+}
+
+/* Ensure image displays well within the container */
+.checkin-logo img {
+  display: block; /* Removes potential extra space below the image */
+  width: 100%;    /* Makes image fill the container width */
+  height: auto;   /* Maintains aspect ratio */
+}
+/* css/main.css */
+
+/* Check-in Page Logo Styling */
+.checkin-logo {
+  /* --- Keep existing styles like: --- */
+  /* width: 95%; */
+  /* max-width: 500px; */
+  /* text-align: center; */
+  border-radius: 8px 8px 0 0; /* Keep rounded top corners */
+  overflow: hidden;           /* Keep */
+
+  /* --- ADD the box-shadow copied from .checkin-container --- */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* <<< PASTE COPIED VALUE HERE */
+
+  /* --- ENSURE no gap below --- */
+  margin-bottom: 0; /* Remove any bottom margin */
+  /* Adjust margin-top/left/right as needed, e.g., margin: 1rem auto 0 auto; */
+}
+
+.checkin-logo img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+
+/* Check-in Form Container Styling */
+.checkin-container {
+  /* --- Keep existing styles like: --- */
+  /* background-color: #fff; */
+  /* padding: 2rem; */
+  /* max-width: 600px; */
+  border-radius: 0 0 8px 8px; /* Keep sharp top corners */
+  overflow: hidden;           /* Keep */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* <<< Ensure this is the same value */
+
+  /* --- ENSURE no gap above --- */
+  margin-top: 0; /* Remove any top margin */
+  /* Adjust margin-bottom/left/right as needed, e.g., margin: 0 auto 2rem auto; */
+}
+
+/* --- Other styles remain the same --- */
+/* css/main.css */
+
+/* Check-in Page Logo Styling */
+.checkin-logo {
+  /* ... other styles ... */
+  border-radius: 8px 8px 0 0;
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Standard shadow */
+  margin-bottom: 0;
+}
+
+.checkin-logo img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Check-in Form Container Styling */
+.checkin-container {
+  /* ... other styles ... */
+  border-radius: 0 0 8px 8px;
+  overflow: hidden;
+  /* --- ADJUSTED SHADOW for form --- */
+  /* Format: offset-x | offset-y | blur-radius | spread-radius | color */
+  box-shadow: 0 4px 8px -2px rgba(0, 0, 0, 0.1); /* <<< Added -2px spread */
+  margin-top: 0;
+}
+
+/* css/main.css */
+
+/* ============================== */
+/* Checkin Page Layout with Ads   */
+/* ============================== */
+
+.page-wrapper-with-ads {
+  display: grid;
+  /* --- WIDEN SIDEBARS --- */
+  /* Example: Increased from 220px to 280px. Adjust as desired. */
+  grid-template-columns: 280px minmax(auto, 650px) 280px;
+  gap: 30px; /* Slightly increased gap */
+  padding: 1rem 2rem;
+  max-width: 1400px; /* Increased max-width to accommodate wider sidebars */
+  margin: 0 auto;
+  align-items: start;
+}
+
+/* Sidebar Styling */
+.ad-sidebar {
+  padding: 1.5rem; /* Increased padding slightly */
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  height: fit-content; /* Allow height to adjust to content initially */
+
+  /* --- STICKY POSITIONING --- */
+  position: sticky;
+  /* Stick 20px from the top of the viewport */
+  top: 20px;
+
+  /* --- CENTERING CONTENT --- */
+  display: flex; /* Use flexbox to help center content */
+  flex-direction: column; /* Stack items vertically if needed */
+  align-items: center; /* Center items horizontally */
+  justify-content: flex-start; /* Align content towards the top */
+}
+
+.ad-content {
+  text-align: center; /* Center inline content (text) */
+  width: 100%; /* Ensure content block uses full sidebar width */
+}
+
+.ad-content img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto 1rem auto; /* Center block image and add space below */
+}
+
+.ad-content p,
+.ad-content div {
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: #333;
+  margin-bottom: 1rem; /* Add space below text blocks */
+}
+/* Remove margin from the last element in ad-content */
+.ad-content > *:last-child {
+    margin-bottom: 0;
+}
+
+/* Central Content Column */
+.main-content-column {
+  /* No changes needed here usually */
+}
+
+/* Adjustments to Existing Elements (Logo/Form Container) */
+/* ... (Keep rules removing auto margins and setting 100% width/max-width on .checkin-container) ... */
+.checkin-logo {
+  margin: 0 auto 0.5rem auto;
+}
+.checkin-container {
+  margin: 0 0 2rem 0;
+  max-width: 100%;
+  width: 100%;
+}
+
+
+/* ============================== */
+/* Responsive Adjustments         */
+/* ============================== */
+@media (max-width: 1100px) { /* Adjusted breakpoint slightly */
+  .page-wrapper-with-ads {
+    /* Widen center column, reduce sidebar width slightly */
+    grid-template-columns: 240px minmax(auto, 600px) 240px;
+    gap: 20px;
+    padding: 1rem 1.5rem;
+  }
+}
+
+@media (max-width: 992px) {
+  .page-wrapper-with-ads {
+    grid-template-columns: 1fr; /* Single column */
+    padding: 1rem;
+    gap: 1.5rem;
+  }
+
+  .ad-sidebar {
+    /* --- Disable sticky positioning when stacked --- */
+    position: static; /* Revert to default static positioning */
+    top: auto; /* Reset top */
+    width: 100%; /* Take full width in single column */
+    max-width: 500px; /* Optional: Prevent ads getting huge */
+    margin-left: auto; /* Center the ad box */
+    margin-right: auto;
+  }
+
+  .ad-sidebar.ad-left { order: 1; margin-bottom: 1.5rem; }
+  .main-content-column { order: 0; }
+  .ad-sidebar.ad-right { order: 2; margin-bottom: 1.5rem; }
+}
+
+/* Optional: Hide ads on very small screens if desired */
+/* @media (max-width: 576px) {
+    .ad-sidebar {
+        display: none;
+    }
+    .page-wrapper-with-ads {
+       padding: 1rem 0.5rem; // Reduce padding further
+    }
+} */
+/* css/main.css */
+
+/* Sidebar Styling */
+.ad-sidebar {
+  padding: 1.5rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  /* height: fit-content; <-- Remove or comment out if you want sidebar to potentially fill height */
+  /* min-height: 500px; /* Optional: Set a min-height if needed */
+
+  /* Sticky Positioning */
+  position: sticky;
+  top: 20px;
+
+  /* Centering Content */
+  display: flex;
+  flex-direction: column;
+  align-items: center;     /* Keep for horizontal centering */
+  /* justify-content: flex-start; <-- CHANGE THIS */
+  justify-content: center;     /* <<< TO THIS (Vertical Center) */
+}
+
+/* --- NO CHANGES to .ad-content or .ad-content img needed usually --- */
+.ad-content {
+  text-align: center;
+  width: 100%;
+}
+.ad-content img { /* ... */ }
+.ad-content p, .ad-content div { /* ... */ }
+.ad-content > *:last-child { margin-bottom: 0; }
+
+/* --- Other rules (.page-wrapper-with-ads, etc.) remain the same --- */
+/* css/main.css */
+
+/* Sidebar Styling */
+.ad-sidebar {
+  padding: 1.5rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+
+  /* Sticky Positioning */
+  position: sticky;
+  top: 20px;
+
+  /* === REMOVE Flexbox properties === */
+  /* display: flex; */
+  /* flex-direction: column; */
+  /* align-items: center; */
+  /* justify-content: center; */
+
+  
+  /* Optional: min-height might still be needed if grid row isn't tall enough */
+  /* min-height: 400px; */
+}
+
+/* Keep content centering rules */
+.ad-content {
+  text-align: center;
+  width: 100%;
+}
+
+.ad-content img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto 1rem auto; /* Center image and add space below */
+}
+.ad-content p,
+.ad-content div {
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: #333;
+  margin-bottom: 1rem;
+}
+.ad-content > *:last-child {
+    margin-bottom: 0;
+}
+
+/* --- Other rules (.page-wrapper-with-ads, etc.) remain the same --- */
+
+.page-wrapper-with-ads {
+  display: grid;
+  grid-template-columns: 280px minmax(auto, 650px) 280px; /* Or your adjusted values */
+  gap: 30px;
+  padding: 1rem 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  /* Changed this back to start, but 'center' could be tried if needed */
+  align-items: start;
+}
+.ad-sidebar {
+    padding: 4rem 1.5rem; /* <<< INCREASED top/bottom padding */
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    position: sticky;
+    top: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start; /* Content starts near top padding */
+    height: fit-content; /* Let padding define height */
+}
+/* css/main.css */
+
+/* Sidebar Styling */
+.ad-sidebar {
+  padding: 1.5rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  /* min-height: 400px; /* Optional: Consider a min-height */
+
+  /* Sticky Positioning */
+  position: sticky;
+  /* top: 20px; */ /* <<< REMOVE or comment out hardcoded 'top' */
+
+  /* Centering Content WITHIN sidebar */
+  display: flex;
+  flex-direction: column;
+  align-items: center;     /* Horizontal Center */
+  justify-content: center; /* Vertical Center */
+  /* Ensure sidebar can shrink if needed, although width is set by grid */
+  flex-shrink: 0;
+}
+
+/* Add this to ensure inner content doesn't prevent centering */
+.ad-content {
+    width: 100%;
+    /* Add max-height if ads can be very tall and you want scroll within ad */
+    /* max-height: calc(100vh - 100px); /* Example: limit height */
+    /* overflow-y: auto; */
+}
+
+
+/* --- Other rules (.page-wrapper-with-ads, etc.) remain the same --- */
+.page-wrapper-with-ads {
+  display: grid;
+  grid-template-columns: 280px minmax(auto, 650px) 280px;
+  gap: 30px;
+  padding: 1rem 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  align-items: start; /* Align grid items to the top */
+}
+/* ... etc ... */
+
+/* Responsive */
+@media (max-width: 992px) {
+    /* ... */
+    .ad-sidebar {
+        position: static; /* Keep this override for stacking */
+        /* ... other stacking styles ... */
+    }
+    /* ... */
+}
+.page-wrapper-with-ads {
+    display: grid;
+    /* ... */
+    /* align-items: start; */
+    align-items: stretch; /* OR try center */
+}
+.page-wrapper-with-ads {
+    display: grid;
+    grid-template-columns: 280px minmax(auto, 650px) 280px;
+    gap: 30px;
+    padding: 1rem 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    /* Experiment with these: */
+    /* align-items: start; */
+    align-items: stretch; /* Try default first */
+    /* align-items: center; */ /* Try this second if stretch doesn't work */
+}
+/* css/main.css */
+
+.page-wrapper-with-ads {
+    display: grid;
+    grid-template-columns: 280px minmax(auto, 650px) 280px;
+    gap: 30px;
+    padding: 1rem 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    align-items: start; /* <<< IMPORTANT: Align items to the top of the grid row */
+}
+
+/* Sidebar Styling */
+.ad-sidebar {
+  padding: 1.5rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+
+  position: sticky;
+  top: 60px; /* <<< ADJUST THIS: Fixed offset from top - visually place it */
+
+  /* Limit height & allow internal scroll if content overflows */
+  max-height: calc(100vh - 80px); /* Max height = viewport height minus top/bottom margins */
+  overflow-y: auto; /* Add scrollbar *within* sidebar if content is taller */
+
+  /* Remove flex centering - content will flow naturally */
+  /* display: flex; */
+  /* flex-direction: column; */
+  /* align-items: center; */
+  /* justify-content: center; */
+}
+
+.ad-content {
+  /* Remove centering styles if sidebar isn't flex */
+   text-align: left; /* Or center if preferred */
+   width: 100%;
+}
+
+.ad-content img {
+  max-width: 100%;
+  height: auto;
+  display: block; /* Or inline-block if text-align:center is on parent */
+  margin-bottom: 1rem;
+  /* margin-left: auto; margin-right: auto; <-- remove if text-align:left */
+}
+/* ... other styles ... */
+
+/* Responsive */
+@media (max-width: 992px) {
+    /* ... */
+    .ad-sidebar {
+        position: static; /* Keep override for stacking */
+        top: auto;
+        max-height: none; /* Remove max-height when stacked */
+        overflow-y: visible; /* Remove scrollbar when stacked */
+        /* ... other stacking styles ... */
+    }
+    /* ... */
+}
+/* css/main.css */
+
+/* ============================== */
+/* Checkin Page Layout with Ads   */
+/* ============================== */
+
+.page-wrapper-with-ads {
+  display: grid;
+  grid-template-columns: 280px minmax(auto, 650px) 280px; /* Adjust as needed */
+  gap: 30px;
+  padding: 1rem 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  /* align-items: start; */     /* CHANGE THIS */
+  align-items: stretch;   /* <<< TO THIS (Default - allow items to stretch vertically) */
+}
+
+/* Sidebar Styling */
+.ad-sidebar {
+  padding: 1.5rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+
+  position: sticky;
+  top: 60px; /* <<< KEEP YOUR DESIRED OFFSET */
+
+  max-height: calc(100vh - 80px); /* Keep */
+  overflow-y: auto;             /* Keep */
+
+  /* Add flex centering back for content *within* the sidebar */
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Horizontal Center */
+  justify-content: center; /* Vertical Center (will work if sidebar stretches) */
+}
+
+.ad-content {
+  text-align: center;
+  width: 100%;
+  /* Consider max-width if needed */
+}
+
+.ad-content img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto 1rem auto;
+}
+/* ... other ad content styles ... */
+
+
+/* Central Content Column */
+.main-content-column {
+  /* This column will determine the height of the grid row */
+}
+
+/* ... other existing styles ... */
+
+/* --- Responsive --- */
+@media (max-width: 992px) {
+    /* ... */
+    .ad-sidebar {
+        position: static; /* Keep */
+        top: auto;
+        max-height: none;
+        overflow-y: visible;
+        /* Remove flex centering if not desired when stacked? */
+         /* display: block; */
+    }
+    /* ... */
+}
+/* css/main.css */
+
+/* ============================== */
+/* Checkin Page Layout with Ads   */
+/* ============================== */
+
+.page-wrapper-with-ads {
+  display: grid;
+  grid-template-columns: 280px minmax(auto, 650px) 280px; /* Adjust as needed */
+  gap: 30px;
+  padding: 1rem 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  align-items: start; /* Keep items aligned to the top of the grid row */
+}
+
+/* Sidebar Styling - Simplified */
+.ad-sidebar {
+  padding: 1.5rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+
+  /* --- Sticky Positioning --- */
+  position: sticky;
+  top: 60px; /* <<< MAKE SURE this is the offset you want */
+
+  /* --- Optional: Height constraints & internal scroll --- */
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+
+  /* --- REMOVED Flexbox & align-self --- */
+  /* display: flex; */
+  /* flex-direction: column; */
+  /* align-items: center; */
+  /* justify-content: center; */
+  /* align-self: center; */ /* <<< REMOVED */
+}
+
+/* Keep styles for content *inside* the sidebar */
+.ad-content {
+  text-align: center; /* Center text/images horizontally */
+  width: 100%;
+}
+
+.ad-content img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto 1rem auto;
+}
+/* ... other .ad-content styles ... */
+
+
+/* --- Other rules (.main-content-column, .checkin-logo, .checkin-container, responsive) remain the same --- */
+/* Make sure the @media query for 992px still includes position: static; for .ad-sidebar */
+@media (max-width: 992px) {
+    /* ... */
+    .ad-sidebar {
+        position: static;
+        top: auto;
+        max-height: none;
+        overflow-y: visible;
+        /* ... other stacking styles ... */
+    }
+    /* ... */
+}
+/* css/main.css */
+
+/* ============================== */
+/* Checkin Page Layout with Ads   */
+/* ============================== */
+
+.page-wrapper-with-ads {
+  display: grid;
+  /* --- ADJUST SIDEBAR WIDTHS --- */
+  /* Increased from 280px to 330px */
+  grid-template-columns: 330px minmax(auto, 650px) 330px;
+  gap: 30px;
+  padding: 1rem 2rem;
+  /* --- INCREASE MAX WIDTH --- */
+  max-width: 1500px; /* Increased from 1400px */
+  margin: 0 auto;
+  align-items: start;
+}
+
+/* Sidebar Styling (No changes needed here) */
+.ad-sidebar {
+  padding: 1.5rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  position: sticky;
+  top: 60px; /* Or your preferred value */
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  /* No flex needed for positioning */
+}
+
+/* Ad Content & Image Styling (No changes needed here) */
+.ad-content {
+  text-align: center;
+  width: 100%;
+}
+
+.ad-content img {
+  max-width: 100%; /* Image will fill the new wider sidebar */
+  height: auto;
+  display: block;
+  margin: 0 auto 1rem auto;
+}
+/* ... other ad content styles ... */
+
+
+/* Central Content Column (No changes needed here) */
+.main-content-column { }
+
+/* ... other styles ... */
+
+
+/* ============================== */
+/* Responsive Adjustments         */
+/* ============================== */
+
+/* Adjust intermediate breakpoint if needed due to wider sidebars */
+@media (max-width: 1200px) { /* Example: Increased breakpoint from 1100px */
+  .page-wrapper-with-ads {
+    /* Adjust widths for medium screens */
+    grid-template-columns: 260px minmax(auto, 580px) 260px; /* Example adjustment */
+    gap: 20px;
+    padding: 1rem 1.5rem;
+     max-width: 1140px; /* Adjust max width */
+  }
+}
+
+/* Keep the main stacking breakpoint */
+@media (max-width: 992px) {
+  .page-wrapper-with-ads {
+    grid-template-columns: 1fr; /* Single column */
+    /* ... other stacking styles ... */
+  }
+  .ad-sidebar {
+    position: static; /* Keep */
+    /* ... other stacking styles ... */
+  }
+  /* ... order rules ... */
+}
+
+/* ... other styles ... */

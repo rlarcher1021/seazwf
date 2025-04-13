@@ -1,0 +1,32 @@
+ Example .gitignore entries
+.well-known
+# Configuration files with sensitive data (create examples like wp-config-sample.php)
+wp-config.php
+.env
+config.ini
+*.log
+Checkin/
+# Cache folders
+cache/
+wp-content/cache/
+hashtest.php
+# User uploads (if they are large/dynamic and shouldn't be in version control)
+wp-content/uploads/
+assets/uploads/ads/
+.htaccess
+# Node.js dependencies (if applicable)
+node_modules/
+
+favicon.ico
+faviconlogo.png
+
+# Composer dependencies (if applicable)
+vendor/
+error_log
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.bak
+*.old
