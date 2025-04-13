@@ -1,161 +1,773 @@
-[10-Apr-2025 11:35:13 UTC] Admin action: Error log cleared by user ID: 1
-[10-Apr-2025 11:35:13 UTC] Alerts Debug: Checking current directory path: /home/rlarcher/public_html/error_log
-[10-Apr-2025 11:35:13 UTC] Alerts Debug: Found log file in current directory.
-[10-Apr-2025 11:35:13 UTC] Alerts INFO: Determined log file path: /home/rlarcher/public_html/error_log
-[10-Apr-2025 11:35:24 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+[13-Apr-2025 13:43:38 UTC] Admin action: Error log cleared by user ID: 1
+[13-Apr-2025 13:43:38 UTC] Alerts Debug: Checking current directory path: /home/rlarcher/public_html/error_log
+[13-Apr-2025 13:43:38 UTC] Alerts Debug: Found log file in current directory.
+[13-Apr-2025 13:43:38 UTC] Alerts INFO: Determined log file path: /home/rlarcher/public_html/error_log
+[13-Apr-2025 13:43:40 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 13:43:40 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 13:43:40 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 13:43:40 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 13:43:40 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Interview Skills Training
+[13-Apr-2025 13:44:01 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 13:44:01 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 13:44:01 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 13:44:01 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 13:44:01 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Resume Workshop
+[13-Apr-2025 13:44:06 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 13:44:06 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 13:44:06 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 13:44:06 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 13:44:06 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Interview Skills Training
+[13-Apr-2025 13:44:12 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 13:44:12 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 13:44:12 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 13:44:12 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 13:44:12 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Interview Skills Training
+[13-Apr-2025 13:44:14 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 13:44:14 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 13:44:14 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 13:44:14 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 13:44:14 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Resume Workshop
+[13-Apr-2025 13:44:15 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 13:44:15 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 13:44:15 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 13:44:15 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 13:44:15 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Interview Skills Training
+[13-Apr-2025 13:44:16 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 13:44:16 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 13:44:16 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 13:44:16 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 13:44:16 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Hiring Fair
+[13-Apr-2025 13:44:17 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 13:44:17 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 13:44:17 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 13:44:17 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 13:44:17 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Hiring Fair
+[13-Apr-2025 13:44:19 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 13:44:19 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 13:44:19 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 13:44:19 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 13:44:19 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Hiring Fair
+[13-Apr-2025 13:44:21 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 13:44:21 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 13:44:21 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 13:44:21 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 13:44:21 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Resume Workshop
+[13-Apr-2025 13:44:22 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 13:44:22 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 13:44:22 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 13:44:22 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 13:44:22 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Resume Workshop, Right Ad: Interview Skills Training
+[13-Apr-2025 13:44:23 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 13:44:23 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 13:44:23 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 13:44:23 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 13:44:23 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Resume Workshop
+[13-Apr-2025 13:44:24 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 13:44:24 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 13:44:24 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 13:44:24 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 13:44:24 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Resume Workshop, Right Ad: Interview Skills Training
+[13-Apr-2025 13:44:25 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 13:44:25 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 13:44:25 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 13:44:25 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 13:44:25 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Resume Workshop
+[13-Apr-2025 13:45:18 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 13:45:18 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 13:45:18 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 13:45:18 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 13:45:18 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Interview Skills Training
+[13-Apr-2025 13:45:25 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 13:45:25 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 13:45:25 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 13:45:25 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 13:45:25 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Interview Skills Training
+[13-Apr-2025 13:45:26 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 13:45:26 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 13:45:26 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 13:45:26 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 13:45:26 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Resume Workshop
+[13-Apr-2025 13:48:31 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 13:48:31 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 13:48:31 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 13:48:31 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 13:48:31 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Resume Workshop
+[13-Apr-2025 13:50:44 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 13:50:44 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 13:50:44 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 13:50:44 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 13:50:44 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Resume Workshop
+[13-Apr-2025 13:52:15 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 13:52:15 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 13:52:15 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 13:52:15 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 13:52:15 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Resume Workshop, Right Ad: Hiring Fair
+[13-Apr-2025 13:53:22 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 13:53:22 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 13:53:22 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 13:53:22 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 13:53:22 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Resume Workshop
+[13-Apr-2025 13:56:18 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 13:56:18 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 13:56:18 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 13:56:18 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 13:56:18 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Hiring Fair
+[13-Apr-2025 13:56:43 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 13:56:43 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 13:56:43 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 13:56:43 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 13:56:43 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Interview Skills Training
+[13-Apr-2025 13:56:45 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 13:56:45 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 13:56:45 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 13:56:45 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 13:56:45 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Resume Workshop
+[13-Apr-2025 13:56:46 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 13:56:46 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 13:56:46 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 13:56:46 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 13:56:46 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Hiring Fair
+[13-Apr-2025 13:56:47 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 13:56:47 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 13:56:47 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 13:56:47 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 13:56:47 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Interview Skills Training
+[13-Apr-2025 13:56:50 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 13:56:50 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 13:56:50 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 13:56:50 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 13:56:50 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Resume Workshop
+[13-Apr-2025 13:57:25 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 13:57:25 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 13:57:25 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 13:57:25 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 13:57:25 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Resume Workshop
+[13-Apr-2025 13:59:05 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 13:59:05 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 13:59:05 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 13:59:05 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 13:59:05 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Resume Workshop
+[13-Apr-2025 14:00:12 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:00:12 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:00:12 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:00:12 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:00:12 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Resume Workshop
+[13-Apr-2025 14:01:13 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:01:13 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:01:13 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:01:13 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:01:13 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Resume Workshop, Right Ad: Hiring Fair
+[13-Apr-2025 14:05:46 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:05:46 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:05:46 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:05:46 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:05:46 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Resume Workshop
+[13-Apr-2025 14:07:59 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:07:59 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:07:59 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:07:59 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:07:59 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Resume Workshop, Right Ad: Interview Skills Training
+[13-Apr-2025 14:08:29 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:08:29 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:08:29 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:08:29 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:08:29 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Interview Skills Training
+[13-Apr-2025 14:10:43 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:10:43 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:10:43 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:10:43 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:10:43 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Resume Workshop
+[13-Apr-2025 14:12:44 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:12:44 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:12:44 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:12:44 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:12:44 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Hiring Fair
+[13-Apr-2025 14:14:15 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:14:15 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:14:15 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:14:15 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:14:15 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Hiring Fair
+[13-Apr-2025 14:14:55 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:14:55 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:14:55 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:14:55 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:14:55 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Resume Workshop
+[13-Apr-2025 14:14:58 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:14:58 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:14:58 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:14:58 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:14:58 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Resume Workshop, Right Ad: Interview Skills Training
+[13-Apr-2025 14:15:25 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:15:25 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:15:25 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:15:25 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:15:25 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Hiring Fair
+[13-Apr-2025 14:18:26 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:18:26 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:18:26 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:18:26 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:18:26 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Resume Workshop
+[13-Apr-2025 14:19:57 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:19:57 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:19:57 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:19:57 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:19:57 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Hiring Fair
+[13-Apr-2025 14:21:27 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:21:27 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:21:27 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:21:27 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:21:27 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Hiring Fair
+[13-Apr-2025 14:21:42 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:21:42 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:21:42 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:21:42 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:21:42 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Interview Skills Training
+[13-Apr-2025 14:24:06 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:24:06 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:24:06 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:24:06 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:24:06 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Interview Skills Training
+[13-Apr-2025 14:25:37 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:25:37 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:25:37 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:25:37 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:25:37 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Resume Workshop
+[13-Apr-2025 14:28:07 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:28:07 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:28:07 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:28:07 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:28:07 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Resume Workshop, Right Ad: Interview Skills Training
+[13-Apr-2025 14:29:58 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:29:58 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:29:58 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:29:58 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:29:58 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Resume Workshop
+[13-Apr-2025 14:30:23 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:30:23 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:30:23 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:30:23 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:30:23 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Resume Workshop
+[13-Apr-2025 14:30:51 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:30:51 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:30:51 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:30:51 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:30:51 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Hiring Fair
+[13-Apr-2025 14:33:15 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:33:15 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:33:15 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:33:15 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:33:15 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Resume Workshop, Right Ad: Interview Skills Training
+[13-Apr-2025 14:34:52 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:34:52 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:34:52 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:34:52 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:34:52 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Interview Skills Training
+[13-Apr-2025 14:37:18 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:37:18 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:37:18 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:37:18 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:37:18 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Resume Workshop
+[13-Apr-2025 14:38:24 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:38:24 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:38:24 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:38:24 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:38:24 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Hiring Fair
+[13-Apr-2025 14:41:10 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:41:10 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:41:10 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:41:10 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:41:10 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Interview Skills Training
+[13-Apr-2025 14:42:41 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:42:41 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:42:41 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:42:41 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:42:41 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Resume Workshop, Right Ad: Interview Skills Training
+[13-Apr-2025 14:46:44 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:46:44 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:46:44 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:46:44 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:46:44 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Resume Workshop
+[13-Apr-2025 14:48:15 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:48:15 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:48:15 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:48:15 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:48:15 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Resume Workshop, Right Ad: Interview Skills Training
+[13-Apr-2025 14:48:31 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:48:31 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:48:31 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:48:31 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:48:31 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Resume Workshop, Right Ad: Interview Skills Training
+[13-Apr-2025 14:48:33 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:48:34 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:48:34 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:48:34 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:48:34 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Resume Workshop, Right Ad: Hiring Fair
+[13-Apr-2025 14:48:54 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:48:54 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:48:54 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:48:54 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:48:54 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Resume Workshop
+[13-Apr-2025 14:49:25 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:49:25 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:49:25 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:49:25 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:49:25 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Interview Skills Training
+[13-Apr-2025 14:54:56 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:54:56 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:54:56 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:54:56 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:54:56 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Interview Skills Training
+[13-Apr-2025 14:58:16 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:58:16 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:58:16 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:58:16 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:58:16 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Interview Skills Training
+[13-Apr-2025 14:58:47 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:58:47 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:58:47 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:58:47 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:58:47 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Resume Workshop, Right Ad: Interview Skills Training
+[13-Apr-2025 14:58:54 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:58:54 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:58:54 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:58:54 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:58:54 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Resume Workshop, Right Ad: Hiring Fair
+[13-Apr-2025 14:59:55 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 14:59:55 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 14:59:55 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 14:59:55 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 14:59:55 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Resume Workshop, Right Ad: Hiring Fair
+[13-Apr-2025 15:01:08 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:01:08 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:01:08 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:01:08 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:01:08 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Resume Workshop
+[13-Apr-2025 15:01:10 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:01:10 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:01:10 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:01:10 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:01:10 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Resume Workshop
+[13-Apr-2025 15:01:15 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:01:15 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:01:15 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:01:15 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:01:15 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Resume Workshop, Right Ad: Interview Skills Training
+[13-Apr-2025 15:01:18 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:01:18 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:01:18 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:01:18 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:01:18 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Resume Workshop
+[13-Apr-2025 15:09:01 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:09:01 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:09:01 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:09:01 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:09:01 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Hiring Fair
+[13-Apr-2025 15:17:28 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:17:28 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:17:28 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:17:28 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:17:28 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Hiring Fair
+[13-Apr-2025 15:18:59 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:18:59 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:18:59 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:18:59 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:18:59 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Resume Workshop
+[13-Apr-2025 15:20:30 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:20:30 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:20:30 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:20:30 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:20:30 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Interview Skills Training
+[13-Apr-2025 15:22:01 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:22:01 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:22:01 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:22:01 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:22:01 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Hiring Fair
+[13-Apr-2025 15:23:32 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:23:32 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:23:32 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:23:32 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:23:32 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Resume Workshop
+[13-Apr-2025 15:25:03 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:25:03 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:25:03 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:25:03 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:25:03 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Resume Workshop, Right Ad: Interview Skills Training
+[13-Apr-2025 15:25:07 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
 (
-    [0] => q_interviewhelp
+    [0] => q_interview_help
+    [1] => q_job_fair
+    [2] => q_key_skills
+    [3] => q_resume_help
+    [4] => q_unemployment
 )
 
-[10-Apr-2025 11:35:24 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
-[10-Apr-2025 11:35:33 UTC] READING settings for Site ID 4: Active=1, AllowEmail=0, AllowNotify=0
-[10-Apr-2025 11:35:37 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+[13-Apr-2025 15:25:07 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[13-Apr-2025 15:25:13 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:25:13 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:25:13 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:25:13 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:25:13 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Resume Workshop, Right Ad: Hiring Fair
+[13-Apr-2025 15:25:34 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:25:34 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:25:34 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:25:34 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:25:34 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Resume Workshop
+[13-Apr-2025 15:27:50 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:27:50 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:27:50 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:27:50 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:27:50 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Resume Workshop, Right Ad: Interview Skills Training
+[13-Apr-2025 15:28:14 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:28:14 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:28:14 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:28:14 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:28:14 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Interview Skills Training
+[13-Apr-2025 15:30:20 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:30:20 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:30:20 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:30:20 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:30:20 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Resume Workshop
+[13-Apr-2025 15:31:50 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:31:50 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:31:50 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:31:50 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:31:50 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Interview Skills Training
+[13-Apr-2025 15:33:26 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:33:26 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:33:26 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:33:26 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:33:26 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Resume Workshop, Right Ad: Hiring Fair
+[13-Apr-2025 15:33:27 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:33:27 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:33:27 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:33:27 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:33:27 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Resume Workshop
+[13-Apr-2025 15:33:28 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:33:28 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:33:28 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:33:28 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:33:28 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Resume Workshop
+[13-Apr-2025 15:33:29 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:33:29 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:33:29 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:33:29 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:33:29 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Resume Workshop
+[13-Apr-2025 15:33:29 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:33:29 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:33:29 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:33:29 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:33:29 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Resume Workshop, Right Ad: Interview Skills Training
+[13-Apr-2025 15:33:30 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:33:30 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:33:30 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:33:30 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:33:30 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Resume Workshop, Right Ad: Interview Skills Training
+[13-Apr-2025 15:33:31 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:33:31 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:33:31 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:33:31 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:33:31 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Hiring Fair
+[13-Apr-2025 15:33:32 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:33:32 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:33:32 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:33:32 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:33:32 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Interview Skills Training
+[13-Apr-2025 15:33:33 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:33:33 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:33:33 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:33:33 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:33:33 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Hiring Fair
+[13-Apr-2025 15:33:34 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:33:34 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:33:34 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:33:34 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:33:34 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Resume Workshop
+[13-Apr-2025 15:33:35 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:33:35 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:33:35 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:33:35 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:33:35 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Interview Skills Training
+[13-Apr-2025 15:33:35 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:33:35 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:33:35 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:33:35 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:33:35 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Resume Workshop, Right Ad: Hiring Fair
+[13-Apr-2025 15:33:36 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:33:36 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:33:36 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:33:36 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:33:36 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Resume Workshop, Right Ad: Interview Skills Training
+[13-Apr-2025 15:33:37 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:33:37 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:33:37 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:33:37 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:33:37 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Hiring Fair
+[13-Apr-2025 15:33:38 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:33:38 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:33:38 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:33:38 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:33:38 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Hiring Fair
+[13-Apr-2025 15:33:39 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:33:39 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:33:39 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:33:39 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:33:39 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Interview Skills Training
+[13-Apr-2025 15:33:39 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:33:39 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:33:39 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:33:39 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:33:39 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Resume Workshop, Right Ad: Hiring Fair
+[13-Apr-2025 15:35:10 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 15:35:10 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 15:35:10 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 15:35:10 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 15:35:10 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Resume Workshop, Right Ad: Interview Skills Training
+[13-Apr-2025 16:12:59 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
 (
-    [0] => q_interviewhelp
+    [0] => q_interview_help
+    [1] => q_job_fair
+    [2] => q_key_skills
+    [3] => q_resume_help
+    [4] => q_unemployment
 )
 
-[10-Apr-2025 11:35:37 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
-[10-Apr-2025 11:37:33 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+[13-Apr-2025 16:12:59 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[13-Apr-2025 16:13:04 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 16:13:04 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 16:13:04 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 16:13:04 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 16:13:04 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Interview Skills Training
+[13-Apr-2025 16:15:12 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 16:15:12 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 16:15:12 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 16:15:12 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 16:15:12 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Interview Skills Training, Right Ad: Hiring Fair
+[13-Apr-2025 16:16:43 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 16:16:43 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 16:16:43 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 16:16:43 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 16:16:43 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Resume Workshop, Right Ad: Interview Skills Training
+[13-Apr-2025 17:24:28 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
 (
-    [0] => q_interviewhelp
+    [0] => q_interview_help
+    [1] => q_job_fair
+    [2] => q_key_skills
+    [3] => q_resume_help
+    [4] => q_unemployment
 )
 
-[10-Apr-2025 11:37:33 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
-[10-Apr-2025 11:37:36 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+[13-Apr-2025 17:24:28 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[13-Apr-2025 17:24:47 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 17:24:47 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 17:24:47 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 17:24:47 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 17:24:47 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Interview Skills Training
+[13-Apr-2025 17:25:14 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
 (
-    [0] => q_interviewhelp
+    [0] => q_interview_help
+    [1] => q_job_fair
+    [2] => q_key_skills
+    [3] => q_resume_help
+    [4] => q_unemployment
 )
 
-[10-Apr-2025 11:37:36 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
-[10-Apr-2025 11:38:03 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+[13-Apr-2025 17:25:14 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[13-Apr-2025 17:25:31 UTC] Reports Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
 (
-    [0] => q_interviewhelp
+    [0] => q_interview_help
+    [1] => q_job_fair
+    [2] => q_key_skills
+    [3] => q_resume_help
+    [4] => q_unemployment
 )
 
-[10-Apr-2025 11:38:03 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
-[10-Apr-2025 11:42:52 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+[13-Apr-2025 17:25:44 UTC] --- Custom Report Debug ---
+[13-Apr-2025 17:25:44 UTC] Generated SQL: SELECT DATE_FORMAT(ci.check_in_time, '%x-%v') AS grouping_key, SUM(CASE WHEN ci.`q_interview_help` = 'YES' THEN 1 ELSE 0 END) AS `q_interview_help_yes_count`
+            FROM check_ins ci 
+[13-Apr-2025 17:25:44 UTC] SQL Parameters: Array
 (
-    [0] => q_interviewhelp
+    [:start_date] => 2025-03-15 00:00:00
+    [:end_date] => 2025-04-13 23:59:59
 )
 
-[10-Apr-2025 11:42:52 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
-[10-Apr-2025 11:47:43 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+[13-Apr-2025 17:25:44 UTC] Raw DB Results: Array
 (
-    [0] => q_interviewhelp
+    [0] => Array
+        (
+            [grouping_key] => 2025-15
+            [q_interview_help_yes_count] => 7
+        )
+
 )
 
-[10-Apr-2025 11:47:43 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
-[10-Apr-2025 11:48:54 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+[13-Apr-2025 17:25:52 UTC] --- Custom Report Debug ---
+[13-Apr-2025 17:25:52 UTC] Generated SQL: SELECT DATE_FORMAT(ci.check_in_time, '%x-%v') AS grouping_key, SUM(CASE WHEN ci.`q_interview_help` = 'YES' THEN 1 ELSE 0 END) AS `q_interview_help_yes_count`, SUM(CASE WHEN ci.`q_job_fair` = 'YES' THEN 1 ELSE 0 END) AS `q_job_fair_yes_count`, SUM(CASE WHEN ci.`q_key_skills` = 'YES' THEN 1 ELSE 0 END) AS `q_key_skills_yes_count`
+            FROM check_ins ci 
+[13-Apr-2025 17:25:52 UTC] SQL Parameters: Array
 (
-    [0] => q_interviewhelp
+    [:start_date] => 2025-03-15 00:00:00
+    [:end_date] => 2025-04-13 23:59:59
 )
 
-[10-Apr-2025 11:48:54 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
-[10-Apr-2025 11:51:36 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+[13-Apr-2025 17:25:52 UTC] Raw DB Results: Array
 (
-    [0] => q_interviewhelp
+    [0] => Array
+        (
+            [grouping_key] => 2025-15
+            [q_interview_help_yes_count] => 7
+            [q_job_fair_yes_count] => 0
+            [q_key_skills_yes_count] => 7
+        )
+
 )
 
-[10-Apr-2025 11:51:36 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
-[10-Apr-2025 11:51:56 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+[13-Apr-2025 17:26:21 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
 (
-    [0] => q_interviewhelp
+    [0] => q_interview_help
+    [1] => q_job_fair
+    [2] => q_key_skills
+    [3] => q_resume_help
+    [4] => q_unemployment
 )
 
-[10-Apr-2025 11:51:56 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
-[10-Apr-2025 11:54:56 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+[13-Apr-2025 17:26:21 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[13-Apr-2025 17:26:50 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 17:26:50 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 17:26:50 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 17:26:50 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 17:26:50 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Resume Workshop
+[13-Apr-2025 17:26:55 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 17:26:55 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 17:26:55 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 17:26:55 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 17:26:55 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Interview Skills Training
+[13-Apr-2025 17:26:58 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 17:26:58 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 17:26:58 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 17:26:58 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 17:26:58 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Resume Workshop
+[13-Apr-2025 17:27:54 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 17:27:54 UTC] Checkin: Using manual_site_id 2 for role administrator
+[13-Apr-2025 17:27:54 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 2
+[13-Apr-2025 17:27:54 UTC] [DEBUG checkin.php] Site 2 Configs Read: AllowEmail=0, AllowNotifier=0
+[13-Apr-2025 17:27:54 UTC] PHP Warning:  Undefined variable $left_ad in /home/rlarcher/public_html/checkin.php on line 165
+[13-Apr-2025 17:27:54 UTC] PHP Warning:  Undefined variable $right_ad in /home/rlarcher/public_html/checkin.php on line 165
+[13-Apr-2025 17:27:54 UTC] Checkin Ad Fetch - Site ID 2 - Left Ad: None, Right Ad: None
+[13-Apr-2025 17:27:54 UTC] PHP Warning:  Undefined variable $left_ad in /home/rlarcher/public_html/checkin.php on line 426
+[13-Apr-2025 17:27:54 UTC] PHP Warning:  Undefined variable $right_ad in /home/rlarcher/public_html/checkin.php on line 521
+[13-Apr-2025 17:28:31 UTC] SUCCESS POST HANDLER (Site ID: 2): Updated sites table. Rows affected: 0.
+[13-Apr-2025 17:30:07 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
 (
-    [0] => q_interviewhelp
+    [0] => q_interview_help
+    [1] => q_job_fair
+    [2] => q_key_skills
+    [3] => q_resume_help
+    [4] => q_unemployment
 )
 
-[10-Apr-2025 11:54:56 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
-[10-Apr-2025 11:59:14 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+[13-Apr-2025 17:30:07 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[13-Apr-2025 17:30:19 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
 (
-    [0] => q_interviewhelp
+    [0] => q_interview_help
+    [1] => q_job_fair
+    [2] => q_key_skills
+    [3] => q_resume_help
+    [4] => q_unemployment
 )
 
-[10-Apr-2025 11:59:14 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
-[10-Apr-2025 12:47:21 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+[13-Apr-2025 17:30:19 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[13-Apr-2025 17:30:31 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
 (
-    [0] => q_interviewhelp
+    [0] => q_interview_help
+    [1] => q_job_fair
+    [2] => q_key_skills
+    [3] => q_resume_help
+    [4] => q_unemployment
 )
 
-[10-Apr-2025 12:47:21 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
-[10-Apr-2025 12:50:05 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+[13-Apr-2025 17:30:31 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[13-Apr-2025 17:30:41 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
 (
-    [0] => q_interviewhelp
+    [0] => q_interview_help
+    [1] => q_job_fair
+    [2] => q_key_skills
+    [3] => q_resume_help
+    [4] => q_unemployment
 )
 
-[10-Apr-2025 12:50:05 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
-[10-Apr-2025 12:50:57 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+[13-Apr-2025 17:30:41 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[13-Apr-2025 17:32:32 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
 (
-    [0] => q_interviewhelp
+    [0] => q_interview_help
+    [1] => q_job_fair
+    [2] => q_key_skills
+    [3] => q_resume_help
+    [4] => q_unemployment
 )
 
-[10-Apr-2025 12:50:57 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
-[10-Apr-2025 12:58:27 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+[13-Apr-2025 17:32:32 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[13-Apr-2025 17:32:44 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
 (
-    [0] => q_interviewhelp
+    [0] => q_interview_help
+    [1] => q_job_fair
+    [2] => q_key_skills
+    [3] => q_resume_help
+    [4] => q_unemployment
 )
 
-[10-Apr-2025 12:58:27 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
-[10-Apr-2025 12:58:38 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+[13-Apr-2025 17:32:44 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[13-Apr-2025 17:33:29 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
 (
-    [0] => q_interviewhelp
+    [0] => q_interview_help
+    [1] => q_job_fair
+    [2] => q_key_skills
+    [3] => q_resume_help
+    [4] => q_unemployment
 )
 
-[10-Apr-2025 12:58:38 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
-[10-Apr-2025 13:02:12 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+[13-Apr-2025 17:33:29 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[13-Apr-2025 17:34:13 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
 (
-    [0] => q_interviewhelp
+    [0] => q_interview_help
+    [1] => q_job_fair
+    [2] => q_key_skills
+    [3] => q_resume_help
+    [4] => q_unemployment
 )
 
-[10-Apr-2025 13:02:12 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
-[10-Apr-2025 13:05:23 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+[13-Apr-2025 17:34:13 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[13-Apr-2025 17:34:15 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
 (
-    [0] => q_interviewhelp
+    [0] => q_interview_help
+    [1] => q_job_fair
+    [2] => q_key_skills
+    [3] => q_resume_help
+    [4] => q_unemployment
 )
 
-[10-Apr-2025 13:05:23 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
-[10-Apr-2025 13:05:28 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+[13-Apr-2025 17:34:15 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[13-Apr-2025 17:34:18 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
 (
-    [0] => q_interviewhelp
+    [0] => q_interview_help
+    [1] => q_job_fair
+    [2] => q_key_skills
+    [3] => q_resume_help
+    [4] => q_unemployment
 )
 
-[10-Apr-2025 13:05:28 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
-[10-Apr-2025 13:11:37 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
+[13-Apr-2025 17:34:18 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[13-Apr-2025 17:35:51 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
 (
-    [0] => q_interviewhelp
+    [0] => q_interview_help
+    [1] => q_job_fair
+    [2] => q_key_skills
+    [3] => q_resume_help
+    [4] => q_unemployment
 )
 
-[10-Apr-2025 13:11:37 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
-[10-Apr-2025 15:09:58 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
-(
-    [0] => q_interviewhelp
-)
-
-[10-Apr-2025 15:09:58 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
-[10-Apr-2025 23:35:45 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
-(
-    [0] => q_interviewhelp
-)
-
-[10-Apr-2025 23:35:45 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
-[11-Apr-2025 02:22:37 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
-(
-    [0] => q_interviewhelp
-)
-
-[11-Apr-2025 02:22:37 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
-[11-Apr-2025 02:22:43 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
-(
-    [0] => q_interviewhelp
-)
-
-[11-Apr-2025 02:22:43 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
-[11-Apr-2025 02:23:05 UTC] Dashboard Debug - Filter ID: all - Active question columns for data fetch (prefixed): Array
-(
-    [0] => q_interviewhelp
-)
-
-[11-Apr-2025 02:23:05 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[13-Apr-2025 17:35:51 UTC] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active columns for filter 'all'. Setting stat to 0.
+[13-Apr-2025 17:36:09 UTC] CRITICAL Checkin Error: Configuration file not found at /home/rlarcher/public_html/config.ini
+[13-Apr-2025 17:36:09 UTC] Checkin: Using manual_site_id 4 for role administrator
+[13-Apr-2025 17:36:09 UTC] [DEBUG checkin.php] Fetching boolean configs for site_id: 4
+[13-Apr-2025 17:36:09 UTC] [DEBUG checkin.php] Site 4 Configs Read: AllowEmail=1, AllowNotifier=1
+[13-Apr-2025 17:36:09 UTC] Checkin Ad Fetch - Site ID 4 - Left Ad: Hiring Fair, Right Ad: Resume Workshop

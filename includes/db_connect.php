@@ -6,7 +6,9 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
 use PHPMailer\PHPMailer\Exception;
 // --- End Add ---
-
+// Define Upload Path Constants (Used by configurations.php and checkin.php)
+define('AD_UPLOAD_PATH', dirname(__DIR__) . '/assets/uploads/ads/'); // Use dirname(__DIR__) for reliability
+define('AD_UPLOAD_URL_BASE', 'assets/uploads/ads/');    // Relative URL path for src attribute
 // Define the path to the configuration file relative to this script
 // Go up one level from 'includes' (to public_html), then up one MORE level, then into 'config'
 $configPath = dirname(__DIR__, 2) . '/config/config.ini';

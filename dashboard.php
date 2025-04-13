@@ -3,7 +3,7 @@
  * File: dashboard.php
  * Path: /dashboard.php
  * Created: 2024-08-01 12:15:00 MST
- * Author: Robert Archer
+
  * Updated: 2025-04-10 - Corrected function calls, parse errors, label formatting, button JS.
  * Description: Main dashboard page for logged-in staff users.
  */
@@ -471,7 +471,64 @@ document.addEventListener('DOMContentLoaded', function() {
 
 }); // End DOMContentLoaded
 </script>
+<script>
+// --- Specific Handler for Dashboard Button ---
+document.addEventListener('DOMContentLoaded', function() {
+    const dashboardButton = document.getElementById('manual-checkin-link-dashboard');
+    const siteSelectorForButton = document.getElementById('site-select'); // Check if dropdown exists
 
+    if (dashboardButton) {
+        console.log("Attaching specific listener to #manual-checkin-link-dashboard");
+        dashboardButton.addEventListener('click', function(event) {
+            event.preventDefault(); // Stop default '#' navigation
+            console.log("Dashboard button clicked!");
+
+            let siteValue = 'all'; // Default assumption
+            if (siteSelectorForButton) { // Check if dropdown exists on this page load
+                siteValue = siteSelectorForButton.value;
+                console.log("Dropdown value:", siteValue);
+            } else {
+                 console.log("No site dropdown found, assuming direct action needed (shouldn't happen for Admin/Director triggering this ideally).");
+                 // If an Admin/Director somehow clicks this WITHOUT the dropdown,
+                 // perhaps we should still force the modal? Or rely on header.php setting href?
+                 // Forcing modal for safety if dropdown missing for Admin/Director:
+                  const currentUserRoleCheck = '<?php echo $_SESSION['active_role'] ?? ''; ?>';
+                  if(currentUserRoleCheck === 'administrator' || currentUserRoleCheck === 'director'){
+                     console.log("Forcing modal trigger because dropdown is missing for Admin/Director.");
+                      $('#selectSiteModal').modal('show');
+                      return; // Stop further processing
+                  } else {
+                      // If not admin/director and no dropdown, try the href like before
+                       const directHrefCheck = this.getAttribute('href');
+                       if (directHrefCheck && directHrefCheck !== '#') {
+                           window.location.href = directHrefCheck;
+                       } else {
+                           alert('Cannot determine site context.');
+                       }
+                       return; // Stop further processing
+                  }
+            }
+
+
+            if (siteValue === 'all') {
+                console.log("Site is 'all', attempting to show modal manually.");
+                // Directly call Bootstrap's modal function using jQuery
+                $('#selectSiteModal').modal('show');
+            } else if (siteValue && siteValue !== 'all' && siteValue !== '') {
+                // Navigate if specific site selected
+                const siteId = encodeURIComponent(siteValue);
+                console.log("Navigating to checkin.php?manual_site_id=", siteId);
+                window.location.href = `checkin.php?manual_site_id=${siteId}`;
+            } else {
+                 // Handle case like '-- Select --' if that's an option
+                 alert('Please select a specific site from the dropdown.');
+            }
+        });
+    } else {
+        console.log("Dashboard button #manual-checkin-link-dashboard not found.");
+    }
+});
+</script>
 <?php
 // --- Include Footer ---
 require_once 'includes/footer.php';

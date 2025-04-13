@@ -12,14 +12,10 @@ wp-content/cache/
 hashtest.php
 # User uploads (if they are large/dynamic and shouldn't be in version control)
 wp-content/uploads/
-assets/uploads/img/
+images/user_uploads/
 .htaccess
 # Node.js dependencies (if applicable)
 node_modules/
-
-favicon.ico
-faviconlogo.png
-
 # Composer dependencies (if applicable)
 vendor/
 error_log

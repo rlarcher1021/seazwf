@@ -3,11 +3,374 @@
  * File: reports.php
  * Path: /reports.php
  * Created: 2024-08-01 13:00:00 MST
- * Author: Robert Archer
+
  * Updated: 2025-04-08 - Corrected dynamic column name handling for reports.
  * Description: Provides reporting capabilities for check-in data.
  */
+// --- AJAX Handler for Custom Report Builder ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'generate_custom_report') {
 
+    // --- Essential Setup for AJAX Request ---
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    require_once 'includes/db_connect.php'; // Need $pdo and helpers
+    require_once 'includes/auth.php';       // Need role checks, session data
+
+    // --- Response Helper Function ---
+    function send_json_response($data) {
+        header('Content-Type: application/json');
+        echo json_encode($data);
+        exit;
+    }
+    function send_html_response($html) {
+        header('Content-Type: text/html');
+        echo $html;
+        exit;
+    }
+     function send_error_response($message, $statusCode = 400) {
+         http_response_code($statusCode);
+         // Can send JSON error or simple text
+         header('Content-Type: text/plain'); // Keep it simple for errors
+         echo "Error: " . $message;
+         // Log the detailed error server-side
+         error_log("Custom Report AJAX Error: " . $message);
+         exit;
+     }
+
+
+    // --- Permission Check ---
+    $allowedRoles = ['director', 'administrator']; // Only Director/Admin can use custom builder
+    if (!isset($_SESSION['active_role']) || !in_array($_SESSION['active_role'], $allowedRoles)) {
+        send_error_response("Permission Denied.", 403);
+    }
+
+    // --- Input Validation & Sanitization ---
+    $site_id = $_POST['site_id'] ?? 'all';
+    $start_date_str = $_POST['start_date'] ?? null;
+    $end_date_str = $_POST['end_date'] ?? null;
+    $metrics = isset($_POST['metrics']) && is_array($_POST['metrics']) ? $_POST['metrics'] : [];
+    $group_by = $_POST['group_by'] ?? 'none';
+    $output_type = $_POST['output_type'] ?? 'table';
+
+    // Validate Site ID
+    if ($site_id !== 'all') {
+        if (!is_numeric($site_id)) {
+            send_error_response("Invalid Site ID format.");
+        }
+        $site_id = intval($site_id);
+         // Optional: Further check if this site ID is valid/accessible by the user, though main page load does this.
+         // For simplicity here, assume valid if numeric.
+    } elseif ($_SESSION['active_role'] !== 'administrator' && $_SESSION['active_role'] !== 'director') {
+         send_error_response("Insufficient permissions for 'All Sites'.", 403); // Should be caught by role check above, but double-check
+    }
+
+
+    // Validate Dates (basic format check)
+    $default_end_date = date('Y-m-d');
+    $default_start_date = date('Y-m-d', strtotime('-29 days'));
+    $filter_start_date = preg_match("/^\d{4}-\d{2}-\d{2}$/", $start_date_str) ? $start_date_str : $default_start_date;
+    $filter_end_date = preg_match("/^\d{4}-\d{2}-\d{2}$/", $end_date_str) ? $end_date_str : $default_end_date;
+
+    // Validate Metrics
+    if (empty($metrics)) {
+        send_error_response("Please select at least one metric.");
+    }
+    $validated_metrics = [];
+    $question_metric_columns = []; // Store only the q_... column names
+     $metric_labels = []; // Map internal metric name -> User-friendly label
+
+    // Fetch valid question base names for validation if needed (alternative to direct column check)
+    try {
+        $stmt_q = $pdo->query("SELECT question_title FROM global_questions"); // Get all base names
+        $valid_base_names = $stmt_q->fetchAll(PDO::FETCH_COLUMN);
+    } catch (PDOException $e) {
+         send_error_response("Database error fetching question list.", 500);
+    }
+
+    foreach ($metrics as $metric) {
+        if ($metric === 'total_checkins') {
+            $validated_metrics[] = $metric;
+             $metric_labels[$metric] = 'Total Check-ins';
+        } elseif (strpos($metric, 'q_') === 0) {
+             // Validate the q_... column name format and if the base name exists
+             $base_name = substr($metric, 2); // Remove 'q_'
+             if (preg_match('/^[a-zA-Z0-9_]+$/', $metric) && in_array($base_name, $valid_base_names)) {
+                $validated_metrics[] = $metric;
+                $question_metric_columns[] = $metric; // Keep track of question columns requested
+                 // Generate label (requires the helper function)
+                 if (function_exists('format_base_name_for_display')) {
+                      $metric_labels[$metric] = 'Q: ' . format_base_name_for_display($base_name) . ' (Yes Count)';
+                 } else {
+                      $metric_labels[$metric] = $metric . ' (Yes Count)'; // Fallback label
+                 }
+             } else {
+                  error_log("Custom Report Warning: Invalid or non-existent metric skipped: " . $metric);
+                  // Optionally notify user which metric was skipped, or just ignore it silently
+             }
+        } else {
+             error_log("Custom Report Warning: Invalid metric format skipped: " . $metric);
+        }
+    }
+     if (empty($validated_metrics)) {
+         send_error_response("No valid metrics selected or found.");
+     }
+
+    // Validate Group By
+    $allowed_group_by = ['none', 'day', 'week', 'month'];
+    if ($site_id === 'all') {
+        $allowed_group_by[] = 'site'; // Only allow group by site if viewing all sites
+    }
+    if (!in_array($group_by, $allowed_group_by)) {
+        send_error_response("Invalid Group By option selected.");
+    }
+
+    // Validate Output Type
+    $allowed_output_types = ['table', 'bar', 'line'];
+    if (!in_array($output_type, $allowed_output_types)) {
+        send_error_response("Invalid Output Type selected.");
+    }
+
+    // --- Build SQL Query ---
+    $select_clauses = [];
+    $group_by_sql = "";
+    $order_by_sql = "";
+    $params = [];
+    $grouping_column_alias = 'grouping_key'; // Consistent alias for the grouping column
+     $grouping_label = 'Group'; // Default header/axis label
+
+    // Setup Grouping
+    switch ($group_by) {
+        case 'day':
+            $select_clauses[] = "DATE_FORMAT(ci.check_in_time, '%Y-%m-%d') AS {$grouping_column_alias}";
+            $group_by_sql = "GROUP BY {$grouping_column_alias}";
+            $order_by_sql = "ORDER BY {$grouping_column_alias} ASC";
+             $grouping_label = 'Day';
+            break;
+        case 'week':
+            // Using YEARWEEK ensures weeks don't mix across years
+            $select_clauses[] = "DATE_FORMAT(ci.check_in_time, '%x-%v') AS {$grouping_column_alias}"; // e.g., 2024-45
+            $group_by_sql = "GROUP BY {$grouping_column_alias}";
+            $order_by_sql = "ORDER BY {$grouping_column_alias} ASC";
+             $grouping_label = 'Week';
+            break;
+        case 'month':
+            $select_clauses[] = "DATE_FORMAT(ci.check_in_time, '%Y-%m') AS {$grouping_column_alias}"; // e.g., 2024-11
+            $group_by_sql = "GROUP BY {$grouping_column_alias}";
+            $order_by_sql = "ORDER BY {$grouping_column_alias} ASC";
+             $grouping_label = 'Month';
+            break;
+        case 'site':
+            // Assumes $site_id is 'all' (validated earlier)
+            $select_clauses[] = "s.name AS {$grouping_column_alias}";
+            $group_by_sql = "GROUP BY ci.site_id, s.name"; // Group by ID and Name
+            $order_by_sql = "ORDER BY {$grouping_column_alias} ASC";
+             $grouping_label = 'Site';
+            break;
+        case 'none':
+        default:
+             // No grouping column in SELECT or GROUP BY
+             $grouping_column_alias = null; // Indicate no grouping
+             $grouping_label = 'Overall'; // Label for the single result row/bar
+            break;
+    }
+
+    // Setup Metrics in SELECT
+    foreach ($validated_metrics as $metric) {
+        if ($metric === 'total_checkins') {
+            $select_clauses[] = "COUNT(ci.id) AS total_checkins";
+        } elseif (in_array($metric, $question_metric_columns)) {
+             // Safely use the validated column name. Alias it for clarity.
+             $alias = $metric . '_yes_count'; // e.g., q_needs_help_yes_count
+             $select_clauses[] = "SUM(CASE WHEN ci.`" . $metric . "` = 'YES' THEN 1 ELSE 0 END) AS `" . $alias . "`";
+        }
+    }
+
+    // Setup WHERE Clause
+    $where_clauses = [];
+    if ($site_id !== 'all') {
+        $where_clauses[] = "ci.site_id = :site_id";
+        $params[':site_id'] = $site_id;
+    }
+    if ($filter_start_date) {
+        $where_clauses[] = "ci.check_in_time >= :start_date";
+        $params[':start_date'] = $filter_start_date . ' 00:00:00';
+    }
+    if ($filter_end_date) {
+        $where_clauses[] = "ci.check_in_time <= :end_date";
+        $params[':end_date'] = $filter_end_date . ' 23:59:59';
+    }
+    $where_sql = !empty($where_clauses) ? 'WHERE ' . implode(' AND ', $where_clauses) : '';
+
+    // Final SQL Assembly
+    $sql = "SELECT " . implode(', ', $select_clauses) . "
+            FROM check_ins ci ";
+            error_log("--- Custom Report Debug ---");
+error_log("Generated SQL: " . $sql);
+error_log("SQL Parameters: " . print_r($params, true));
+    // Add JOIN only if grouping by site
+    if ($group_by === 'site') {
+         $sql .= " JOIN sites s ON ci.site_id = s.id ";
+    }
+     $sql .= $where_sql . " "
+           . $group_by_sql . " "
+           . $order_by_sql;
+
+    // --- Execute Query ---
+    try {
+        $stmt = $pdo->prepare($sql);
+         // Bind parameters carefully based on type
+         foreach ($params as $key => &$val) { // Use reference needed for bindParam/bindValue scope
+             if ($key === ':site_id') {
+                 $stmt->bindValue($key, $val, PDO::PARAM_INT);
+             } else {
+                 $stmt->bindValue($key, $val, PDO::PARAM_STR);
+             }
+         }
+         unset($val); // Break the reference
+
+        $stmt->execute();
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        error_log("Raw DB Results: " . print_r($results, true));
+        
+    } catch (PDOException $e) {
+        error_log("Custom Report SQL Error: " . $e->getMessage() . " | SQL: " . $sql . " | Params: " . print_r($params, true));
+        send_error_response("Database query failed executing custom report.", 500);
+    }
+
+    // --- Format and Send Response ---
+    if (empty($results)) {
+         // Send back a 'no results' message suitable for the container
+         send_html_response('<p style="text-align: center; color: var(--color-gray);">No data found matching the selected criteria.</p>');
+    }
+
+    // ** Output: Table **
+    if ($output_type === 'table') {
+        $html = '<div class="table-container custom-report-table">'; // Add specific class
+        $html .= '<table>';
+        $html .= '<thead><tr>';
+        if ($grouping_column_alias) {
+             $html .= '<th>' . htmlspecialchars($grouping_label) . '</th>'; // Header for grouping column
+        } else {
+             // If no grouping, we might still need a conceptual first column label
+             $html .= '<th>' . htmlspecialchars($grouping_label) . '</th>';
+        }
+        foreach ($validated_metrics as $metric) {
+             $label = $metric_labels[$metric] ?? $metric; // Use generated label
+            $html .= '<th>' . htmlspecialchars($label) . '</th>';
+        }
+        $html .= '</tr></thead>';
+        $html .= '<tbody>';
+
+        foreach ($results as $row) {
+            $html .= '<tr>';
+            // Display grouping key (or 'Overall' if none)
+             if ($grouping_column_alias) {
+                $html .= '<td>' . htmlspecialchars($row[$grouping_column_alias] ?? 'N/A') . '</td>';
+             } else {
+                 $html .= '<td>' . htmlspecialchars($grouping_label) . '</td>'; // Single row case
+             }
+            // Display metric values
+            foreach ($validated_metrics as $metric) {
+                $value_key = $metric;
+                if (in_array($metric, $question_metric_columns)) {
+                     $value_key = $metric . '_yes_count'; // Use the alias from the SELECT clause
+                }
+                 // Ensure the key exists and format the number nicely
+                 $display_value = isset($row[$value_key]) ? number_format($row[$value_key]) : '0';
+                $html .= '<td>' . htmlspecialchars($display_value) . '</td>';
+            }
+            $html .= '</tr>';
+        }
+        $html .= '</tbody></table>';
+        $html .= '</div>';
+        send_html_response($html);
+    }
+
+    // ** Output: Chart (Bar or Line) **
+    elseif ($output_type === 'bar' || $output_type === 'line') {
+        $labels = [];
+        $datasets_data = []; // Prepare data structure for datasets
+
+         // Initialize data arrays for each metric
+         foreach($validated_metrics as $metric) {
+             $value_key = $metric;
+             if (in_array($metric, $question_metric_columns)) {
+                 $value_key = $metric . '_yes_count';
+             }
+             $datasets_data[$metric] = [
+                 'label' => $metric_labels[$metric] ?? $metric,
+                 'data' => [],
+                 'value_key' => $value_key // Store the key to look up in results
+             ];
+         }
+
+        // Populate labels and dataset data
+        foreach ($results as $row) {
+            // Add label (grouping key or 'Overall')
+            if ($grouping_column_alias) {
+                 $labels[] = $row[$grouping_column_alias] ?? 'N/A';
+            } elseif (empty($labels)) { // Only add 'Overall' once if no grouping
+                 $labels[] = $grouping_label;
+            }
+
+            // Add data for each metric for this label
+            foreach ($validated_metrics as $metric) {
+                 $key_to_lookup = $datasets_data[$metric]['value_key'];
+                 // Add the numeric value (or 0 if null/missing)
+                 $datasets_data[$metric]['data'][] = isset($row[$key_to_lookup]) ? (int)$row[$key_to_lookup] : 0;
+            }
+        }
+
+        // Define some basic colors (can be expanded)
+         $chart_colors = [
+             ['border' => 'rgba(30, 58, 138, 1)', 'bg' => 'rgba(30, 58, 138, 0.7)'],   // Primary Blue
+             ['border' => 'rgba(255, 107, 53, 1)', 'bg' => 'rgba(255, 107, 53, 0.7)'],   // Secondary Orange
+             ['border' => 'rgba(34, 197, 94, 1)', 'bg' => 'rgba(34, 197, 94, 0.7)'],   // Green
+             ['border' => 'rgba(234, 179, 8, 1)',  'bg' => 'rgba(234, 179, 8, 0.7)'],   // Yellow
+             ['border' => 'rgba(139, 92, 246, 1)', 'bg' => 'rgba(139, 92, 246, 0.7)'],  // Purple
+             ['border' => 'rgba(236, 72, 153, 1)', 'bg' => 'rgba(236, 72, 153, 0.7)'],  // Pink
+         ];
+         $color_index = 0;
+
+        // Finalize datasets array for Chart.js
+        $chart_datasets = [];
+        foreach ($datasets_data as $metric_data) {
+             $color = $chart_colors[$color_index % count($chart_colors)]; // Cycle through colors
+             $chart_datasets[] = [
+                 'label' => $metric_data['label'],
+                 'data' => $metric_data['data'],
+                 'backgroundColor' => $color['bg'],
+                 'borderColor' => $color['border'],
+                 'borderWidth' => 1,
+                 'tension' => ($output_type === 'line' ? 0.1 : 0) // Add slight tension for line charts
+             ];
+             $color_index++;
+        }
+
+
+        // Prepare JSON Response for Chart
+        $responseJson = [
+            'html' => '<canvas id="custom-report-chart" style="max-height: 400px; width: 100%;"></canvas>', // Canvas HTML
+            'chartType' => $output_type, // 'bar' or 'line'
+            'chartData' => [
+                'labels' => $labels,
+                'datasets' => $chart_datasets
+            ]
+        ];
+        send_json_response($responseJson);
+    }
+
+    // Should not reach here if output type is valid
+    send_error_response("An unexpected error occurred processing the report type.", 500);
+
+} // --- END of AJAX Handler Block ---
+
+// --- Normal Page Execution Starts Below ---
+// Make sure session_start() and includes are called *again* here if they are not already outside the IF block
+if (session_status() === PHP_SESSION_NONE) {
+    session_start(); // Must be called for the main page rendering
+}
 // --- Initialization and Includes ---
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -332,17 +695,72 @@ require_once 'includes/header.php';
                 </form>
             </div>
 
-            <!-- Custom Report Builder Placeholder -->
-             <?php if ($user_can_select_sites): // Show only to Admin/Director ?>
-             <div class="content-section">
-                 <h2 class="section-title">Custom Report Builder (Placeholder)</h2>
-                  <div class="settings-form">
-                        <div class="form-group"><label class="form-label">Metrics:</label><select class="form-control" multiple><option selected>Total Check-ins</option><option>Q: Needs Assistance</option></select></div>
-                         <div class="form-group"><label class="form-label">Group By:</label><select class="form-control"><option>Day</option><option>Site</option></select></div>
-                        <div class="form-group"><label class="form-label">Chart Type:</label><select class="form-control"><option>Data Table</option><option>Bar</option></select></div>
-                  </div>
-                   <div class="form-actions"><button class="btn btn-primary" onclick="alert('Generate Custom Report TBD');"><i class="fas fa-chart-bar"></i> Generate</button></div>
-             </div>
+            <!-- Custom Report Builder Section -->
+            <?php if ($user_can_select_sites): // Show only to Admin/Director ?>
+            <div class="content-section" id="custom-report-builder">
+                <h2 class="section-title">Custom Report Builder</h2>
+                <form id="custom-report-form" class="settings-form" action="#" method="POST"> <!-- Use POST for AJAX, action="#" prevents default nav -->
+                    <div class="form-group">
+                        <label for="custom_metrics" class="form-label">Metrics:</label>
+                        <select id="custom_metrics" name="metrics[]" class="form-control" multiple required size="5"> <!-- Added size attribute -->
+                            <option value="total_checkins" selected>Total Check-ins</option>
+                            <?php
+                            // Dynamically populate with active questions for the current filter
+                            // We use the $report_column_to_label_map created earlier which maps q_[base_name] => Formatted Label
+                            if (!empty($report_column_to_label_map)) {
+                                foreach ($report_column_to_label_map as $prefixed_col => $formatted_label) {
+                                    // Value should be the *prefixed column name* for backend processing
+                                    echo '<option value="' . htmlspecialchars($prefixed_col) . '">Q: ' . htmlspecialchars($formatted_label) . ' (Yes Count)</option>';
+                                }
+                            } else {
+                                echo '<option value="" disabled>No questions active for current filter</option>';
+                            }
+                            ?>
+                        </select>
+                        <small class="form-text text-muted">Select one or more metrics (use Ctrl/Cmd to select multiple).</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="custom_group_by" class="form-label">Group By:</label>
+                        <select id="custom_group_by" name="group_by" class="form-control" required>
+                            <option value="none" selected>None (Overall Totals)</option>
+                            <option value="day">Day</option>
+                            <option value="week">Week</option>
+                            <option value="month">Month</option>
+                            <?php if ($selected_site_id === 'all'): ?>
+                                <option value="site">Site</option>
+                            <?php endif; ?>
+                            <!-- <option value="question">Question (Compare Metrics)</option> <-- More complex, add later if needed -->
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="custom_output_type" class="form-label">Output Type:</label>
+                        <select id="custom_output_type" name="output_type" class="form-control" required>
+                            <option value="table" selected>Data Table</option>
+                            <option value="bar">Bar Chart</option>
+                            <option value="line">Line Chart</option>
+                            <!-- Add Pie later if suitable -->
+                        </select>
+                         <small class="form-text text-muted">Line charts work best when grouping by time.</small>
+                    </div>
+
+                    <div class="form-actions" style="grid-column: 1 / -1;"> <!-- Ensure actions span columns -->
+                        <button type="submit" id="generate-custom-report-btn" class="btn btn-primary">
+                            <i class="fas fa-chart-bar"></i> Generate Report
+                        </button>
+                        <span id="custom-report-loading" style="display: none; margin-left: 10px;">
+                            <i class="fas fa-spinner fa-spin"></i> Generating...
+                        </span>
+                    </div>
+                </form>
+
+                <!-- Area to display the generated report -->
+                <div id="custom-report-output-area" class="content-section" style="margin-top: 20px; min-height: 100px; border: 1px dashed var(--color-gray-light); padding: 15px;">
+                    <!-- Report will be loaded here via AJAX -->
+                    <p style="text-align: center; color: var(--color-gray);">Select options above and click "Generate Report".</p>
+                </div>
+            </div>
             <?php endif; ?>
 
             <!-- Report Data Table Section -->
@@ -495,111 +913,265 @@ require_once 'includes/footer.php';
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // --- SINGLE LOG AT THE TOP ---
-    console.log("Report page script loaded. Initializing charts (if applicable)..."); // <<< MOVED LOG HERE
+    console.log("Report page script loaded. Initializing charts and custom report handler...");
 
     // --- Chart 1: Check-ins Over Time (Placeholder) ---
     const ctxTimeReport = document.getElementById('reportCheckinsChart');
     if (ctxTimeReport) {
-         // --- TODO: Replace with actual PHP data aggregation for time chart ---
-         const timeLabels = ['Day 1', 'Day 2', 'Day 3']; // Example
-         const timeData = [5, 8, 3]; // Example
-         // --- End TODO ---
+        // --- TODO: Replace with actual PHP data aggregation for time chart ---
+        const timeLabels = ['Day 1', 'Day 2', 'Day 3']; // Example
+        const timeData = [5, 8, 3]; // Example
+        // --- End TODO ---
 
-         if (timeLabels.length > 0) {
-            // console.log("Initializing Time Chart..."); // Optional: keep if you want more detail
-            new Chart(ctxTimeReport, {
-                type: 'line',
-                data: {
-                    labels: timeLabels,
-                    datasets: [{
-                        label: 'Check-ins',
-                        data: timeData,
-                        tension: 0.1,
-                        borderColor: 'var(--color-primary)',
-                        backgroundColor: 'rgba(30, 58, 138, 0.1)',
-                        fill: true
-                    }]
-                },
-                 options: {
-                     responsive: true,
-                     maintainAspectRatio: false,
-                     scales: { y: { beginAtZero: true } }
-                 }
-            });
-         } else {
-            const ctx = ctxTimeReport.getContext('2d');
-            ctx.textAlign = 'center';
-            ctx.fillStyle = 'var(--color-gray)';
-            ctx.fillText('No time data available for chart.', ctxTimeReport.canvas.width / 2, ctxTimeReport.canvas.height / 2);
-         }
+        if (timeLabels.length > 0) {
+           // console.log("Initializing Time Chart...");
+           new Chart(ctxTimeReport, {
+               type: 'line',
+               data: {
+                   labels: timeLabels,
+                   datasets: [{
+                       label: 'Check-ins',
+                       data: timeData,
+                       tension: 0.1,
+                       borderColor: 'var(--color-primary)',
+                       backgroundColor: 'rgba(30, 58, 138, 0.1)',
+                       fill: true
+                   }]
+               },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } }
+                }
+           });
+        } else {
+           // --- FIX for TypeError: Only get context and draw if canvas exists ---
+           const ctx = ctxTimeReport.getContext('2d');
+           if (ctx) { // Check if context was successfully obtained
+                ctx.textAlign = 'center';
+                ctx.fillStyle = 'var(--color-gray)';
+                // Use canvas dimensions directly if available
+                const canvasWidth = ctxTimeReport.width || 300; // Default width if needed
+                const canvasHeight = ctxTimeReport.height || 150; // Default height
+                ctx.fillText('No time data available for chart.', canvasWidth / 2, canvasHeight / 2);
+           } else {
+               console.warn("Could not get 2D context for reportCheckinsChart.");
+           }
+        }
+    } else {
+        console.warn("Canvas element #reportCheckinsChart not found.");
     }
 
     // --- Chart 2: Question Responses (Using Formatted Labels) ---
     const ctxQuestionsReport = document.getElementById('reportQuestionsChart');
     if(ctxQuestionsReport) {
-         // --- Use the JSON variables generated by PHP ---
-         const questionChartLabels = <?php echo $chart_labels_json ?? '[]'; ?>;
-         const questionColumns = <?php echo json_encode($report_question_columns ?? '[]'); ?>;
-         const reportData = <?php echo empty($report_data) ? '[]' : json_encode($report_data); ?>;
+        // --- Use the JSON variables generated by PHP (for main page table, not custom report) ---
+        const questionChartLabels = <?php echo $chart_labels_json ?? '[]'; ?>; // From main page PHP
+        const questionColumns = <?php echo json_encode($report_question_columns ?? '[]'); ?>; // From main page PHP
+        const reportData = <?php echo empty($report_data) ? '[]' : json_encode($report_data); ?>; // From main page PHP
 
-         let yesCounts = []; // Initialize JS array for counts
+        let yesCounts = []; // Initialize JS array for counts
 
-         // Calculate counts ONLY if there's data and columns to process
-         if (reportData.length > 0 && questionColumns.length > 0 && questionChartLabels.length === questionColumns.length) {
-             yesCounts = Array(questionColumns.length).fill(0); // Create array of zeros matching column count
-             reportData.forEach(row => {
-                 questionColumns.forEach((colName, index) => {
-                     if (row.hasOwnProperty(colName) && row[colName] === 'YES') {
-                         if (index < yesCounts.length) {
-                             yesCounts[index]++;
-                         }
-                     }
-                 });
-             });
-         } else if (questionColumns.length > 0) {
-             yesCounts = Array(questionColumns.length).fill(0);
-         }
+        // Calculate counts ONLY if there's data and columns to process
+        if (reportData.length > 0 && questionColumns.length > 0 && questionChartLabels.length === questionColumns.length) {
+            yesCounts = Array(questionColumns.length).fill(0); // Create array of zeros matching column count
+            reportData.forEach(row => {
+                questionColumns.forEach((colName, index) => {
+                    if (row.hasOwnProperty(colName) && row[colName] === 'YES') {
+                        if (index < yesCounts.length) {
+                            yesCounts[index]++;
+                        }
+                    }
+                });
+            });
+        } else if (questionColumns.length > 0) {
+            yesCounts = Array(questionColumns.length).fill(0);
+        }
 
-
-         // Initialize the chart if there are labels generated from PHP
-         if (questionChartLabels.length > 0) {
-            // console.log("Initializing Questions Chart..."); // Optional: keep if you want more detail
-             new Chart(ctxQuestionsReport, {
-                 type: 'bar',
-                 data: {
-                     labels: questionChartLabels,
-                     datasets: [{
-                         label: 'Yes Answers',
-                         data: yesCounts,
-                         backgroundColor: 'rgba(255, 107, 53, 0.7)',
-                         borderColor: 'var(--color-secondary)',
-                         borderWidth: 1
-                    }]
-                 },
-                 options: {
-                     responsive: true,
-                     maintainAspectRatio: false,
-                     scales: {
-                         y: {
-                             beginAtZero: true,
-                             ticks: {
-                                 stepSize: 1,
-                                 callback: function(value) {if (Number.isInteger(value)) {return value;}}
-                             }
-                         }
-                     },
-                     plugins: {
-                         legend: { display: false },
-                         tooltip: { /* callbacks if needed */ }
-                     }
-                 }
-             });
-         } else { // No labels
-            const ctx = ctxQuestionsReport.getContext('2d');
-            ctx.textAlign = 'center';
-            ctx.fillStyle = 'var(--color-gray)';
-            ctx.fillText('No question data available for chart.', ctxQuestionsReport.canvas.width / 2, ctxQuestionsReport.canvas.height / 2);
-         }
+        // Initialize the chart if there are labels generated from PHP
+        if (questionChartLabels.length > 0) {
+           // console.log("Initializing Questions Chart...");
+            new Chart(ctxQuestionsReport, {
+                type: 'bar',
+                data: {
+                    labels: questionChartLabels,
+                    datasets: [{
+                        label: 'Yes Answers',
+                        data: yesCounts,
+                        backgroundColor: 'rgba(255, 107, 53, 0.7)',
+                        borderColor: 'var(--color-secondary)',
+                        borderWidth: 1
+                   }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1,
+                                callback: function(value) {if (Number.isInteger(value)) {return value;}}
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { /* callbacks if needed */ }
+                    }
+                }
+            });
+        } else { // No labels
+           // --- FIX for TypeError: Only get context and draw if canvas exists ---
+           const ctx = ctxQuestionsReport.getContext('2d');
+           if (ctx) { // Check if context was successfully obtained
+                ctx.textAlign = 'center';
+                ctx.fillStyle = 'var(--color-gray)';
+                const canvasWidth = ctxQuestionsReport.width || 300; // Default width
+                const canvasHeight = ctxQuestionsReport.height || 150; // Default height
+                ctx.fillText('No question data available for chart.', canvasWidth / 2, canvasHeight / 2);
+           } else {
+               console.warn("Could not get 2D context for reportQuestionsChart.");
+           }
+        }
+    } else {
+         console.warn("Canvas element #reportQuestionsChart not found.");
     }
-});
+
+
+    // --- Custom Report Builder AJAX Handler ---
+    // --- Moved INSIDE DOMContentLoaded ---
+    const customReportForm = document.getElementById('custom-report-form');
+    const generateBtn = document.getElementById('generate-custom-report-btn');
+    const loadingIndicator = document.getElementById('custom-report-loading');
+    const outputArea = document.getElementById('custom-report-output-area');
+
+    if (customReportForm && generateBtn && loadingIndicator && outputArea) {
+        // --- ADDED THE EVENT LISTENER WRAPPER ---
+        customReportForm.addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent default form submission
+            console.log('Custom report form submitted.');
+
+            // Show loading indicator
+            loadingIndicator.style.display = 'inline-block';
+            generateBtn.disabled = true;
+            outputArea.innerHTML = '<p style="text-align: center; color: var(--color-gray);"><i class="fas fa-spinner fa-spin"></i> Loading report data...</p>'; // Clear previous results
+
+            // --- Gather Filter Data ---
+            const siteId = document.getElementById('filter_site_id')?.value || 'all';
+            const startDate = document.getElementById('start_date')?.value || '';
+            const endDate = document.getElementById('end_date')?.value || '';
+
+            // --- Gather Builder Options ---
+            const metricsSelect = document.getElementById('custom_metrics');
+            const selectedMetrics = Array.from(metricsSelect.selectedOptions).map(option => option.value);
+            const groupBy = document.getElementById('custom_group_by')?.value || 'none';
+            const outputType = document.getElementById('custom_output_type')?.value || 'table';
+
+            if (selectedMetrics.length === 0) {
+                 outputArea.innerHTML = '<p style="text-align: center; color: red;">Please select at least one metric.</p>';
+                 loadingIndicator.style.display = 'none';
+                 generateBtn.disabled = false;
+                 return;
+            }
+
+            // --- Prepare data for AJAX request ---
+            // --- formData is now correctly defined INSIDE the event handler ---
+            const formData = new FormData();
+            formData.append('action', 'generate_custom_report');
+            formData.append('site_id', siteId);
+            formData.append('start_date', startDate);
+            formData.append('end_date', endDate);
+            selectedMetrics.forEach(metric => {
+                formData.append('metrics[]', metric);
+            });
+            formData.append('group_by', groupBy);
+            formData.append('output_type', outputType);
+
+            console.log('Sending AJAX request with data:', {
+                 action: 'generate_custom_report',
+                 site_id: siteId, start_date: startDate, end_date: endDate,
+                 metrics: selectedMetrics, group_by: groupBy, output_type: outputType
+            });
+
+            // --- Send AJAX Request ---
+            fetch('reports.php', {
+                method: 'POST',
+                body: formData // formData is now defined in this scope
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                         throw new Error(`HTTP error! status: ${response.status} - ${text}`);
+                    });
+                }
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    return response.json();
+                } else {
+                    return response.text();
+                }
+            })
+            .then(data => {
+                console.log('Received response from server.');
+                outputArea.innerHTML = '';
+
+                if (typeof data === 'string') {
+                    console.log('Rendering HTML response.');
+                    outputArea.innerHTML = data;
+                } else if (typeof data === 'object' && data !== null && data.html && data.chartData && data.chartType) {
+                    console.log('Rendering chart response.');
+                    outputArea.innerHTML = data.html;
+                    const canvasElement = outputArea.querySelector('#custom-report-chart');
+
+                    if (canvasElement) {
+                         const existingChart = Chart.getChart(canvasElement);
+                         if (existingChart) {
+                             existingChart.destroy();
+                             console.log('Destroyed previous custom chart instance.');
+                         }
+                         console.log('Creating new chart:', data.chartType, 'with data:', data.chartData);
+                         try {
+                            new Chart(canvasElement, {
+                                type: data.chartType,
+                                data: data.chartData,
+                                options: { /* ... chart options ... */
+                                    responsive: true, maintainAspectRatio: false,
+                                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1, callback: function(value) {if (Number.isInteger(value)) {return value;}} } } },
+                                    plugins: { legend: { display: data.chartData.datasets && data.chartData.datasets.length > 1 }, tooltip: { enabled: true } }
+                                }
+                            });
+                         } catch (chartError) {
+                             console.error("Chart.js initialization error:", chartError);
+                             outputArea.innerHTML = `<p style="text-align: center; color: red;">Error rendering chart. Check console.</p>`;
+                         }
+                    } else {
+                        console.error('Canvas element #custom-report-chart not found in response HTML.');
+                        outputArea.innerHTML = '<p style="text-align: center; color: red;">Error: Chart canvas element missing in response.</p>';
+                    }
+                } else {
+                     console.warn('Received unexpected data format:', data);
+                     outputArea.innerHTML = '<p style="text-align: center; color: orange;">Received unexpected data format from server.</p>';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching/processing custom report:', error);
+                outputArea.innerHTML = `<p style="text-align: center; color: red;">Error generating report: ${error.message}. Please check console or server logs.</p>`;
+            })
+            .finally(() => {
+                 loadingIndicator.style.display = 'none';
+                 generateBtn.disabled = false;
+                 console.log('AJAX request finished.');
+            });
+        }); // --- END OF addEventListener ---
+
+    } else {
+        console.warn("Custom report builder elements not found. JS functionality disabled.");
+        if (!customReportForm) console.warn("Reason: custom-report-form not found.");
+        if (!generateBtn) console.warn("Reason: generate-custom-report-btn not found.");
+        if (!loadingIndicator) console.warn("Reason: custom-report-loading not found.");
+        if (!outputArea) console.warn("Reason: custom-report-output-area not found.");
+    }
+
+}); // --- END OF DOMContentLoaded ---
 </script>

@@ -3,7 +3,6 @@
  * File: checkin.php
  * Path: /checkin.php
  * Created: 2024-08-01 11:45:00 MST (Adjust Timezone)
- * Author: Robert Archer / Your Name
  * Updated: 2025-04-07 - Removed inline styles, relying on main.css
  *
  * Description: Handles the client check-in process. Displays dynamic questions
@@ -145,6 +144,27 @@ try {
         // Fetch unique by ID for easy lookup in POST validation and email sending
         $staff_notifiers = $stmt_notifiers->fetchAll(PDO::FETCH_ASSOC|PDO::FETCH_UNIQUE);
     }
+    $sql_ads = "SELECT ga.ad_type, ga.ad_title, ga.ad_text, ga.image_path
+                FROM site_ads sa
+                JOIN global_ads ga ON sa.global_ad_id = ga.id
+                WHERE sa.site_id = :site_id
+                  AND sa.is_active = 1
+                  AND ga.is_active = 1
+                ORDER BY RAND()"; // Randomize selection on each load
+    $stmt_ads = $pdo->prepare($sql_ads);
+    $stmt_ads->execute([':site_id' => $site_id]);
+    $active_site_ads = $stmt_ads->fetchAll(PDO::FETCH_ASSOC);
+
+    // Select up to two ads for display
+    if (!empty($active_site_ads)) {
+        $left_ad = array_shift($active_site_ads); // Get the first random ad for left
+        if (!empty($active_site_ads)) {
+            $right_ad = array_shift($active_site_ads); // Get the next random ad for right
+        }
+    }
+    error_log("Checkin Ad Fetch - Site ID {$site_id} - Left Ad: " . ($left_ad ? $left_ad['ad_title'] ?? $left_ad['ad_type'] : 'None') . ", Right Ad: " . ($right_ad ? $right_ad['ad_title'] ?? $right_ad['ad_type'] : 'None'));
+    // --- END: Fetch Active Ads ---
+
 
 } catch (PDOException $e) { // Catch potential PDO errors during fetch
     error_log("Checkin PDOException - Fetching config/questions/notifiers for site {$site_id}: " . $e->getMessage());
@@ -197,22 +217,45 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Validate dynamic questions using $assigned_questions array
     $question_answers = []; // Array for column => answer mapping
+    // Validate dynamic questions using $assigned_questions array
+    $question_answers = []; // Array for column => answer mapping
     foreach ($assigned_questions as $question) {
-        // Use global_question_id for the form input name key
+        // Use global_question_id for the form input name key (ensure form matches this!)
         $q_key = 'q_' . $question['global_question_id'];
         $answer = filter_input(INPUT_POST, $q_key, FILTER_SANITIZE_SPECIAL_CHARS);
 
+        // Get the base name (like 'resume_help') from the question data
+        $question_title_base = $question['question_title']; // Already holds the base name
+
+        if (empty($question_title_base)) {
+            error_log("Checkin Warning: Global Question ID {$question['global_question_id']} missing title/base_name for site {$site_id}.");
+            continue; // Skip this question if base name is missing
+        }
+
+        // Sanitize the base name (though it should be clean from DB)
+        $column_name_base = sanitize_title_to_base_name($question_title_base);
+        // Construct the actual database column name
+        $db_column_name = 'q_' . $column_name_base; // e.g., q_resume_help
+
+        // Check if an answer was submitted AND if it's valid
         if ($answer === 'YES' || $answer === 'NO') {
-            $question_title = $question['question_title'];
-            if (empty($question_title)) { error_log("Checkin Warning: Global Question ID {$question['global_question_id']} missing title for site {$site_id}."); continue; }
-            $column_name = sanitize_question_title_for_column($question_title); // Use helper to ensure consistency
-            $question_answers[$column_name] = $answer;
+            // --- CORRECTED LINE ---
+            // Use the correct $db_column_name as the key
+            $question_answers[$db_column_name] = $answer;
+             error_log("[DEBUG checkin.php POST] Processed answer for {$db_column_name}: {$answer}"); // Add log
         } else {
-            // Only add error if the field was expected (i.e., question was displayed)
+            // If the radio button was displayed but no valid answer submitted, record an error
+            // (This assumes radio buttons always submit *something* if one is checked,
+            // but maybe add a check if $answer is null vs empty string vs invalid)
             $errors[] = "Please answer the question: \"" . htmlspecialchars($question['question_text']) . "\"";
+            error_log("[DEBUG checkin.php POST] Missing/Invalid answer for {$db_column_name} (Form Key: {$q_key})"); // Add log
+            // Decide if you want to store NULL explicitly here if unanswered, e.g.:
+            // $question_answers[$db_column_name] = null; // <-- Uncomment this line if you WANT to store NULL for unanswered questions instead of throwing an error
         }
     }
-    error_log("[DEBUG checkin.php POST] Prepared Question answers array: " . print_r($question_answers, true));
+    // This log now should show keys like 'q_resume_help' => 'YES'
+    error_log("[DEBUG checkin.php POST] Prepared Question answers array FINAL: " . print_r($question_answers, true));
+    
 
     // Validate selected staff notifier (only if feature enabled and a selection was made)
     if ($allow_notifier) {
@@ -375,104 +418,128 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <body class="checkin-page"> <!-- Add class for main.css targeting -->
 
     <!-- Google Translate Widget -->
-    <div style="position: absolute; top: 10px; left: 10px; z-index: 100;">
-        <div id="google_translate_element"></div>
-    </div>
-    <script type="text/javascript"> function googleTranslateElementInit() { new google.translate.TranslateElement({ pageLanguage: 'en', includedLanguages: 'en,es', layout: google.translate.TranslateElement.InlineLayout.SIMPLE, autoDisplay: false }, 'google_translate_element'); } </script>
-    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
-    <!-- End Google Translate -->
+     <!-- ================== NEW WRAPPER ================== -->
+    <div class="page-wrapper-with-ads">
 
-    <!-- Use classes defined in main.css -->
-    <div class="checkin-logo"><img src="assets/img/logo.jpg" alt="Arizona@Work Logo"></div>
-
-    <div class="checkin-container" id="checkin-form-container">
-        <h1>Welcome to Arizona@Work <?php echo htmlspecialchars($site_name); ?>!</h1>
-        <h2>Please Check In</h2>
-
-        <!-- Message Area -->
-        <?php if (!empty($submission_message)): ?>
-            <div class="message-area message-<?php echo htmlspecialchars($message_type); ?>" id="submission-message">
-                <?php echo $submission_message; ?>
-            </div>
-        <?php endif; ?>
-
-        <form method="POST" action="checkin.php<?php echo $manual_site_id ? '?manual_site_id='.$manual_site_id : ''; ?>" id="checkin-form">
-             <!-- CSRF token placeholder -->
-
-            <!-- Fixed Fields using .form-row structure from main.css -->
-           <div class="form-row">
-                <div class="form-group">
-                    <label for="first_name" class="form-label">First Name:</label>
-                    <input type="text" id="first_name" name="first_name" class="form-control" value="<?php echo htmlspecialchars($form_data['first_name'] ?? ''); ?>" required>
+        <!-- == NEW LEFT AD SIDEBAR == -->
+        <div class="ad-sidebar ad-left">
+            <?php if ($left_ad): ?>
+                <div class="ad-content">
+                    <?php if ($left_ad['ad_type'] === 'text' && !empty($left_ad['ad_text'])): ?>
+                        <?php echo nl2br(htmlspecialchars($left_ad['ad_text'])); // Display text ad, convert newlines ?>
+                    <?php elseif ($left_ad['ad_type'] === 'image' && !empty($left_ad['image_path'])):
+                        $image_url = htmlspecialchars($left_ad['image_path']);
+                        // Basic path correction (adjust if needed)
+                        if (!filter_var($image_url, FILTER_VALIDATE_URL) && $image_url[0] !== '/' && strpos($image_url, '://') === false) {
+                            $image_url = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/') . '/' . AD_UPLOAD_URL_BASE . basename($image_url); // Use constant
+                        }
+                    ?>
+                        <img src="<?php echo $image_url; ?>" alt="<?php echo htmlspecialchars($left_ad['ad_title'] ?: 'Advertisement'); ?>">
+                    <?php endif; ?>
                 </div>
-                <div class="form-group">
-                    <label for="last_name" class="form-label">Last Name:</label>
-                    <input type="text" id="last_name" name="last_name" class="form-control" value="<?php echo htmlspecialchars($form_data['last_name'] ?? ''); ?>" required>
-                </div>
-            </div>
-
-            <!-- Separator only if dynamic questions or other optional fields exist -->
-            <?php if (!empty($assigned_questions) || ($allow_notifier && !empty($staff_notifiers)) || $allow_email_collection): ?>
-            <hr>
+            <?php else: ?>
+                 <!-- Optional: Placeholder if no ad -->
+                 <!-- <div class="ad-placeholder"></div> -->
             <?php endif; ?>
+        </div>
+        <!-- == END LEFT AD SIDEBAR == -->
 
 
-            <!-- Dynamic Questions (Using new structure) -->
-            <?php if (!empty($assigned_questions)): ?>
-                <?php foreach ($assigned_questions as $question):
-                    // Use global_question_id for the input name
-                    $q_key = 'q_' . $question['global_question_id'];
-                    $current_answer = $form_data[$q_key] ?? null;
-                ?>
-                    <div class="form-group"> <!-- This .form-group will be styled by checkin-specific rules in main.css -->
-                        <label class="form-label"><?php echo htmlspecialchars($question['question_text']); ?>:</label>
-                        <div class="radio-group">
-                            <label>
-                                <input type="radio" name="<?php echo $q_key; ?>" value="YES" <?php echo ($current_answer === 'YES') ? 'checked' : ''; ?> required> Yes
-                            </label>
-                            <label>
-                                <input type="radio" name="<?php echo $q_key; ?>" value="NO" <?php echo ($current_answer === 'NO') ? 'checked' : ''; ?> required> No
-                            </label>
+        <!-- == NEW MAIN CONTENT COLUMN WRAPPER == -->
+        <div class="main-content-column">
+
+            <!-- Existing Logo (Now inside central column) -->
+            <div class="checkin-logo">
+                <img src="assets/img/logo.jpg" alt="Arizona@Work Logo">
+            </div>
+
+            <!-- Existing Form Container (Now inside central column) -->
+            <div class="checkin-container" id="checkin-form-container">
+                <h1>Welcome to Arizona@Work <?php echo htmlspecialchars($site_name); ?>!</h1>
+                <h2>Please Check In</h2>
+
+                <!-- Existing Message Area -->
+                <?php if (!empty($submission_message)): ?>
+                    <div class="message-area message-<?php echo htmlspecialchars($message_type); ?>" id="submission-message">
+                        <?php echo $submission_message; ?>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Existing Form -->
+                <form method="POST" action="checkin.php<?php echo $manual_site_id ? '?manual_site_id='.$manual_site_id : ''; ?>" id="checkin-form">
+                    <!-- ... (ALL your existing form fields: first name, last name, questions, email, notifier, button) ... -->
+                     <!-- Fixed Fields -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="first_name" class="form-label">First Name:</label>
+                            <input type="text" id="first_name" name="first_name" class="form-control" value="<?php echo htmlspecialchars($form_data['first_name'] ?? ''); ?>" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="last_name" class="form-label">Last Name:</label>
+                            <input type="text" id="last_name" name="last_name" class="form-control" value="<?php echo htmlspecialchars($form_data['last_name'] ?? ''); ?>" required>
                         </div>
                     </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
 
-            <!-- Optional Email Notifier Dropdown -->
-            <?php if ($allow_notifier && !empty($staff_notifiers)):
-                 $selected_notifier = $form_data['notify_staff'] ?? '';
-            ?>
-                <!-- Separator only if email collection follows -->
-                 <?php if ($allow_email_collection): ?><hr><?php endif; ?>
-                <div class="form-group">
-                    <label for="notify_staff" class="form-label">Notify Staff Member (Optional):</label>
-                     <div class="description">Select a staff member if you need specific assistance upon arrival.</div>
-                    <select id="notify_staff" name="notify_staff" class="form-control">
-                        <option value="">-- No Specific Staff Needed --</option>
-                        <?php foreach ($staff_notifiers as $notifier_id => $notifier_data): ?>
-                            <option value="<?php echo $notifier_id; ?>" <?php echo ($selected_notifier == $notifier_id) ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($notifier_data['staff_name']); ?>
-                            </option>
+                    <!-- Separator -->
+                    <?php if (!empty($assigned_questions) || ($allow_notifier && !empty($staff_notifiers)) || $allow_email_collection): ?><hr><?php endif; ?>
+
+                    <!-- Dynamic Questions -->
+                    <?php if (!empty($assigned_questions)): ?>
+                        <?php foreach ($assigned_questions as $question):
+                            $q_key = 'q_' . $question['global_question_id']; $current_answer = $form_data[$q_key] ?? null; ?>
+                            <div class="form-group">
+                                <label class="form-label"><?php echo htmlspecialchars($question['question_text']); ?>:</label>
+                                <div class="radio-group">
+                                    <label><input type="radio" name="<?php echo $q_key; ?>" value="YES" <?php echo ($current_answer === 'YES') ? 'checked' : ''; ?> required> Yes</label>
+                                    <label><input type="radio" name="<?php echo $q_key; ?>" value="NO" <?php echo ($current_answer === 'NO') ? 'checked' : ''; ?> required> No</label>
+                                </div>
+                            </div>
                         <?php endforeach; ?>
-                    </select>
+                    <?php endif; ?>
+
+                    <!-- Optional Notifier -->
+                    <?php if ($allow_notifier && !empty($staff_notifiers)): $selected_notifier = $form_data['notify_staff'] ?? ''; ?>
+                         <?php if ($allow_email_collection): ?><hr><?php endif; ?>
+                        <div class="form-group"><label for="notify_staff" class="form-label">Notify Staff Member (Optional):</label><div class="description">Select staff member if you need specific assistance.</div><select id="notify_staff" name="notify_staff" class="form-control"><option value="">-- No Specific Staff Needed --</option><?php foreach ($staff_notifiers as $id => $data): ?><option value="<?php echo $id; ?>" <?php echo ($selected_notifier == $id) ? 'selected' : ''; ?>><?php echo htmlspecialchars($data['staff_name']); ?></option><?php endforeach; ?></select></div>
+                    <?php endif; ?>
+
+                     <!-- Optional Email -->
+                    <?php if ($allow_email_collection): ?>
+                         <hr><div class="form-group"><label for="collect_email" class="form-label"><?php echo htmlspecialchars($site_email_description); ?> (Optional)</label><input type="email" id="collect_email" name="collect_email" class="form-control" value="<?php echo htmlspecialchars($form_data['collect_email'] ?? ''); ?>" placeholder="your.email@example.com" pattern="[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$" title="Please enter a valid email address."></div>
+                    <?php endif; ?>
+
+                    <!-- Submission Button -->
+                    <button type="submit" class="btn btn-primary">Check In</button>
+                </form>
+            </div> <!-- End .checkin-container -->
+
+        </div> <!-- == END MAIN CONTENT COLUMN WRAPPER == -->
+
+
+        <!-- == NEW RIGHT AD SIDEBAR == -->
+        <div class="ad-sidebar ad-right">
+             <?php if ($right_ad): ?>
+                <div class="ad-content">
+                    <?php if ($right_ad['ad_type'] === 'text' && !empty($right_ad['ad_text'])): ?>
+                        <?php echo nl2br(htmlspecialchars($right_ad['ad_text'])); ?>
+                    <?php elseif ($right_ad['ad_type'] === 'image' && !empty($right_ad['image_path'])):
+                        $image_url = htmlspecialchars($right_ad['image_path']);
+                        // Basic path correction (adjust if needed)
+                        if (!filter_var($image_url, FILTER_VALIDATE_URL) && $image_url[0] !== '/' && strpos($image_url, '://') === false) {
+                            $image_url = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/') . '/' . AD_UPLOAD_URL_BASE . basename($image_url); // Use constant
+                        }
+                    ?>
+                        <img src="<?php echo $image_url; ?>" alt="<?php echo htmlspecialchars($right_ad['ad_title'] ?: 'Advertisement'); ?>">
+                    <?php endif; ?>
                 </div>
+            <?php else: ?>
+                 <!-- Optional: Placeholder if no ad -->
+                 <!-- <div class="ad-placeholder"></div> -->
             <?php endif; ?>
+        </div>
+        <!-- == END RIGHT AD SIDEBAR == -->
 
-            <!-- Optional Email Collection -->
-            <?php if ($allow_email_collection): ?>
-                 <hr>
-                 <div class="form-group">
-                     <!-- Use $site_email_description fetched earlier -->
-                    <label for="collect_email" class="form-label"><?php echo htmlspecialchars($site_email_description); ?> (Optional)</label>
-                    <input type="email" id="collect_email" name="collect_email" class="form-control" value="<?php echo htmlspecialchars($form_data['collect_email'] ?? ''); ?>" placeholder="your.email@example.com" pattern="[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$" title="Please enter a valid email address.">
-                 </div>
-            <?php endif; ?>
-
-            <!-- Submission Button -->
-            <button type="submit" class="btn btn-primary">Check In</button>
-        </form>
-    </div>
-
+    </div> <!-- ================== END page-wrapper-with-ads ================== -->
     <!-- Footer (Optional, if you have one) -->
     <!-- <?php // require_once 'includes/footer.php'; ?> -->
 
@@ -526,6 +593,56 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         ['mousemove', 'mousedown', 'keypress', 'keydown', 'scroll', 'touchstart', 'click'].forEach(event => {
             document.addEventListener(event, resetInactivityTimerCheckin, { passive: true });
         });
+        function centerStickySidebars() {
+            const sidebars = document.querySelectorAll('.ad-sidebar');
+            const viewportHeight = window.innerHeight;
+            const minTopGap = 40; // Pixels - Adjust as needed
+
+            console.log(`Viewport Height: ${viewportHeight}`);
+
+            // === Add index parameter HERE ===
+            sidebars.forEach((sidebar, index) => {
+                if (window.getComputedStyle(sidebar).position === 'sticky') {
+                    const contentElement = sidebar.querySelector('.ad-content');
+                    const elementHeight = contentElement ? contentElement.offsetHeight : sidebar.offsetHeight;
+
+                    console.log(`Sidebar ${index} Element Height: ${elementHeight}`);
+
+                    let idealTop = (viewportHeight / 2) - (elementHeight / 2);
+                    let finalTop = Math.max(minTopGap, idealTop);
+
+                    // Apply the calculated top value with !important
+                    sidebar.style.setProperty('top', finalTop + 'px'); // Use setProperty
+                    console.log(`Sidebar ${index} Setting sticky top: ${finalTop}px !important (Ideal: ${idealTop.toFixed(1)}px)`); // Now index is defined
+
+                } else {
+                    sidebar.style.top = '';
+                    console.log(`Sidebar ${index} Resetting top (not sticky)`); // index is defined here too
+                }
+            });
+        }
+
+        // Debounce function to limit resize calculations
+        function debounce(func, wait = 150) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Run on initial load
+        document.addEventListener('DOMContentLoaded', centerStickySidebars);
+
+        // Re-run on window resize (debounced)
+        window.addEventListener('resize', debounce(centerStickySidebars));
+
+    
+    <!-- ============ End JavaScript for Sticky Sidebar Centering ============ --> 
     </script>
 
 </body>
