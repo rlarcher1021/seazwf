@@ -47,6 +47,17 @@ if (isset($_GET['error']) && $_GET['error'] == 'invalid_credentials') {
 
 // --- Process Login Form Submission ---
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // --- CSRF Token Verification ---
+    if (!isset($_POST['csrf_token']) || !isset($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+        $error_message = 'Security token validation failed. Please try logging in again.';
+        error_log("CSRF token validation failed for login (index.php) from IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'Unknown'));
+        // Redirect back to login page with a generic error
+        header('Location: index.php?error=csrf_fail');
+        exit; // Stop processing immediately
+    }
+    // --- End CSRF Token Verification ---
+
+
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
 
@@ -292,6 +303,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <?php endif; ?>
 
             <form method="POST" action="index.php" class="login-form">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
                 <div class="form-group">
                     <label for="username">Username:</label>
                     <input type="text" id="username" name="username" required autocomplete="username" value="<?php echo isset($username) ? htmlspecialchars($username) : ''; ?>">

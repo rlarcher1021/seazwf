@@ -29,7 +29,7 @@ $log_file_path = '';
 $log_filename = 'error_log'; // The name of your log file
 
 // 1. Check in the SAME directory as alerts.php (likely /public_html/)
-$current_dir_path = __DIR__ . '/' . $log_filename;
+$current_dir_path = __DIR__ . "/" . $log_filename;
 error_log("Alerts Debug: Checking current directory path: " . $current_dir_path);
 if (is_file($current_dir_path) && is_readable($current_dir_path)) {
     $log_file_path = $current_dir_path;

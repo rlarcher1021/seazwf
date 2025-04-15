@@ -22,6 +22,8 @@ if (session_status() === PHP_SESSION_NONE) {
 // Require authentication & database connection
 require_once 'includes/db_connect.php'; // Provides $pdo
 require_once 'includes/auth.php';       // Ensures user is logged in, provides $_SESSION['active_role'] etc.
+require_once 'includes/data_access/site_data.php'; // For getAllActiveSites
+require_once 'includes/data_access/user_data.php'; // For user functions
 
 
 // --- Role Check: Only Administrators can access this page ---
@@ -38,19 +40,24 @@ $flash_type = $_SESSION['flash_type'] ?? 'info';
 unset($_SESSION['flash_message'], $_SESSION['flash_type']);
 
 // --- Fetch Sites for Dropdowns ---
-$sites_list = [];
-$site_fetch_error = ''; // Use a distinct variable for site fetching errors
-try {
-    $stmt_sites = $pdo->query("SELECT id, name FROM sites WHERE is_active = TRUE ORDER BY name ASC");
-    $sites_list = $stmt_sites->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    $site_fetch_error = "Error loading site list for forms.";
-    error_log("User Mgmt Error - Fetching sites: " . $e->getMessage());
-}
+$sites_list = getAllActiveSites($pdo); // Use data access function
+$site_fetch_error = ($sites_list === []) ? "Error loading site list for forms." : ''; // Check if function returned empty array (error)
 
 
 // --- Handle Form Submissions (POST Requests) ---
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // --- CSRF Token Verification ---
+    if (!isset($_POST['csrf_token']) || !isset($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+        $_SESSION['flash_message'] = 'CSRF token validation failed. Request blocked.';
+        $_SESSION['flash_type'] = 'error';
+        error_log("CSRF token validation failed for users.php from IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'Unknown'));
+        // Redirect back to the main users list page
+        header('Location: users.php');
+        exit; // Stop processing immediately
+    }
+    // --- End CSRF Token Verification ---
+
+
     $action = $_POST['action'] ?? null;
 
     // Validate user_id early if the action requires it
@@ -95,9 +102,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $errors[] = "The provided email address format is invalid.";
             }
             if (!empty($username)) {
-                 $stmt_check = $pdo->prepare("SELECT id FROM users WHERE username = :username");
-                 $stmt_check->execute([':username' => $username]);
-                 if ($stmt_check->fetch()) {
+                 // Use data access function to check username
+                 if (isUsernameTaken($pdo, $username)) {
                      $errors[] = "Username '" . htmlspecialchars($username) . "' already exists.";
                  }
             }
@@ -107,24 +113,33 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $password_hash = password_hash($password, PASSWORD_DEFAULT);
                 $actual_site_id = ($role === 'director' || $role === 'administrator') ? null : $site_id; // Nullify site for higher roles
 
-                $sql = "INSERT INTO users (username, full_name, email, password_hash, role, site_id, is_active, created_at)
-                        VALUES (:username, :full_name, :email, :password_hash, :role, :site_id, :is_active, NOW())";
+                // Prepare user data array for the function
+                $newUserData = [
+                    'username' => $username,
+                    'full_name' => $full_name,
+                    'email' => $email ?: null,
+                    'password_hash' => $password_hash,
+                    'role' => $role,
+                    'site_id' => $actual_site_id,
+                    'is_active' => $is_active
+                ];
 
-                $stmt = $pdo->prepare($sql);
-                $stmt->execute([
-                    ':username' => $username,
-                    ':full_name' => $full_name,
-                    ':email' => $email ?: null, // Store NULL if email is empty or invalid
-                    ':password_hash' => $password_hash,
-                    ':role' => $role,
-                    ':site_id' => $actual_site_id,
-                    ':is_active' => $is_active
-                ]);
+                // Use data access function to add user
+                $newUserId = addUser($pdo, $newUserData);
 
-                $_SESSION['flash_message'] = "User '" . htmlspecialchars($username) . "' added successfully.";
-                $_SESSION['flash_type'] = 'success';
-                header('Location: users.php');
-                exit;
+                if ($newUserId === false) {
+                    // If addUser fails, it logs the error. Set a generic message here.
+                    $errors[] = "A database error occurred while adding the user.";
+                    // Jump to error handling block below
+                }
+
+                // Check again if errors occurred (including potential DB error from addUser)
+                if (empty($errors)) {
+                    $_SESSION['flash_message'] = "User '" . htmlspecialchars($username) . "' added successfully.";
+                    $_SESSION['flash_type'] = 'success';
+                    header('Location: users.php');
+                    exit;
+                }
 
             } else { // Validation FAILED
                 $_SESSION['flash_message'] = "Error adding user:<br>" . implode("<br>", $errors);
@@ -165,23 +180,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             if (empty($errors)) {
                  $actual_site_id = ($role === 'director' || $role === 'administrator') ? null : $site_id;
 
-                 $sql = "UPDATE users SET full_name = :full_name, email = :email, role = :role, site_id = :site_id, is_active = :is_active
-                         WHERE id = :user_id";
+                 // Prepare user data array for the function
+                 $updateUserData = [
+                     'full_name' => $full_name,
+                     'email' => $email_edit ?: null,
+                     'role' => $role,
+                     'site_id' => $actual_site_id,
+                     'is_active' => $is_active
+                 ];
 
-                 $stmt = $pdo->prepare($sql);
-                 $stmt->execute([
-                     ':full_name' => $full_name,
-                     ':email' => $email_edit ?: null, // Store NULL if email is empty or invalid
-                     ':role' => $role,
-                     ':site_id' => $actual_site_id,
-                     ':is_active' => $is_active,
-                     ':user_id' => $user_id
-                 ]);
+                 // Use data access function to update user
+                 if (!updateUser($pdo, $user_id, $updateUserData)) {
+                     // If updateUser fails, it logs the error. Set a generic message here.
+                     $errors[] = "A database error occurred while updating the user.";
+                     // Jump to error handling block below
+                 }
 
-                 $_SESSION['flash_message'] = "User details updated successfully.";
-                 $_SESSION['flash_type'] = 'success';
-                 header('Location: users.php'); // Redirect to list after success
-                 exit;
+                 // Check again if errors occurred (including potential DB error from updateUser)
+                 if (empty($errors)) {
+                     $_SESSION['flash_message'] = "User details updated successfully.";
+                     $_SESSION['flash_type'] = 'success';
+                     header('Location: users.php'); // Redirect to list after success
+                     exit;
+                 }
 
             } else { // Validation failed
                 $_SESSION['flash_message'] = "Error updating user:<br>" . implode("<br>", $errors);
@@ -203,22 +224,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                   exit;
              }
 
-             // Fetch current status first to avoid unnecessary updates if state hasn't changed
-             $stmt_curr = $pdo->prepare("SELECT is_active FROM users WHERE id = :user_id");
-             $stmt_curr->execute([':user_id' => $user_id]);
-             $current_status = $stmt_curr->fetchColumn();
-
-             if ($current_status !== false) {
-                 $new_status = ($current_status == 1) ? 0 : 1;
-                 $sql = "UPDATE users SET is_active = :new_status WHERE id = :user_id";
-                 $stmt = $pdo->prepare($sql);
-                 $stmt->execute([':new_status' => $new_status, ':user_id' => $user_id]);
-
+             // Use data access function to toggle status
+             if (toggleUserActiveStatus($pdo, $user_id)) {
                  $_SESSION['flash_message'] = "User status updated successfully.";
                  $_SESSION['flash_type'] = 'success';
              } else {
-                  $_SESSION['flash_message'] = "User not found.";
-                  $_SESSION['flash_type'] = 'error';
+                 // Function handles logging, check if user exists or DB error occurred
+                 // We might check if user exists first to give a better message, but for now:
+                 $_SESSION['flash_message'] = "Failed to update user status (User not found or DB error).";
+                 $_SESSION['flash_type'] = 'error';
              }
              header('Location: users.php'); // Redirect back to list
              exit;
@@ -238,14 +252,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             if (empty($errors)) {
                 $password_hash = password_hash($new_password, PASSWORD_DEFAULT);
-                $sql = "UPDATE users SET password_hash = :password_hash WHERE id = :user_id";
-                $stmt = $pdo->prepare($sql);
-                $stmt->execute([':password_hash' => $password_hash, ':user_id' => $user_id]);
+                // Use data access function to reset password
+                if (!resetUserPassword($pdo, $user_id, $password_hash)) {
+                    // Function logs error, set generic message
+                     $errors[] = "A database error occurred while resetting the password.";
+                     // Jump to error handling block below
+                }
 
-                $_SESSION['flash_message'] = "Password reset successfully.";
-                $_SESSION['flash_type'] = 'success';
-                header('Location: users.php'); // Redirect to list
-                exit;
+                // Check again for errors (including potential DB error)
+                if (empty($errors)) {
+                    $_SESSION['flash_message'] = "Password reset successfully.";
+                    $_SESSION['flash_type'] = 'success';
+                    header('Location: users.php'); // Redirect to list
+                    exit;
+                }
 
             } else { // Validation failed
                  $_SESSION['flash_message'] = "Error resetting password:<br>" . implode("<br>", $errors);
@@ -279,38 +299,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 exit;
             }
 
-            // 3. Perform the DELETE query
-            $sql_delete = "DELETE FROM users WHERE id = :user_id";
-            $stmt_delete = $pdo->prepare($sql_delete);
-
-            error_log("[DEBUG users.php] Prepared DELETE query: " . $sql_delete . " for user ID: " . $user_id);
-            error_log("[DEBUG users.php] Before execute() - user_id: " . $user_id . " (Type: " . gettype($user_id) . ")");
-
-            $deletion_result = $stmt_delete->execute([':user_id' => $user_id]); // Execute with array
-
-            error_log("[DEBUG users.php] After execute() - result: " . ($deletion_result ? 'true' : 'false'));
-            $rows_affected = $stmt_delete->rowCount();
-            error_log("[DEBUG users.php] Rows affected count: " . $rows_affected);
-
-            if ($deletion_result) {
-                if ($rows_affected > 0) {
-                    $_SESSION['flash_message'] = "User deleted successfully.";
-                    $_SESSION['flash_type'] = 'success';
-                    error_log("[DEBUG users.php] User deleted successfully. Rows affected: " . $rows_affected);
-                } else {
-                    // If execute returned true but rowCount is 0, something unusual happened (previously investigated)
-                    $_SESSION['flash_message'] = "Failed to delete user (User not found or other issue preventing deletion).";
-                    $_SESSION['flash_type'] = 'warning';
-                    error_log("[WARNING users.php] DELETE query executed without error (SQLSTATE 00000), but no rows were deleted for user ID: " . $user_id . ". Row count: " . $rows_affected);
-                }
+            // 3. Use data access function to delete user
+            if (deleteUser($pdo, $user_id)) {
+                $_SESSION['flash_message'] = "User deleted successfully.";
+                $_SESSION['flash_type'] = 'success';
+                error_log("[DEBUG users.php] deleteUser function returned true for user ID: " . $user_id);
             } else {
-                // This 'else' block should ideally only be reached if ERRMODE is not EXCEPTION,
-                // or if execute() fails for a non-exception reason (very rare).
-                $_SESSION['flash_message'] = "Failed to delete user. Database error reported by execute().";
+                // Function logs specific error, set generic message here
+                $_SESSION['flash_message'] = "Failed to delete user (User not found or DB error).";
                 $_SESSION['flash_type'] = 'error';
-                // Log the error info if execute returned false
-                 $errorInfo = $stmt_delete->errorInfo();
-                 error_log("DB Error deleting user $user_id (execute returned false): " . implode(" | ", $errorInfo));
+                error_log("[ERROR users.php] deleteUser function returned false for user ID: " . $user_id);
             }
 
             header('Location: users.php'); // Redirect after delete attempt
@@ -337,20 +335,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 
 // --- Fetch User Data (Ensure this is AFTER POST handling) ---
-$users = [];
-$user_fetch_error = '';
-try {
-    // Select email column as well
-    $sql = "SELECT u.id, u.username, u.full_name, u.email, u.role, u.site_id, u.last_login, u.is_active, s.name as site_name
-            FROM users u
-            LEFT JOIN sites s ON u.site_id = s.id
-            ORDER BY u.username ASC";
-    $stmt = $pdo->query($sql); // Use query() for simple SELECT with no params
-    $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    $user_fetch_error = "Error fetching user list: " . $e->getMessage();
-    error_log($user_fetch_error);
-}
+// Use data access function to fetch users
+$users = getAllUsersWithSiteNames($pdo);
+$user_fetch_error = ($users === []) ? "Error fetching user list." : ''; // Check if function returned empty (error logged in function)
 
 // --- Handle Displaying Add/Edit/Reset Password Forms ---
 $edit_user_data = null;
@@ -376,54 +363,33 @@ if ($current_action === 'edit' || $current_action === 'resetpw') {
 
 // Fetch data if editing
 if ($current_action === 'edit' && $edit_user_id) {
-    try {
-        $stmt_edit = $pdo->prepare("SELECT * FROM users WHERE id = :user_id");
-        $stmt_edit->execute([':user_id' => $edit_user_id]);
-        $edit_user_data = $stmt_edit->fetch(PDO::FETCH_ASSOC);
-        if (!$edit_user_data) {
-            // Set flash message if user not found
-            if (!isset($_SESSION['flash_message'])) {
-                $_SESSION['flash_message'] = "User not found for editing.";
-                $_SESSION['flash_type'] = 'error';
-            }
-            header('Location: users.php'); // Redirect to list view
-            exit;
-        }
-    } catch (PDOException $e) {
-         if (!isset($_SESSION['flash_message'])) {
-            $_SESSION['flash_message'] = "Database error fetching user for edit.";
+    // Use data access function to fetch user data
+    $edit_user_data = getUserById($pdo, $edit_user_id);
+    if (!$edit_user_data) {
+        // Function returns null on error or not found (error logged in function)
+        if (!isset($_SESSION['flash_message'])) {
+            $_SESSION['flash_message'] = "User not found for editing or database error occurred.";
             $_SESSION['flash_type'] = 'error';
-         }
-         error_log("PDO Error fetching user for edit ($edit_user_id): " . $e->getMessage());
-         header('Location: users.php'); // Redirect to list view
-         exit;
+        }
+        header('Location: users.php'); // Redirect to list view
+        exit;
     }
 }
 // Check if user exists for reset password form
 elseif ($current_action === 'resetpw' && $edit_user_id) {
-     try {
-         $stmt_check = $pdo->prepare("SELECT username, full_name FROM users WHERE id = :user_id");
-         $stmt_check->execute([':user_id' => $edit_user_id]);
-         $user_to_reset = $stmt_check->fetch(PDO::FETCH_ASSOC);
-         if ($user_to_reset) {
-             $show_reset_password_form = true;
-         } else {
-            if (!isset($_SESSION['flash_message'])) {
-                $_SESSION['flash_message'] = "User not found for password reset.";
-                $_SESSION['flash_type'] = 'error';
-            }
-            header('Location: users.php'); // Redirect to list view
-            exit;
-         }
-     } catch (PDOException $e) {
+    // Use data access function to get user details for reset form
+    $user_to_reset = getUserDetailsForReset($pdo, $edit_user_id);
+    if ($user_to_reset) {
+        $show_reset_password_form = true;
+    } else {
+        // Function returns null on error or not found (error logged in function)
         if (!isset($_SESSION['flash_message'])) {
-            $_SESSION['flash_message'] = "Database error checking user for reset.";
+            $_SESSION['flash_message'] = "User not found for password reset or database error occurred.";
             $_SESSION['flash_type'] = 'error';
         }
-         error_log("PDO Error checking user for reset ($edit_user_id): " . $e->getMessage());
-         header('Location: users.php'); // Redirect to list view
-         exit;
-     }
+        header('Location: users.php'); // Redirect to list view
+        exit;
+    }
 }
 
 // --- Page Setup Continued ---
@@ -529,6 +495,7 @@ require_once 'includes/header.php';
                                                     <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
                                                     <button type="submit" class="btn btn-outline btn-sm" title="<?php echo $user['is_active'] ? 'Deactivate' : 'Activate'; ?>">
                                                         <i class="fas <?php echo $user['is_active'] ? 'fa-toggle-off' : 'fa-toggle-on'; ?>"></i>
+                                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
                                                     </button>
                                                 </form>
                                             <?php endif; ?>
@@ -570,6 +537,7 @@ require_once 'includes/header.php';
                         <form method="POST" action="users.php" style="display:inline;" id="deleteUserForm">
                             <input type="hidden" name="action" value="delete_user">
                             <input type="hidden" name="user_id" id="delete-user-id-input" value="">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
                             <button type="submit" class="btn btn-danger">Confirm Delete</button>
                         </form>
                       </div>
@@ -584,6 +552,7 @@ require_once 'includes/header.php';
                     <h3 class="settings-section-title">Add New User</h3>
                     <form method="POST" action="users.php">
                         <input type="hidden" name="action" value="add_user">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
                          <?php $form_data = $_SESSION['form_data'] ?? []; unset($_SESSION['form_data']); // Get repopulation data ?>
                         <div class="settings-form">
                             <div class="form-group">
@@ -656,6 +625,7 @@ require_once 'includes/header.php';
                     <form method="POST" action="users.php">
                         <input type="hidden" name="action" value="edit_user">
                         <input type="hidden" name="user_id" value="<?php echo $edit_user_data['id']; ?>">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
                         <div class="settings-form">
                              <div class="form-group">
                                 <label for="edit_username" class="form-label">Username:</label>
@@ -719,6 +689,7 @@ require_once 'includes/header.php';
                      <form method="POST" action="users.php">
                          <input type="hidden" name="action" value="reset_password">
                          <input type="hidden" name="user_id" value="<?php echo $edit_user_id; ?>">
+                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
                          <div class="settings-form" style="grid-template-columns: 1fr;"> <!-- Single column for password -->
                               <div class="form-group">
                                 <label for="reset_new_password" class="form-label">New Password:</label>

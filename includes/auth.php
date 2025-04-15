@@ -9,6 +9,21 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// --- CSRF Token Generation ---
+// Generate a CSRF token if one doesn't exist for the session
+if (session_status() === PHP_SESSION_ACTIVE && empty($_SESSION['csrf_token'])) {
+    try {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    } catch (Exception $e) {
+        // Handle error during random_bytes generation (rare)
+        error_log("CSRF token generation failed: " . $e->getMessage());
+        // Depending on security policy, might want to die() or redirect here
+        // For now, log and continue, but the token will be empty, failing validation later.
+    }
+}
+// --- End CSRF Token Generation ---
+
+
 $currentPage = basename($_SERVER['PHP_SELF']);
 $allowedUnauthenticated = ['index.php'];
 

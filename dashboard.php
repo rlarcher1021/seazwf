@@ -16,6 +16,10 @@ if (session_status() === PHP_SESSION_NONE) {
 // Require authentication & database connection
 require_once 'includes/db_connect.php'; // Provides $pdo and helper functions
 require_once 'includes/auth.php';       // Ensures user is logged in, provides $_SESSION['active_role'] etc.
+require_once 'includes/utils.php';      // General utility functions like sanitizers
+require_once 'includes/data_access/site_data.php'; // Functions for site data
+require_once 'includes/data_access/question_data.php'; // Functions for question data
+require_once 'includes/data_access/checkin_data.php'; // Functions for check-in data
 
 // --- Page Setup ---
 $pageTitle = "Dashboard";
@@ -26,22 +30,25 @@ $sites_for_dropdown = []; // Sites available in the dropdown
 $site_filter_id = null;   // The site ID used to FILTER data ('all' or specific ID)
 $user_can_select_sites = (isset($_SESSION['active_role']) && ($_SESSION['active_role'] === 'administrator' || $_SESSION['active_role'] === 'director'));
 
-// Fetch sites available for the dropdown based on user's REAL role/permissions
-try {
-    if ($user_can_select_sites) {
-        $stmt_sites = $pdo->query("SELECT id, name FROM sites WHERE is_active = TRUE ORDER BY name ASC");
-        $sites_for_dropdown = $stmt_sites->fetchAll(PDO::FETCH_ASSOC);
-    } elseif (isset($_SESSION['site_id']) && $_SESSION['site_id'] !== null) { // Use original site_id for supervisor's own site context
-        $stmt_sites = $pdo->prepare("SELECT id, name FROM sites WHERE id = :site_id AND is_active = TRUE");
-        $stmt_sites->execute([':site_id' => $_SESSION['site_id']]);
-        $sites_for_dropdown = $stmt_sites->fetchAll(PDO::FETCH_ASSOC);
-        if (empty($sites_for_dropdown)) { $dashboard_error = "Your assigned site is currently inactive or could not be found."; }
-    } else {
-        if (isset($_SESSION['active_role']) && $_SESSION['active_role'] == 'site_supervisor') { $dashboard_error = "No site is assigned to your account."; }
+// Fetch sites available for the dropdown using data access functions
+if ($user_can_select_sites) {
+    $sites_for_dropdown = getAllActiveSites($pdo);
+    if ($sites_for_dropdown === []) { // Check explicitly for empty array which indicates potential error in function
+        $dashboard_error = "Error loading site list.";
     }
-} catch (PDOException $e) {
-    error_log("Dashboard Error - Fetching sites for dropdown: " . $e->getMessage());
-    $dashboard_error = "Error loading site list.";
+} elseif (isset($_SESSION['site_id']) && $_SESSION['site_id'] !== null) {
+    $site_data = getActiveSiteById($pdo, $_SESSION['site_id']);
+    if ($site_data) {
+        $sites_for_dropdown = [$site_data]; // Put the single site into an array format
+    } else {
+        $sites_for_dropdown = [];
+        $dashboard_error = "Your assigned site is currently inactive or could not be found.";
+    }
+} else {
+    $sites_for_dropdown = [];
+    if (isset($_SESSION['active_role']) && $_SESSION['active_role'] == 'site_supervisor') {
+        $dashboard_error = "No site is assigned to your account.";
+    }
 }
 
 // Determine the site filter ID for THIS page request
@@ -69,49 +76,46 @@ if (isset($_GET['site_id'])) {
 
 // --- Fetch active question columns and map based on the determined site filter ---
 $active_question_columns = []; // Stores prefixed names e.g., q_needs_assistance
-$active_question_map = [];     // Maps prefixed_name => base_title
+$active_question_map = [];     // Maps prefixed_name => original_title (from DB)
 $active_chart_labels = [];     // Stores formatted labels e.g., Needs Assistance
-try {
-    $sql_q_cols = "SELECT DISTINCT gq.question_title -- Use DISTINCT for safety
-                   FROM global_questions gq
-                   JOIN site_questions sq ON gq.id = sq.global_question_id
-                   WHERE sq.is_active = TRUE";
-    $params_q_cols = [];
-    if ($site_filter_id !== 'all' && $site_filter_id !== null) {
-         $sql_q_cols .= " AND sq.site_id = :site_id_filter";
-         $params_q_cols[':site_id_filter'] = $site_filter_id;
+
+// Use the new data access function
+$question_base_titles = getActiveQuestionTitles($pdo, $site_filter_id);
+
+if ($question_base_titles === []) {
+    // Function might have returned empty due to error or no questions found
+    if ($site_filter_id !== null) { // Avoid error message if no site context exists
+         $dashboard_error .= " Error loading question details or no active questions found for this filter.";
     }
-     $sql_q_cols .= " ORDER BY gq.question_title ASC";
+} else {
+    foreach ($question_base_titles as $base_title) {
+        if (!empty($base_title)) {
+            // Use utility functions (already required)
+            $sanitized_base = sanitize_title_to_base_name($base_title);
+            if (!empty($sanitized_base)) {
+                $prefixed_col_name = 'q_' . $sanitized_base;
+                // Validate column name format before adding (important for security later)
+                 if (preg_match('/^q_[a-z0-9_]+$/', $prefixed_col_name) && strlen($prefixed_col_name) <= 64) {
+                    $formatted_label = format_base_name_for_display($sanitized_base); // Format for display
 
-    $stmt_q_cols = $pdo->prepare($sql_q_cols);
-    $stmt_q_cols->execute($params_q_cols);
-    $question_base_titles = $stmt_q_cols->fetchAll(PDO::FETCH_COLUMN); // Fetch base titles
+                    $active_question_columns[] = $prefixed_col_name;
+                    $active_question_map[$prefixed_col_name] = $base_title; // Map prefixed to original base title
+                    $active_chart_labels[] = $formatted_label; // Store formatted label
+                 } else {
+                     error_log("Dashboard Warning: Generated prefixed column name '{$prefixed_col_name}' from base '{$base_title}' is invalid and was skipped.");
+                 }
+            } else {
+                error_log("Dashboard Warning: Sanitized base title for '{$base_title}' resulted in empty string.");
+            }
+        }
+    }
+}
 
-    if ($question_base_titles) {
-         foreach ($question_base_titles as $base_title) {
-             if (!empty($base_title)) {
-                 // --- Corrected function call ---
-                 $sanitized_base = sanitize_title_to_base_name($base_title); // Use new function
-                 if (!empty($sanitized_base)) {
-                     $prefixed_col_name = 'q_' . $sanitized_base;
-                     $formatted_label = format_base_name_for_display($sanitized_base); // Format for display
-
-                     $active_question_columns[] = $prefixed_col_name;
-                     $active_question_map[$prefixed_col_name] = $base_title; // Map prefixed to base
-                     $active_chart_labels[] = $formatted_label; // Store formatted label
-                 } else { error_log("Dashboard Warning: Sanitized base title for '{$base_title}' resulted in empty string."); }
-             }
-         }
-     }
- } catch (PDOException $e) {
-     error_log("Dashboard Error - Fetching active question titles: " . $e->getMessage());
-     $dashboard_error .= " Error loading question details.";
- }
- // Prepare JSON for chart JS
- $chart_labels_json = json_encode($active_chart_labels);
- $question_columns_json = json_encode($active_question_columns);
- // Log prefixed names used for data fetching
- error_log("Dashboard Debug - Filter ID: {$site_filter_id} - Active question columns for data fetch (prefixed): " . print_r($active_question_columns, true));
+// Prepare JSON for chart JS
+$chart_labels_json = json_encode($active_chart_labels);
+$question_columns_json = json_encode($active_question_columns); // Contains only validated columns now
+// Log prefixed names used for data fetching
+error_log("Dashboard Debug - Filter ID: {$site_filter_id} - Active VALID question columns for data fetch (prefixed): " . print_r($active_question_columns, true));
 
 
 // --- Determine initial state for the dashboard manual check-in button ---
@@ -128,95 +132,44 @@ $dynamic_stat_1_value = 0;
 $dynamic_stat_1_label = "Needs Assistance"; // Default label for stat card
 $recent_checkins_list = [];
 
-try {
-    // Only fetch if a valid site filter is active
-    if ($site_filter_id !== null || ($site_filter_id === 'all' && $user_can_select_sites)) {
+// Only fetch if a valid site filter context exists
+if ($site_filter_id !== null || ($site_filter_id === 'all' && $user_can_select_sites)) {
 
-        $params = []; // Params for data queries
-        $base_sql_where_clause = "";
-        if ($site_filter_id !== 'all') {
-            $base_sql_where_clause = " WHERE ci.site_id = :site_id_filter ";
-            $params[':site_id_filter'] = $site_filter_id;
-        }
+    // Stat 1: Today's Check-ins
+    $todays_checkins = getTodaysCheckinCount($pdo, $site_filter_id);
 
-        // Stat 1: Today's Check-ins
-        $sql_today = "SELECT COUNT(ci.id) FROM check_ins ci " . $base_sql_where_clause . ($base_sql_where_clause ? " AND " : " WHERE ") . " DATE(ci.check_in_time) = CURDATE()";
-        $stmt_today = $pdo->prepare($sql_today);
-        $stmt_today->execute($params);
-        $todays_checkins = $stmt_today->fetchColumn() ?: 0;
+    // Stat 2: Check-ins Last Hour
+    $checkins_last_hour = getLastHourCheckinCount($pdo, $site_filter_id);
 
-        // Stat 2: Check-ins Last Hour
-        $sql_last_hour = "SELECT COUNT(ci.id) FROM check_ins ci " . $base_sql_where_clause . ($base_sql_where_clause ? " AND " : " WHERE ") . " ci.check_in_time >= :one_hour_ago";
-        $params_last_hour = $params;
-        $params_last_hour[':one_hour_ago'] = date('Y-m-d H:i:s', strtotime('-1 hour'));
-        $stmt_last_hour = $pdo->prepare($sql_last_hour);
-        $stmt_last_hour->execute($params_last_hour);
-        $checkins_last_hour = $stmt_last_hour->fetchColumn() ?: 0;
+    // --- Stat 3: Dynamic Stat ---
+    // CONFIGURATION: Set the BASE name (e.g., 'needs_assistance') of the question to track here
+    $dynamic_stat_base_name = 'needs_assistance';
+    // CONFIGURATION: Set the label for the card
+    $dynamic_stat_1_label = format_base_name_for_display($dynamic_stat_base_name) . " Today"; // Use formatted name
+    $dynamic_column_name = 'q_' . sanitize_title_to_base_name($dynamic_stat_base_name); // Construct prefixed name
 
-        // --- Stat 3: Dynamic Stat ---
-        // CONFIGURATION: Set the BASE name (e.g., 'needs_assistance') of the question to track here
-        $dynamic_stat_base_name = 'needs_assistance';
-        // CONFIGURATION: Set the label for the card
-        $dynamic_stat_1_label = format_base_name_for_display($dynamic_stat_base_name) . " Today"; // Use formatted name
-        $dynamic_column_name = 'q_' . sanitize_title_to_base_name($dynamic_stat_base_name); // Construct prefixed name
+    $dynamic_stat_1_value = 'N/A'; // Default if not applicable
 
-        $dynamic_stat_1_value = 'N/A'; // Default if not applicable
+    // Check if the constructed column name is among the *validated* active ones for the current filter
+    if (!empty($active_question_columns) && in_array($dynamic_column_name, $active_question_columns)) {
+        // Call the data access function - it includes validation
+        $dynamic_stat_1_value = getTodaysCheckinCountByQuestion($pdo, $site_filter_id, $dynamic_column_name);
+        // The function returns 0 on error or if column is invalid/not found, so no need for 'ERR' state here.
+    } else {
+        // If the column isn't active for this filter, display 0
+        error_log("Dashboard Info: Configured dynamic column '{$dynamic_column_name}' not found among active/valid columns for filter '{$site_filter_id}'. Setting stat to 0.");
+        $dynamic_stat_1_value = 0;
+    }
+    // --- End Stat 3 ---
 
-        // Check if the constructed column name is among the active ones for the current filter
-        if (!empty($active_question_columns) && in_array($dynamic_column_name, $active_question_columns)) {
-            try {
-                 $sql_dynamic = "SELECT COUNT(ci.id) FROM check_ins ci "
-                             . $base_sql_where_clause
-                             . ($base_sql_where_clause ? " AND " : " WHERE ") . " DATE(ci.check_in_time) = CURDATE()"
-                             . " AND `" . $dynamic_column_name . "` = 'YES'"; // Use safe column name
+    // --- Recent Check-ins List ---
+    // Pass the validated $active_question_columns to the function
+    $recent_checkins_list = getRecentCheckins($pdo, $site_filter_id, $active_question_columns, 5);
+    // --- End Recent Check-ins ---
 
-                 $stmt_dynamic = $pdo->prepare($sql_dynamic);
-                 $stmt_dynamic->execute($params); // Use same params as other stats
-                 $dynamic_stat_1_value = $stmt_dynamic->fetchColumn() ?: 0;
-             } catch (PDOException $e) {
-                 error_log("Dashboard Error - Fetching dynamic stat for column '{$dynamic_column_name}': " . $e->getMessage());
-                 $dashboard_error .= " Error loading dynamic stat (" . htmlspecialchars($dynamic_stat_base_name) . ").";
-                 $dynamic_stat_1_value = 'ERR';
-            }
-        } else {
-            // If the column isn't active for this filter, display 0
-            error_log("Dashboard Info: Configured dynamic column '{$dynamic_column_name}' not found among active columns for filter '{$site_filter_id}'. Setting stat to 0.");
-            $dynamic_stat_1_value = 0;
-        }
-        // --- End Stat 3 ---
-
-        // --- Recent Check-ins List ---
-        // Dynamically build the SELECT part for active question columns
-        $dynamic_select_sql = "";
-        if (!empty($active_question_columns)) {
-             $safe_dynamic_cols = array_map(function($col) {
-                 if (preg_match('/^q_[a-zA-Z0-9_]+$/', $col)) return "`" . $col . "`";
-                 return null;
-             }, $active_question_columns);
-             $safe_dynamic_cols = array_filter($safe_dynamic_cols);
-             if (!empty($safe_dynamic_cols)) $dynamic_select_sql = ", " . implode(", ", $safe_dynamic_cols);
-        }
-
-        $sql_recent = "SELECT ci.id, ci.first_name, ci.last_name, ci.check_in_time, s.name as site_name" . $dynamic_select_sql . "
-                       FROM check_ins ci
-                       JOIN sites s ON ci.site_id = s.id ";
-        $sql_recent .= ($site_filter_id !== 'all' ? " WHERE ci.site_id = :site_id_filter " : ""); // Add WHERE only if specific site
-        $sql_recent .= " ORDER BY ci.check_in_time DESC LIMIT 5";
-
-        $stmt_recent = $pdo->prepare($sql_recent);
-        // Bind site filter parameter only if needed
-        if ($site_filter_id !== 'all') {
-            $stmt_recent->bindParam(':site_id_filter', $site_filter_id, PDO::PARAM_INT);
-        }
-        $stmt_recent->execute();
-        $recent_checkins_list = $stmt_recent->fetchAll(PDO::FETCH_ASSOC);
-        // --- End Recent Check-ins ---
-
-    } // End if ($site_filter_id !== null ...)
-
-} catch (PDOException $e) { // Catch errors during main data fetching
-    error_log("Dashboard Error - Fetching data: " . $e->getMessage());
-    $dashboard_error .= " Error loading dashboard data.";
+} else {
+    // If $site_filter_id is null (e.g., supervisor with no site assigned), stats remain at default 0/[]
+    $dashboard_error .= " Cannot load dashboard data without a valid site context.";
 }
 
 

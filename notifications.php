@@ -17,6 +17,8 @@ if (session_status() === PHP_SESSION_NONE) {
 // Require authentication
 require_once 'includes/auth.php';       // Ensures user is logged in
 require_once 'includes/db_connect.php'; // Provides $pdo
+require_once 'includes/data_access/site_data.php';     // For getSiteNameById
+require_once 'includes/data_access/notifier_data.php'; // For notification history functions
 
 // --- Configuration ---
 define('NOTIFICATION_HISTORY_DAYS', 30); // << SET TIME LIMIT HERE (in days)
@@ -58,19 +60,12 @@ $site_id_to_query = $activeSiteId;
 $site_name = 'Site ' . $site_id_to_query;
 
 // --- Fetch Site Name ---
-try {
-    $stmt_site = $pdo->prepare("SELECT name FROM sites WHERE id = :site_id");
-    $stmt_site->bindParam(':site_id', $site_id_to_query, PDO::PARAM_INT);
-    $stmt_site->execute();
-    $site_data = $stmt_site->fetch();
-    if ($site_data) {
-        $site_name = $site_data['name'];
-    } else {
-        error_log("Notifications Warning: Could not fetch name for active site ID: {$site_id_to_query}");
-        $site_name = 'Unknown Site (ID: ' . $site_id_to_query . ')';
-    }
-} catch (PDOException $e) {
-    error_log("Notifications Error - Fetching site name for ID {$site_id_to_query}: " . $e->getMessage());
+$fetched_site_name = getSiteNameById($pdo, $site_id_to_query);
+if ($fetched_site_name !== null) {
+    $site_name = $fetched_site_name;
+} else {
+    // Error logged within the function
+    $site_name = 'Unknown Site (ID: ' . $site_id_to_query . ')';
 }
 
 
@@ -85,46 +80,31 @@ $offset = ($page - 1) * $limit;
 // Calculate the cutoff date/time
 $date_limit_string = date('Y-m-d H:i:s', strtotime('-' . NOTIFICATION_HISTORY_DAYS . ' days'));
 
-try {
-    // Base query filtering by site, notification presence, AND date
-    $base_sql = "FROM check_ins ci
-                 JOIN staff_notifications sn ON ci.notified_staff_id = sn.id
-                 WHERE ci.site_id = :site_id
-                   AND ci.notified_staff_id IS NOT NULL
-                   AND ci.check_in_time >= :start_date_limit"; // <<< ADDED DATE CONDITION
+// Use data access functions to fetch count and data
+$total_records_result = countRecentNotificationsForSite($pdo, $site_id_to_query, NOTIFICATION_HISTORY_DAYS);
+$total_pages = 0;
 
-    // Count total records for pagination (WITH date filter)
-    $sql_count = "SELECT COUNT(*) " . $base_sql;
-    $stmt_count = $pdo->prepare($sql_count);
-    $stmt_count->bindParam(':site_id', $site_id_to_query, PDO::PARAM_INT);
-    $stmt_count->bindParam(':start_date_limit', $date_limit_string, PDO::PARAM_STR); // <<< BIND DATE LIMIT
-    $stmt_count->execute();
-    $total_records = (int) $stmt_count->fetchColumn();
-
-    $total_pages = 0; // Initialize
+if ($total_records_result === false) {
+    $notification_error = "Error counting notification history."; // Error logged in function
+    $total_records = 0;
+} else {
+    $total_records = $total_records_result;
     if ($total_records > 0) {
         $total_pages = ceil($total_records / $limit);
         $page = max(1, min($page, $total_pages)); // Recalculate page based on filtered total
         $offset = ($page - 1) * $limit;
 
-        // Fetch paginated notification history data (WITH date filter)
-        $sql_data = "SELECT ci.first_name, ci.last_name, ci.check_in_time, sn.staff_name AS notified_staff_name
-                     " . $base_sql . "
-                     ORDER BY ci.check_in_time DESC
-                     LIMIT :limit OFFSET :offset";
+        $notification_history_result = getRecentNotificationsForSite($pdo, $site_id_to_query, NOTIFICATION_HISTORY_DAYS, $limit, $offset);
 
-        $stmt_data = $pdo->prepare($sql_data);
-        $stmt_data->bindParam(':site_id', $site_id_to_query, PDO::PARAM_INT);
-        $stmt_data->bindParam(':start_date_limit', $date_limit_string, PDO::PARAM_STR); // <<< BIND DATE LIMIT
-        $stmt_data->bindParam(':limit', $limit, PDO::PARAM_INT);
-        $stmt_data->bindParam(':offset', $offset, PDO::PARAM_INT);
-        $stmt_data->execute();
-        $notification_history = $stmt_data->fetchAll(PDO::FETCH_ASSOC);
+        if ($notification_history_result === false) {
+            $notification_error = "Error fetching notification history details."; // Error logged in function
+            $notification_history = []; // Ensure it's an empty array on error
+        } else {
+            $notification_history = $notification_history_result;
+        }
+    } else {
+         $notification_history = []; // No records found
     }
-
-} catch (PDOException $e) {
-    $notification_error = "Error fetching notification history."; // Keep generic
-    error_log("Notifications PDOException Fetching History for site {$site_id_to_query} with date limit: " . $e->getMessage());
 }
 
 

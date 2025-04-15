@@ -7,364 +7,7 @@
  * Updated: 2025-04-08 - Corrected dynamic column name handling for reports.
  * Description: Provides reporting capabilities for check-in data.
  */
-// --- AJAX Handler for Custom Report Builder ---
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'generate_custom_report') {
-
-    // --- Essential Setup for AJAX Request ---
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start();
-    }
-    require_once 'includes/db_connect.php'; // Need $pdo and helpers
-    require_once 'includes/auth.php';       // Need role checks, session data
-
-    // --- Response Helper Function ---
-    function send_json_response($data) {
-        header('Content-Type: application/json');
-        echo json_encode($data);
-        exit;
-    }
-    function send_html_response($html) {
-        header('Content-Type: text/html');
-        echo $html;
-        exit;
-    }
-     function send_error_response($message, $statusCode = 400) {
-         http_response_code($statusCode);
-         // Can send JSON error or simple text
-         header('Content-Type: text/plain'); // Keep it simple for errors
-         echo "Error: " . $message;
-         // Log the detailed error server-side
-         error_log("Custom Report AJAX Error: " . $message);
-         exit;
-     }
-
-
-    // --- Permission Check ---
-    $allowedRoles = ['director', 'administrator']; // Only Director/Admin can use custom builder
-    if (!isset($_SESSION['active_role']) || !in_array($_SESSION['active_role'], $allowedRoles)) {
-        send_error_response("Permission Denied.", 403);
-    }
-
-    // --- Input Validation & Sanitization ---
-    $site_id = $_POST['site_id'] ?? 'all';
-    $start_date_str = $_POST['start_date'] ?? null;
-    $end_date_str = $_POST['end_date'] ?? null;
-    $metrics = isset($_POST['metrics']) && is_array($_POST['metrics']) ? $_POST['metrics'] : [];
-    $group_by = $_POST['group_by'] ?? 'none';
-    $output_type = $_POST['output_type'] ?? 'table';
-
-    // Validate Site ID
-    if ($site_id !== 'all') {
-        if (!is_numeric($site_id)) {
-            send_error_response("Invalid Site ID format.");
-        }
-        $site_id = intval($site_id);
-         // Optional: Further check if this site ID is valid/accessible by the user, though main page load does this.
-         // For simplicity here, assume valid if numeric.
-    } elseif ($_SESSION['active_role'] !== 'administrator' && $_SESSION['active_role'] !== 'director') {
-         send_error_response("Insufficient permissions for 'All Sites'.", 403); // Should be caught by role check above, but double-check
-    }
-
-
-    // Validate Dates (basic format check)
-    $default_end_date = date('Y-m-d');
-    $default_start_date = date('Y-m-d', strtotime('-29 days'));
-    $filter_start_date = preg_match("/^\d{4}-\d{2}-\d{2}$/", $start_date_str) ? $start_date_str : $default_start_date;
-    $filter_end_date = preg_match("/^\d{4}-\d{2}-\d{2}$/", $end_date_str) ? $end_date_str : $default_end_date;
-
-    // Validate Metrics
-    if (empty($metrics)) {
-        send_error_response("Please select at least one metric.");
-    }
-    $validated_metrics = [];
-    $question_metric_columns = []; // Store only the q_... column names
-     $metric_labels = []; // Map internal metric name -> User-friendly label
-
-    // Fetch valid question base names for validation if needed (alternative to direct column check)
-    try {
-        $stmt_q = $pdo->query("SELECT question_title FROM global_questions"); // Get all base names
-        $valid_base_names = $stmt_q->fetchAll(PDO::FETCH_COLUMN);
-    } catch (PDOException $e) {
-         send_error_response("Database error fetching question list.", 500);
-    }
-
-    foreach ($metrics as $metric) {
-        if ($metric === 'total_checkins') {
-            $validated_metrics[] = $metric;
-             $metric_labels[$metric] = 'Total Check-ins';
-        } elseif (strpos($metric, 'q_') === 0) {
-             // Validate the q_... column name format and if the base name exists
-             $base_name = substr($metric, 2); // Remove 'q_'
-             if (preg_match('/^[a-zA-Z0-9_]+$/', $metric) && in_array($base_name, $valid_base_names)) {
-                $validated_metrics[] = $metric;
-                $question_metric_columns[] = $metric; // Keep track of question columns requested
-                 // Generate label (requires the helper function)
-                 if (function_exists('format_base_name_for_display')) {
-                      $metric_labels[$metric] = 'Q: ' . format_base_name_for_display($base_name) . ' (Yes Count)';
-                 } else {
-                      $metric_labels[$metric] = $metric . ' (Yes Count)'; // Fallback label
-                 }
-             } else {
-                  error_log("Custom Report Warning: Invalid or non-existent metric skipped: " . $metric);
-                  // Optionally notify user which metric was skipped, or just ignore it silently
-             }
-        } else {
-             error_log("Custom Report Warning: Invalid metric format skipped: " . $metric);
-        }
-    }
-     if (empty($validated_metrics)) {
-         send_error_response("No valid metrics selected or found.");
-     }
-
-    // Validate Group By
-    $allowed_group_by = ['none', 'day', 'week', 'month'];
-    if ($site_id === 'all') {
-        $allowed_group_by[] = 'site'; // Only allow group by site if viewing all sites
-    }
-    if (!in_array($group_by, $allowed_group_by)) {
-        send_error_response("Invalid Group By option selected.");
-    }
-
-    // Validate Output Type
-    $allowed_output_types = ['table', 'bar', 'line'];
-    if (!in_array($output_type, $allowed_output_types)) {
-        send_error_response("Invalid Output Type selected.");
-    }
-
-    // --- Build SQL Query ---
-    $select_clauses = [];
-    $group_by_sql = "";
-    $order_by_sql = "";
-    $params = [];
-    $grouping_column_alias = 'grouping_key'; // Consistent alias for the grouping column
-     $grouping_label = 'Group'; // Default header/axis label
-
-    // Setup Grouping
-    switch ($group_by) {
-        case 'day':
-            $select_clauses[] = "DATE_FORMAT(ci.check_in_time, '%Y-%m-%d') AS {$grouping_column_alias}";
-            $group_by_sql = "GROUP BY {$grouping_column_alias}";
-            $order_by_sql = "ORDER BY {$grouping_column_alias} ASC";
-             $grouping_label = 'Day';
-            break;
-        case 'week':
-            // Using YEARWEEK ensures weeks don't mix across years
-            $select_clauses[] = "DATE_FORMAT(ci.check_in_time, '%x-%v') AS {$grouping_column_alias}"; // e.g., 2024-45
-            $group_by_sql = "GROUP BY {$grouping_column_alias}";
-            $order_by_sql = "ORDER BY {$grouping_column_alias} ASC";
-             $grouping_label = 'Week';
-            break;
-        case 'month':
-            $select_clauses[] = "DATE_FORMAT(ci.check_in_time, '%Y-%m') AS {$grouping_column_alias}"; // e.g., 2024-11
-            $group_by_sql = "GROUP BY {$grouping_column_alias}";
-            $order_by_sql = "ORDER BY {$grouping_column_alias} ASC";
-             $grouping_label = 'Month';
-            break;
-        case 'site':
-            // Assumes $site_id is 'all' (validated earlier)
-            $select_clauses[] = "s.name AS {$grouping_column_alias}";
-            $group_by_sql = "GROUP BY ci.site_id, s.name"; // Group by ID and Name
-            $order_by_sql = "ORDER BY {$grouping_column_alias} ASC";
-             $grouping_label = 'Site';
-            break;
-        case 'none':
-        default:
-             // No grouping column in SELECT or GROUP BY
-             $grouping_column_alias = null; // Indicate no grouping
-             $grouping_label = 'Overall'; // Label for the single result row/bar
-            break;
-    }
-
-    // Setup Metrics in SELECT
-    foreach ($validated_metrics as $metric) {
-        if ($metric === 'total_checkins') {
-            $select_clauses[] = "COUNT(ci.id) AS total_checkins";
-        } elseif (in_array($metric, $question_metric_columns)) {
-             // Safely use the validated column name. Alias it for clarity.
-             $alias = $metric . '_yes_count'; // e.g., q_needs_help_yes_count
-             $select_clauses[] = "SUM(CASE WHEN ci.`" . $metric . "` = 'YES' THEN 1 ELSE 0 END) AS `" . $alias . "`";
-        }
-    }
-
-    // Setup WHERE Clause
-    $where_clauses = [];
-    if ($site_id !== 'all') {
-        $where_clauses[] = "ci.site_id = :site_id";
-        $params[':site_id'] = $site_id;
-    }
-    if ($filter_start_date) {
-        $where_clauses[] = "ci.check_in_time >= :start_date";
-        $params[':start_date'] = $filter_start_date . ' 00:00:00';
-    }
-    if ($filter_end_date) {
-        $where_clauses[] = "ci.check_in_time <= :end_date";
-        $params[':end_date'] = $filter_end_date . ' 23:59:59';
-    }
-    $where_sql = !empty($where_clauses) ? 'WHERE ' . implode(' AND ', $where_clauses) : '';
-
-    // Final SQL Assembly
-    $sql = "SELECT " . implode(', ', $select_clauses) . "
-            FROM check_ins ci ";
-            error_log("--- Custom Report Debug ---");
-error_log("Generated SQL: " . $sql);
-error_log("SQL Parameters: " . print_r($params, true));
-    // Add JOIN only if grouping by site
-    if ($group_by === 'site') {
-         $sql .= " JOIN sites s ON ci.site_id = s.id ";
-    }
-     $sql .= $where_sql . " "
-           . $group_by_sql . " "
-           . $order_by_sql;
-
-    // --- Execute Query ---
-    try {
-        $stmt = $pdo->prepare($sql);
-         // Bind parameters carefully based on type
-         foreach ($params as $key => &$val) { // Use reference needed for bindParam/bindValue scope
-             if ($key === ':site_id') {
-                 $stmt->bindValue($key, $val, PDO::PARAM_INT);
-             } else {
-                 $stmt->bindValue($key, $val, PDO::PARAM_STR);
-             }
-         }
-         unset($val); // Break the reference
-
-        $stmt->execute();
-        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        error_log("Raw DB Results: " . print_r($results, true));
-        
-    } catch (PDOException $e) {
-        error_log("Custom Report SQL Error: " . $e->getMessage() . " | SQL: " . $sql . " | Params: " . print_r($params, true));
-        send_error_response("Database query failed executing custom report.", 500);
-    }
-
-    // --- Format and Send Response ---
-    if (empty($results)) {
-         // Send back a 'no results' message suitable for the container
-         send_html_response('<p style="text-align: center; color: var(--color-gray);">No data found matching the selected criteria.</p>');
-    }
-
-    // ** Output: Table **
-    if ($output_type === 'table') {
-        $html = '<div class="table-container custom-report-table">'; // Add specific class
-        $html .= '<table>';
-        $html .= '<thead><tr>';
-        if ($grouping_column_alias) {
-             $html .= '<th>' . htmlspecialchars($grouping_label) . '</th>'; // Header for grouping column
-        } else {
-             // If no grouping, we might still need a conceptual first column label
-             $html .= '<th>' . htmlspecialchars($grouping_label) . '</th>';
-        }
-        foreach ($validated_metrics as $metric) {
-             $label = $metric_labels[$metric] ?? $metric; // Use generated label
-            $html .= '<th>' . htmlspecialchars($label) . '</th>';
-        }
-        $html .= '</tr></thead>';
-        $html .= '<tbody>';
-
-        foreach ($results as $row) {
-            $html .= '<tr>';
-            // Display grouping key (or 'Overall' if none)
-             if ($grouping_column_alias) {
-                $html .= '<td>' . htmlspecialchars($row[$grouping_column_alias] ?? 'N/A') . '</td>';
-             } else {
-                 $html .= '<td>' . htmlspecialchars($grouping_label) . '</td>'; // Single row case
-             }
-            // Display metric values
-            foreach ($validated_metrics as $metric) {
-                $value_key = $metric;
-                if (in_array($metric, $question_metric_columns)) {
-                     $value_key = $metric . '_yes_count'; // Use the alias from the SELECT clause
-                }
-                 // Ensure the key exists and format the number nicely
-                 $display_value = isset($row[$value_key]) ? number_format($row[$value_key]) : '0';
-                $html .= '<td>' . htmlspecialchars($display_value) . '</td>';
-            }
-            $html .= '</tr>';
-        }
-        $html .= '</tbody></table>';
-        $html .= '</div>';
-        send_html_response($html);
-    }
-
-    // ** Output: Chart (Bar or Line) **
-    elseif ($output_type === 'bar' || $output_type === 'line') {
-        $labels = [];
-        $datasets_data = []; // Prepare data structure for datasets
-
-         // Initialize data arrays for each metric
-         foreach($validated_metrics as $metric) {
-             $value_key = $metric;
-             if (in_array($metric, $question_metric_columns)) {
-                 $value_key = $metric . '_yes_count';
-             }
-             $datasets_data[$metric] = [
-                 'label' => $metric_labels[$metric] ?? $metric,
-                 'data' => [],
-                 'value_key' => $value_key // Store the key to look up in results
-             ];
-         }
-
-        // Populate labels and dataset data
-        foreach ($results as $row) {
-            // Add label (grouping key or 'Overall')
-            if ($grouping_column_alias) {
-                 $labels[] = $row[$grouping_column_alias] ?? 'N/A';
-            } elseif (empty($labels)) { // Only add 'Overall' once if no grouping
-                 $labels[] = $grouping_label;
-            }
-
-            // Add data for each metric for this label
-            foreach ($validated_metrics as $metric) {
-                 $key_to_lookup = $datasets_data[$metric]['value_key'];
-                 // Add the numeric value (or 0 if null/missing)
-                 $datasets_data[$metric]['data'][] = isset($row[$key_to_lookup]) ? (int)$row[$key_to_lookup] : 0;
-            }
-        }
-
-        // Define some basic colors (can be expanded)
-         $chart_colors = [
-             ['border' => 'rgba(30, 58, 138, 1)', 'bg' => 'rgba(30, 58, 138, 0.7)'],   // Primary Blue
-             ['border' => 'rgba(255, 107, 53, 1)', 'bg' => 'rgba(255, 107, 53, 0.7)'],   // Secondary Orange
-             ['border' => 'rgba(34, 197, 94, 1)', 'bg' => 'rgba(34, 197, 94, 0.7)'],   // Green
-             ['border' => 'rgba(234, 179, 8, 1)',  'bg' => 'rgba(234, 179, 8, 0.7)'],   // Yellow
-             ['border' => 'rgba(139, 92, 246, 1)', 'bg' => 'rgba(139, 92, 246, 0.7)'],  // Purple
-             ['border' => 'rgba(236, 72, 153, 1)', 'bg' => 'rgba(236, 72, 153, 0.7)'],  // Pink
-         ];
-         $color_index = 0;
-
-        // Finalize datasets array for Chart.js
-        $chart_datasets = [];
-        foreach ($datasets_data as $metric_data) {
-             $color = $chart_colors[$color_index % count($chart_colors)]; // Cycle through colors
-             $chart_datasets[] = [
-                 'label' => $metric_data['label'],
-                 'data' => $metric_data['data'],
-                 'backgroundColor' => $color['bg'],
-                 'borderColor' => $color['border'],
-                 'borderWidth' => 1,
-                 'tension' => ($output_type === 'line' ? 0.1 : 0) // Add slight tension for line charts
-             ];
-             $color_index++;
-        }
-
-
-        // Prepare JSON Response for Chart
-        $responseJson = [
-            'html' => '<canvas id="custom-report-chart" style="max-height: 400px; width: 100%;"></canvas>', // Canvas HTML
-            'chartType' => $output_type, // 'bar' or 'line'
-            'chartData' => [
-                'labels' => $labels,
-                'datasets' => $chart_datasets
-            ]
-        ];
-        send_json_response($responseJson);
-    }
-
-    // Should not reach here if output type is valid
-    send_error_response("An unexpected error occurred processing the report type.", 500);
-
-} // --- END of AJAX Handler Block ---
+// AJAX Handler for Custom Report Builder has been moved to ajax_report_handler.php
 
 // --- Normal Page Execution Starts Below ---
 // Make sure session_start() and includes are called *again* here if they are not already outside the IF block
@@ -377,8 +20,12 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Require authentication & database connection
-require_once 'includes/db_connect.php'; // Provides $pdo and helper functions
+require_once 'includes/db_connect.php'; // Provides $pdo
 require_once 'includes/auth.php';       // Ensures user is logged in, provides $_SESSION['active_role'] etc.
+require_once 'includes/utils.php';      // Provides format_base_name_for_display, sanitize_title_to_base_name
+require_once 'includes/data_access/site_data.php'; // Provides site fetching functions
+require_once 'includes/data_access/question_data.php'; // Provides question fetching functions
+require_once 'includes/data_access/checkin_data.php'; // Provides check-in fetching functions
 
 // --- Role Check ---
 $allowedRoles = ['site_supervisor', 'director', 'administrator'];
@@ -399,21 +46,25 @@ $sites = [];
 $selected_site_id = null;
 $user_can_select_sites = ($_SESSION['active_role'] === 'administrator' || $_SESSION['active_role'] === 'director'); // Corrected variable name
 
-try {
-    if ($user_can_select_sites) {
-        $stmt_sites = $pdo->query("SELECT id, name FROM sites WHERE is_active = TRUE ORDER BY name ASC");
-        $sites = $stmt_sites->fetchAll(PDO::FETCH_ASSOC);
-    } elseif (isset($_SESSION['site_id']) && $_SESSION['site_id'] !== null) { // Use 'site_id' from session if consistent
-        $stmt_sites = $pdo->prepare("SELECT id, name FROM sites WHERE id = :site_id AND is_active = TRUE");
-        $stmt_sites->execute([':site_id' => $_SESSION['site_id']]);
-        $sites = $stmt_sites->fetchAll(PDO::FETCH_ASSOC);
-        if (empty($sites)) $report_error_message .= " Your assigned site is inactive or could not be found.";
-    } else {
-        if ($_SESSION['active_role'] == 'site_supervisor') $report_error_message .= " No site is assigned to your account.";
+// Fetch sites using data access functions
+if ($user_can_select_sites) {
+    $sites = getAllActiveSites($pdo);
+    if ($sites === []) { // Check explicitly for empty array which indicates potential error
+        $report_error_message .= " Error loading site list.";
     }
-} catch (PDOException $e) {
-    error_log("Reports Error - Fetching sites: " . $e->getMessage());
-    $report_error_message .= " Error loading site list.";
+} elseif (isset($_SESSION['site_id']) && $_SESSION['site_id'] !== null) {
+    $site_data = getActiveSiteById($pdo, $_SESSION['site_id']);
+    if ($site_data) {
+        $sites = [$site_data]; // Put the single site into an array format
+    } else {
+        $sites = [];
+        $report_error_message .= " Your assigned site is currently inactive or could not be found.";
+    }
+} else {
+    $sites = [];
+    if ($_SESSION['active_role'] == 'site_supervisor') {
+        $report_error_message .= " No site is assigned to your account.";
+    }
 }
 
 // Determine selected site ID from GET or defaults
@@ -465,57 +116,40 @@ $report_question_columns = []; // Stores sanitized column names WITH prefix (q_.
 $report_chart_labels = [];     // Stores FORMATTED labels (e.g., "Needs Assistance") for chart display
 $report_column_to_label_map = []; // Optional: Map prefixed name -> formatted label if needed elsewhere
 
-try {
-    // Fetch the BASE question titles associated with active questions for the filtered sites
-    $sql_q_report = "SELECT DISTINCT gq.question_title -- Use DISTINCT for safety
-                     FROM global_questions gq
-                     JOIN site_questions sq ON gq.id = sq.global_question_id
-                     WHERE sq.is_active = TRUE"; // Only include active assignments
+// Fetch active question base titles using data access function
+$report_base_titles = getActiveQuestionTitles($pdo, $selected_site_id);
 
-    $params_q_report = [];
-    if ($selected_site_id !== 'all' && $selected_site_id !== null) {
-        $sql_q_report .= " AND sq.site_id = :site_id_filter"; // Filter by site
-        $params_q_report[':site_id_filter'] = $selected_site_id;
+if ($report_base_titles === []) {
+    if ($selected_site_id !== null) { // Avoid error if no site context
+        $report_error_message .= " Error loading question details or no active questions found for report.";
     }
-     $sql_q_report .= " ORDER BY gq.question_title ASC"; // Add consistent ordering
+} else {
+    foreach ($report_base_titles as $base_title) {
+        if (!empty($base_title)) {
+            $sanitized_base = sanitize_title_to_base_name($base_title); // Use utility function
+            if (!empty($sanitized_base)) {
+                $prefixed_col_name = 'q_' . $sanitized_base;
+                // Validate column name format before adding
+                if (preg_match('/^q_[a-z0-9_]+$/', $prefixed_col_name) && strlen($prefixed_col_name) <= 64) {
+                    $formatted_label = format_base_name_for_display($sanitized_base); // Use utility function
+                    $report_question_columns[] = $prefixed_col_name; // Store validated prefixed name
+                    $report_chart_labels[] = $formatted_label; // Store formatted label for charts
+                    $report_column_to_label_map[$prefixed_col_name] = $formatted_label; // Map for custom builder options
+                } else {
+                     error_log("Reports Warning: Generated prefixed column name '{$prefixed_col_name}' from base '{$base_title}' is invalid and was skipped.");
+                }
+            } else {
+                 error_log("Reports Warning: Sanitized base title for '{$base_title}' resulted in empty string.");
+            }
+        }
+    }
+}
 
-    $stmt_q_report = $pdo->prepare($sql_q_report);
-    $stmt_q_report->execute($params_q_report);
-    // Fetch the BASE titles (e.g., 'needs_assistance', 'free_test')
-    $report_base_titles = $stmt_q_report->fetchAll(PDO::FETCH_COLUMN);
+// Prepare JSON for JavaScript Chart Labels (using the formatted labels)
+$chart_labels_json = json_encode($report_chart_labels);
 
-   // --- Inside reports.php, loop processing fetched $report_base_titles ---
-if ($report_base_titles) {
-     foreach ($report_base_titles as $base_title) {
-         if (!empty($base_title)) {
-             // --- FIX THIS LINE ---
-             // $sanitized_base = sanitize_question_title_for_column($base_title); // OLD NAME
-             $sanitized_base = sanitize_title_to_base_name($base_title); // <<< NEW NAME
-
-             if (!empty($sanitized_base)) {
-                 $prefixed_col_name = 'q_' . $sanitized_base;
-                 $formatted_label = format_base_name_for_display($sanitized_base); // Use the other new function
-
-                 $report_question_columns[] = $prefixed_col_name;
-                 $report_chart_labels[] = $formatted_label;
-                 $report_column_to_label_map[$prefixed_col_name] = $formatted_label;
-             } // else log warning
-         }
-     }
- }
-// --- End Fix ---
- } catch (PDOException $e) {
-     error_log("Reports Error - Fetching active question columns: " . $e->getMessage());
-     $report_error_message .= " Error loading question list for report.";
- }
-
- // Prepare JSON for JavaScript Chart Labels
- $chart_labels_json = json_encode($report_chart_labels); // Use the formatted labels
-
- // Log the prefixed column names (useful for debugging data fetching)
- error_log("Reports Debug - Filter ID: {$selected_site_id} - Active question columns for data fetch (prefixed): " . print_r($report_question_columns, true));
- // Log the formatted labels (useful for debugging chart display)
- // error_log("Reports Debug - Formatted chart labels: " . print_r($report_chart_labels, true));
+// Log the *validated* prefixed column names (useful for debugging data fetching)
+error_log("Reports Debug - Filter ID: {$selected_site_id} - Active VALID question columns for data fetch (prefixed): " . print_r($report_question_columns, true));
 
 // --- Fetch Report Data ---
 $report_data = [];
@@ -542,81 +176,38 @@ if (!empty($filter_end_date) && ($end_timestamp = strtotime($filter_end_date)) !
 $where_sql = !empty($sql_where_clauses) ? 'WHERE ' . implode(' AND ', $sql_where_clauses) : '';
 
 // Only attempt fetch if a site context is valid
-if ($selected_site_id !== null || ($selected_site_id === 'all' && $user_can_select_sites) ) { // Ensure 'all' is only valid for those allowed
-    try {
-        // Count Total Records
-        $sql_count = "SELECT COUNT(ci.id) FROM check_ins ci $where_sql";
-        $stmt_count = $pdo->prepare($sql_count);
-        if ($stmt_count === false) throw new PDOException("Failed to prepare count query.");
-        $stmt_count->execute($params_data);
-        $total_records = (int) $stmt_count->fetchColumn();
+if ($selected_site_id !== null || ($selected_site_id === 'all' && $user_can_select_sites)) {
+    // Use data access functions for count and data
+    $total_records = getCheckinCountByFilters($pdo, $selected_site_id, $filter_start_date, $filter_end_date);
 
-        if ($total_records > 0) {
-            $total_pages = ceil($total_records / $results_per_page);
-            // Validate current page against total pages
-            $current_page = max(1, min($current_page, $total_pages));
-            $offset = ($current_page - 1) * $results_per_page;
+    if ($total_records > 0) {
+        $total_pages = ceil($total_records / $results_per_page);
+        // Validate current page against total pages
+        $current_page = max(1, min($current_page, $total_pages));
+        $offset = ($current_page - 1) * $results_per_page;
 
-            // Fetch Paginated Data including dynamic columns
-            // --- FIX: Use the prefixed names from $report_question_columns ---
-            $dynamic_select_sql = "";
-            if (!empty($report_question_columns)) {
-                 // Sanitize and wrap each prefixed column name in backticks
-                 $safe_dynamic_cols = array_map(function($col) {
-                     // Double check format just in case
-                     if (preg_match('/^q_[a-zA-Z0-9_]+$/', $col)) {
-                         return "`" . $col . "`";
-                     }
-                     return null; // Skip invalid names
-                 }, $report_question_columns);
-                 $safe_dynamic_cols = array_filter($safe_dynamic_cols); // Remove nulls
-                 if (!empty($safe_dynamic_cols)) {
-                     $dynamic_select_sql = ", " . implode(", ", $safe_dynamic_cols);
-                 }
-            }
-            // --- END FIX ---
+        // Fetch paginated data using the function, passing validated question columns
+        $report_data = getCheckinsByFiltersPaginated(
+            $pdo,
+            $selected_site_id,
+            $filter_start_date,
+            $filter_end_date,
+            $report_question_columns, // Pass the validated list
+            $results_per_page,
+            $offset
+        );
 
-            $sql_data = "SELECT
-                            ci.id, ci.first_name, ci.last_name, ci.check_in_time, ci.client_email,
-                            s.name as site_name, sn.staff_name as notified_staff
-                            {$dynamic_select_sql}
-                        FROM
-                            check_ins ci
-                        JOIN
-                            sites s ON ci.site_id = s.id
-                        LEFT JOIN
-                            staff_notifications sn ON ci.notified_staff_id = sn.id
-                        {$where_sql}
-                        ORDER BY ci.check_in_time DESC
-                        LIMIT :limit OFFSET :offset";
+        if ($report_data === []) { // Check if fetch failed within the function
+             $report_error_message .= " Error fetching report data details.";
+             // Reset pagination info if data fetch fails after count succeeded
+             $total_records = 0; $total_pages = 0; $current_page = 1;
+        }
 
-            $stmt_data = $pdo->prepare($sql_data); // Line 182 (approx)
-             if ($stmt_data === false) {
-                 throw new PDOException("Failed to prepare main data query. SQL: {$sql_data}");
-             }
-
-            // Bind WHERE parameters
-            foreach ($params_data as $key => &$val) {
-                 $type = (strpos($key, 'site_id') !== false) ? PDO::PARAM_INT : PDO::PARAM_STR;
-                 $stmt_data->bindParam($key, $val, $type); // Line 187 (approx) - Should work now
-            }
-            unset($val); // Unset reference
-
-            // Bind LIMIT and OFFSET
-            $stmt_data->bindValue(':limit', $results_per_page, PDO::PARAM_INT);
-            $stmt_data->bindValue(':offset', $offset, PDO::PARAM_INT);
-
-            if (!$stmt_data->execute()) {
-                 throw new PDOException("Failed to execute main data query.");
-            }
-            $report_data = $stmt_data->fetchAll(PDO::FETCH_ASSOC);
-
-        } else { $report_data = []; $total_pages = 0; $current_page = 1; }
-
-    } catch (PDOException $e) {
-        error_log("Reports Error - Fetching data: " . $e->getMessage());
-        $report_error_message .= " Error fetching report data.";
-        $report_data = []; $total_records = 0; $total_pages = 0; $current_page = 1;
+    } else {
+        // No records found based on filters
+        $report_data = [];
+        $total_pages = 0;
+        $current_page = 1;
     }
 } else {
      // Handle case where no valid site context exists (e.g., supervisor with no site)
@@ -782,11 +373,11 @@ require_once 'includes/header.php';
                                 <th>Client Email</th>
                                 <th>Notified Staff</th>
                                 <?php
-                                // Dynamically generate question headers using the map (prefixed name => base title)
-                                if (!empty($report_question_map)) {
-                                    foreach ($report_question_map as $prefixed_col => $base_title) {
-                                        // Display formatted base title for header
-                                        echo "<th>" . htmlspecialchars(ucwords(str_replace('_', ' ', $base_title))) . "</th>";
+                                // Dynamically generate question headers using the map (prefixed name => formatted label)
+                                // Use $report_column_to_label_map which was populated alongside $report_question_columns
+                                if (!empty($report_column_to_label_map)) {
+                                    foreach ($report_column_to_label_map as $prefixed_col => $formatted_label) {
+                                        echo "<th>" . htmlspecialchars($formatted_label) . "</th>";
                                     }
                                 }
                                 ?>
@@ -1095,7 +686,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             // --- Send AJAX Request ---
-            fetch('reports.php', {
+            fetch('ajax_report_handler.php', {
                 method: 'POST',
                 body: formData // formData is now defined in this scope
             })
