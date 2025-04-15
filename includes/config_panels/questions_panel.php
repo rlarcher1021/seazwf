@@ -135,11 +135,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                 $base_title_sanitized = sanitize_title_to_base_name($raw_title_input);
 
                 if (!empty($q_text) && !empty($base_title_sanitized)) {
-                     // Validate format before proceeding
-                     if (!preg_match('/^[a-z0-9_]+$/', $base_title_sanitized)) {
-                          $message = "Invalid Question Title format. Use only lowercase letters, numbers, and underscores.";
-                          break;
-                     }
+                     // Sanitization is handled by sanitize_title_to_base_name
+                     // Check if the title already exists
                      if (!globalQuestionTitleExists($pdo, $base_title_sanitized)) {
                           $new_gq_id = addGlobalQuestion($pdo, $q_text, $base_title_sanitized);
                           if ($new_gq_id !== false) {
@@ -391,9 +388,8 @@ if (isset($_SESSION['flash_message'])) {
             <div class="settings-form two-column">
                 <div class="form-group">
                     <label for="question_title" class="form-label">Question Title / Short Name:</label>
-                    <input type="text" id="question_title" name="question_title" class="form-control" required
-                           pattern="[a-z0-9_]+" title="Lowercase letters, numbers, and underscores only (e.g., reason_for_visit)">
-                    <p class="form-description">Used for database column (q_...). No spaces or special characters.</p>
+                    <input type="text" id="question_title" name="question_title" class="form-control" required>
+                    <p class="form-description">Enter a short, descriptive title (e.g., "Reason for Visit"). The system will automatically format it for database use (e.g., to "reason_for_visit").</p>
                 </div>
                 <div class="form-group full-width">
                     <label for="question_text" class="form-label">Question Text (Displayed to Client):</label>

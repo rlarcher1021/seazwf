@@ -184,4 +184,27 @@ function reorder_items(PDO $pdo, string $table_name, string $order_column, ?stri
     }
 }
 
+
+
+/**
+ * Formats a MySQL DATETIME or TIMESTAMP string into a user-friendly format.
+ *
+ * @param string|null $timestamp The timestamp string (e.g., 'YYYY-MM-DD HH:MM:SS') or null.
+ * @param string $format The desired output format (PHP date format string).
+ * @return string The formatted date/time string, or 'N/A' if input is null/invalid.
+ */
+function formatTimestamp(?string $timestamp, string $format = 'M d, Y g:i A'): string
+{
+    if (empty($timestamp)) {
+        return 'N/A';
+    }
+    try {
+        $date = new DateTime($timestamp);
+        return $date->format($format);
+    } catch (Exception $e) {
+        // Log error if needed
+        error_log("Error formatting timestamp '{$timestamp}': " . $e->getMessage());
+        return 'Invalid Date'; // Or return the original string, or 'N/A'
+    }
+}
 ?>

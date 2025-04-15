@@ -1,151 +1,41 @@
-[15-Apr-2025 16:17:46 Europe/Berlin] Admin action: Error log cleared by user ID: 1
-[15-Apr-2025 16:17:46 Europe/Berlin] Alerts Debug: Checking current directory path: C:\xampp\htdocs\public_html/error_log
-[15-Apr-2025 16:17:46 Europe/Berlin] Alerts Debug: Found log file in current directory.
-[15-Apr-2025 16:17:46 Europe/Berlin] Alerts INFO: Determined log file path: C:\xampp\htdocs\public_html/error_log
-[15-Apr-2025 16:17:48 Europe/Berlin] Dashboard Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
+[15-Apr-2025 22:54:19 Europe/Berlin] Admin action: Error log cleared by user ID: 1
+[15-Apr-2025 22:54:19 Europe/Berlin] Alerts Debug: Checking current directory path: C:\xampp\htdocs\public_html/error_log
+[15-Apr-2025 22:54:19 Europe/Berlin] Alerts Debug: Found log file in current directory.
+[15-Apr-2025 22:54:19 Europe/Berlin] Alerts INFO: Determined log file path: C:\xampp\htdocs\public_html/error_log
+[15-Apr-2025 22:54:28 Europe/Berlin] Dashboard Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
 (
-    [0] => q_education
-    [1] => q_interviewing
-    [2] => q_resume
+    [0] => q_age
+    [1] => q_veteran
 )
 
-[15-Apr-2025 16:17:48 Europe/Berlin] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active/valid columns for filter 'all'. Setting stat to 0.
-[15-Apr-2025 16:17:55 Europe/Berlin] Reports Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
+[15-Apr-2025 22:54:28 Europe/Berlin] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active/valid columns for filter 'all'. Setting stat to 0.
+[15-Apr-2025 22:54:46 Europe/Berlin] Dashboard Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
 (
-    [0] => q_education
-    [1] => q_interviewing
-    [2] => q_resume
+    [0] => q_age
+    [1] => q_veteran
 )
 
-[15-Apr-2025 16:18:06 Europe/Berlin] Alerts Debug: Checking current directory path: C:\xampp\htdocs\public_html/error_log
-[15-Apr-2025 16:18:06 Europe/Berlin] Alerts Debug: Found log file in current directory.
-[15-Apr-2025 16:18:06 Europe/Berlin] Alerts INFO: Determined log file path: C:\xampp\htdocs\public_html/error_log
-[15-Apr-2025 16:18:12 Europe/Berlin] Dashboard Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
+[15-Apr-2025 22:54:46 Europe/Berlin] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active/valid columns for filter 'all'. Setting stat to 0.
+[15-Apr-2025 22:54:50 Europe/Berlin] Alerts Debug: Checking current directory path: C:\xampp\htdocs\public_html/error_log
+[15-Apr-2025 22:54:50 Europe/Berlin] Alerts Debug: Found log file in current directory.
+[15-Apr-2025 22:54:50 Europe/Berlin] Alerts INFO: Determined log file path: C:\xampp\htdocs\public_html/error_log
+[15-Apr-2025 22:54:53 Europe/Berlin] Dashboard Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
 (
-    [0] => q_education
-    [1] => q_interviewing
-    [2] => q_resume
+    [0] => q_age
+    [1] => q_veteran
 )
 
-[15-Apr-2025 16:18:12 Europe/Berlin] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active/valid columns for filter 'all'. Setting stat to 0.
-[15-Apr-2025 16:41:04 Europe/Berlin] Attempting to delete column (if exists): q_test from check_ins
-[15-Apr-2025 16:41:04 Europe/Berlin] Column 'q_test' exists. Attempting deletion.
-[15-Apr-2025 16:41:04 Europe/Berlin] Successfully dropped column 'q_test' from 'check_ins'.
-[15-Apr-2025 16:41:24 Europe/Berlin] Alerts Debug: Checking current directory path: C:\xampp\htdocs\public_html/error_log
-[15-Apr-2025 16:41:24 Europe/Berlin] Alerts Debug: Found log file in current directory.
-[15-Apr-2025 16:41:24 Europe/Berlin] Alerts INFO: Determined log file path: C:\xampp\htdocs\public_html/error_log
-[15-Apr-2025 17:10:18 Europe/Berlin] Alerts Debug: Checking current directory path: C:\xampp\htdocs\public_html/error_log
-[15-Apr-2025 17:10:18 Europe/Berlin] Alerts Debug: Found log file in current directory.
-[15-Apr-2025 17:10:18 Europe/Berlin] Alerts INFO: Determined log file path: C:\xampp\htdocs\public_html/error_log
-[15-Apr-2025 17:10:37 Europe/Berlin] Dashboard Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
+[15-Apr-2025 22:54:53 Europe/Berlin] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active/valid columns for filter 'all'. Setting stat to 0.
+[15-Apr-2025 22:54:56 Europe/Berlin] Reports Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
 (
-    [0] => q_education
-    [1] => q_interviewing
-    [2] => q_resume
+    [0] => q_age
+    [1] => q_veteran
 )
 
-[15-Apr-2025 17:10:37 Europe/Berlin] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active/valid columns for filter 'all'. Setting stat to 0.
-[15-Apr-2025 17:10:43 Europe/Berlin] Reports Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
+[15-Apr-2025 22:55:07 Europe/Berlin] Dashboard Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
 (
-    [0] => q_education
-    [1] => q_interviewing
-    [2] => q_resume
+    [0] => q_age
+    [1] => q_veteran
 )
 
-[15-Apr-2025 17:10:48 Europe/Berlin] Alerts Debug: Checking current directory path: C:\xampp\htdocs\public_html/error_log
-[15-Apr-2025 17:10:48 Europe/Berlin] Alerts Debug: Found log file in current directory.
-[15-Apr-2025 17:10:48 Europe/Berlin] Alerts INFO: Determined log file path: C:\xampp\htdocs\public_html/error_log
-[15-Apr-2025 17:11:29 Europe/Berlin] Reports Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
-(
-    [0] => q_education
-    [1] => q_interviewing
-    [2] => q_resume
-)
-
-[15-Apr-2025 17:11:32 Europe/Berlin] Alerts Debug: Checking current directory path: C:\xampp\htdocs\public_html/error_log
-[15-Apr-2025 17:11:32 Europe/Berlin] Alerts Debug: Found log file in current directory.
-[15-Apr-2025 17:11:32 Europe/Berlin] Alerts INFO: Determined log file path: C:\xampp\htdocs\public_html/error_log
-[15-Apr-2025 17:11:57 Europe/Berlin] Dashboard Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
-(
-    [0] => q_education
-    [1] => q_interviewing
-    [2] => q_resume
-)
-
-[15-Apr-2025 17:11:57 Europe/Berlin] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active/valid columns for filter 'all'. Setting stat to 0.
-[15-Apr-2025 17:12:03 Europe/Berlin] Dashboard Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
-(
-    [0] => q_education
-    [1] => q_interviewing
-    [2] => q_resume
-)
-
-[15-Apr-2025 17:12:03 Europe/Berlin] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active/valid columns for filter 'all'. Setting stat to 0.
-[15-Apr-2025 17:12:03 Europe/Berlin] Admin 'admin' (ID: 1) switched view to Role: site_supervisor, Site ID: 4
-[15-Apr-2025 17:12:03 Europe/Berlin] Dashboard Debug - Filter ID:  - Active VALID question columns for data fetch (prefixed): Array
-(
-    [0] => q_education
-    [1] => q_interviewing
-    [2] => q_resume
-)
-
-[15-Apr-2025 17:12:21 Europe/Berlin] Dashboard Debug - Filter ID:  - Active VALID question columns for data fetch (prefixed): Array
-(
-    [0] => q_education
-    [1] => q_interviewing
-    [2] => q_resume
-)
-
-[15-Apr-2025 17:12:21 Europe/Berlin] Admin 'admin' (ID: 1) switched view to Role: site_supervisor, Site ID: 3
-[15-Apr-2025 17:12:21 Europe/Berlin] Dashboard Debug - Filter ID:  - Active VALID question columns for data fetch (prefixed): Array
-(
-    [0] => q_education
-    [1] => q_interviewing
-    [2] => q_resume
-)
-
-[15-Apr-2025 17:12:26 Europe/Berlin] CRITICAL Checkin Error: Configuration file not found at C:\xampp\htdocs\public_html/config.ini
-[15-Apr-2025 17:12:26 Europe/Berlin] Checkin: Using session_site_id 3 for role site_supervisor
-[15-Apr-2025 17:12:26 Europe/Berlin] [DEBUG checkin.php] Site 3 Config Flags: AllowEmail=0, AllowNotifier=0
-[15-Apr-2025 17:12:26 Europe/Berlin] Checkin Warning: No active questions found or error fetching questions for site 3.
-[15-Apr-2025 17:12:26 Europe/Berlin] Checkin Ad Fetch - Site ID 3 - Left Ad: None, Right Ad: None
-[15-Apr-2025 17:12:32 Europe/Berlin] Dashboard Debug - Filter ID:  - Active VALID question columns for data fetch (prefixed): Array
-(
-    [0] => q_education
-    [1] => q_interviewing
-    [2] => q_resume
-)
-
-[15-Apr-2025 17:12:32 Europe/Berlin] Admin 'admin' (ID: 1) switched view to Role: site_supervisor, Site ID: 4
-[15-Apr-2025 17:12:32 Europe/Berlin] Dashboard Debug - Filter ID:  - Active VALID question columns for data fetch (prefixed): Array
-(
-    [0] => q_education
-    [1] => q_interviewing
-    [2] => q_resume
-)
-
-[15-Apr-2025 17:12:35 Europe/Berlin] CRITICAL Checkin Error: Configuration file not found at C:\xampp\htdocs\public_html/config.ini
-[15-Apr-2025 17:12:35 Europe/Berlin] Checkin: Using session_site_id 4 for role site_supervisor
-[15-Apr-2025 17:12:35 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-Apr-2025 17:12:35 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test2, Right Ad: test1
-[15-Apr-2025 17:12:46 Europe/Berlin] Reports Debug - Filter ID:  - Active VALID question columns for data fetch (prefixed): Array
-(
-    [0] => q_education
-    [1] => q_interviewing
-    [2] => q_resume
-)
-
-[15-Apr-2025 17:12:55 Europe/Berlin] Dashboard Debug - Filter ID:  - Active VALID question columns for data fetch (prefixed): Array
-(
-    [0] => q_education
-    [1] => q_interviewing
-    [2] => q_resume
-)
-
-[15-Apr-2025 17:13:04 Europe/Berlin] Reports Debug - Filter ID:  - Active VALID question columns for data fetch (prefixed): Array
-(
-    [0] => q_education
-    [1] => q_interviewing
-    [2] => q_resume
-)
-
+[15-Apr-2025 22:55:07 Europe/Berlin] Dashboard Info: Configured dynamic column 'q_needs_assistance' not found among active/valid columns for filter 'all'. Setting stat to 0.

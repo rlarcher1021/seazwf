@@ -48,7 +48,11 @@ if (!in_array($currentPage, $allowedUnauthenticated)) {
         'configurations.php' => ['administrator'],
         'users.php' => ['administrator'],
         'alerts.php' => ['administrator'],
-        'logout.php' => ['kiosk', 'site_supervisor', 'director', 'administrator'] // ALL logged in roles
+        'logout.php' => ['kiosk', 'site_supervisor', 'director', 'administrator'], // ALL logged in roles
+        'forum_index.php' => ['site_supervisor', 'director', 'administrator'], // Forum category list
+        'view_category.php' => ['site_supervisor', 'director', 'administrator'], // View topics in a category
+        'view_topic.php' => ['site_supervisor', 'director', 'administrator'], // View posts in a topic
+        'create_topic.php' => ['site_supervisor', 'director', 'administrator'], // Create new topic form/handler
         // Add other specific pages here if needed
     ];
 

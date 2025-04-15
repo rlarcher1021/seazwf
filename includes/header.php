@@ -246,6 +246,13 @@ if (isset($_SESSION['active_role'])) {
                     <?php if (in_array($_SESSION['active_role'], ['site_supervisor', 'director', 'administrator'])): ?>
                         <li><a href="reports.php" <?php echo $current_page_basename === 'reports.php' ? 'class="active"' : ''; ?>><i class="fas fa-chart-bar"></i> Reports</a></li>
                     <?php endif; ?>
+                    <?php // Forum Link
+                    if (in_array($_SESSION['active_role'], ['site_supervisor', 'director', 'administrator'])): 
+                        $is_forum_page = in_array($current_page_basename, ['forum_index.php', 'view_category.php', 'view_topic.php', 'create_topic.php']);
+                    ?>
+                        <li><a href="forum_index.php" <?php echo $is_forum_page ? 'class="active"' : ''; ?>><i class="fas fa-comments"></i> Forum</a></li>
+                    <?php endif; ?>
+
                       <?php // --- START: Notifications (Supervisor ONLY) --- ?>
                     <?php if (isset($_SESSION['active_role']) && $_SESSION['active_role'] === 'site_supervisor'): ?>
                         <li><a href="notifications.php" <?php echo $current_page_basename === 'notifications.php' ? 'class="active"' : ''; ?>><i class="fas fa-bell"></i> Notifications</a></li>

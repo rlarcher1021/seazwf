@@ -36,8 +36,8 @@ if ($user_can_select_sites) {
     if ($sites_for_dropdown === []) { // Check explicitly for empty array which indicates potential error in function
         $dashboard_error = "Error loading site list.";
     }
-} elseif (isset($_SESSION['site_id']) && $_SESSION['site_id'] !== null) {
-    $site_data = getActiveSiteById($pdo, $_SESSION['site_id']);
+} elseif (isset($_SESSION['active_site_id']) && $_SESSION['active_site_id'] !== null) {
+    $site_data = getActiveSiteById($pdo, $_SESSION['active_site_id']);
     if ($site_data) {
         $sites_for_dropdown = [$site_data]; // Put the single site into an array format
     } else {

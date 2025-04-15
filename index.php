@@ -15,6 +15,20 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// --- CSRF Token Generation ---
+// Generate a CSRF token if one doesn't exist in the session
+if (empty($_SESSION['csrf_token'])) {
+    try {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    } catch (Exception $e) {
+        // Handle error during token generation (rare)
+        error_log("Error generating CSRF token: " . $e->getMessage());
+        // Display a generic error or halt execution if critical
+        die('A critical security error occurred. Please try again later.');
+    }
+}
+
+
 // Check if the user is already logged in, if so, redirect based on role
 if (isset($_SESSION['user_id'])) {
     if (isset($_SESSION['real_role']) && $_SESSION['real_role'] === 'kiosk') {
