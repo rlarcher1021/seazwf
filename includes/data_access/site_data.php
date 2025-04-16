@@ -291,12 +291,21 @@ function upsertSiteConfiguration(PDO $pdo, int $site_id, string $config_key, $co
         error_log("ERROR upsertSiteConfiguration: Config key cannot be empty.");
         return false;
     }
-    // Determine type for binding (simple check for boolean-like keys)
-    $value_to_bind = $config_value;
-    $bind_type = PDO::PARAM_STR;
-    if (in_array($config_key, ['allow_email_collection', 'allow_notifier'])) {
+    // Determine type for binding: Explicitly handle known boolean/integer keys
+    $value_to_bind = $config_value; // Default to original value
+    $bind_type = PDO::PARAM_STR; // Default to string
+
+    // List of keys that should be treated as integers (booleans stored as 0/1)
+    $integer_keys = ['allow_email_collection', 'allow_notifier', 'ai_agent_email_enabled'];
+
+    if (in_array($config_key, $integer_keys)) {
+         // Ensure the value is strictly 0 or 1 for integer/boolean keys
          $value_to_bind = ($config_value == 1 || $config_value === true || strtoupper((string)$config_value) === 'TRUE') ? 1 : 0;
          $bind_type = PDO::PARAM_INT;
+    } else {
+         // Ensure other values are treated as strings
+         $value_to_bind = (string)$config_value; // Explicitly cast to string
+         $bind_type = PDO::PARAM_STR;
     }
 
     $sql = "INSERT INTO site_configurations (site_id, config_key, config_value, created_at, updated_at)

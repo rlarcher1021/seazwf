@@ -1,169 +1,36 @@
-[16-Apr-2025 18:50:33 Europe/Berlin] Admin action: Error log cleared by user ID: 1
-[16-Apr-2025 18:50:33 Europe/Berlin] Alerts Debug: Checking current directory path: C:\xampp\htdocs\public_html/error_log
-[16-Apr-2025 18:50:33 Europe/Berlin] Alerts Debug: Found log file in current directory.
-[16-Apr-2025 18:50:33 Europe/Berlin] Alerts INFO: Determined log file path: C:\xampp\htdocs\public_html/error_log
-[16-Apr-2025 18:50:42 Europe/Berlin] Dashboard Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
+[17-Apr-2025 00:24:59 Europe/Berlin] Admin action: Error log cleared by user ID: 1
+[17-Apr-2025 00:24:59 Europe/Berlin] Alerts Debug: Checking current directory path: C:\xampp\htdocs\public_html/error_log
+[17-Apr-2025 00:24:59 Europe/Berlin] Alerts Debug: Found log file in current directory.
+[17-Apr-2025 00:24:59 Europe/Berlin] Alerts INFO: Determined log file path: C:\xampp\htdocs\public_html/error_log
+[17-Apr-2025 00:25:03 Europe/Berlin] CRITICAL Checkin Error: Configuration file not found at C:\xampp\htdocs\public_html/config.ini
+[17-Apr-2025 00:25:03 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[17-Apr-2025 00:25:03 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[17-Apr-2025 00:25:03 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
+[17-Apr-2025 00:25:13 Europe/Berlin] CRITICAL Checkin Error: Configuration file not found at C:\xampp\htdocs\public_html/config.ini
+[17-Apr-2025 00:25:13 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[17-Apr-2025 00:25:13 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[17-Apr-2025 00:25:13 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
+[17-Apr-2025 00:25:13 Europe/Berlin] [DEBUG checkin.php POST] Prepared Question answers array FINAL: Array
 (
-    [0] => q_age
-    [1] => q_interviewing
-    [2] => q_veteran
+    [q_age] => YES
+    [q_veteran] => YES
 )
 
-[16-Apr-2025 18:56:54 Europe/Berlin] EXCEPTION in addUser for username 'rarcher': SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry 'rlarcher1021@gmail.com' for key 'email'
-[16-Apr-2025 18:57:07 Europe/Berlin] Alerts Debug: Checking current directory path: C:\xampp\htdocs\public_html/error_log
-[16-Apr-2025 18:57:07 Europe/Berlin] Alerts Debug: Found log file in current directory.
-[16-Apr-2025 18:57:07 Europe/Berlin] Alerts INFO: Determined log file path: C:\xampp\htdocs\public_html/error_log
-[16-Apr-2025 19:12:26 Europe/Berlin] Dashboard Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
-(
-    [0] => q_age
-    [1] => q_interviewing
-    [2] => q_veteran
-)
-
-[16-Apr-2025 19:12:37 Europe/Berlin] Reports Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
-(
-    [0] => q_age
-    [1] => q_interviewing
-    [2] => q_veteran
-)
-
-[16-Apr-2025 19:12:50 Europe/Berlin] Dashboard Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
-(
-    [0] => q_age
-    [1] => q_interviewing
-    [2] => q_veteran
-)
-
-[16-Apr-2025 19:12:58 Europe/Berlin] Alerts Debug: Checking current directory path: C:\xampp\htdocs\public_html/error_log
-[16-Apr-2025 19:12:58 Europe/Berlin] Alerts Debug: Found log file in current directory.
-[16-Apr-2025 19:12:58 Europe/Berlin] Alerts INFO: Determined log file path: C:\xampp\htdocs\public_html/error_log
-[16-Apr-2025 19:13:00 Europe/Berlin] Alerts Debug: Checking current directory path: C:\xampp\htdocs\public_html/error_log
-[16-Apr-2025 19:13:00 Europe/Berlin] Alerts Debug: Found log file in current directory.
-[16-Apr-2025 19:13:00 Europe/Berlin] Alerts INFO: Determined log file path: C:\xampp\htdocs\public_html/error_log
-[16-Apr-2025 19:13:02 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/ads_panel.php'. Selected Site ID = 1
-[16-Apr-2025 19:13:06 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/questions_panel.php'. Selected Site ID = 1
-[16-Apr-2025 19:13:07 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/notifiers_panel.php'. Selected Site ID = 1
-[16-Apr-2025 19:13:07 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/ads_panel.php'. Selected Site ID = 1
-[16-Apr-2025 19:13:08 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/site_settings_panel.php'. Selected Site ID = 1
-[16-Apr-2025 19:13:09 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/site_settings_panel.php'. Selected Site ID = 1
-[16-Apr-2025 19:13:27 Europe/Berlin] Alerts Debug: Checking current directory path: C:\xampp\htdocs\public_html/error_log
-[16-Apr-2025 19:13:27 Europe/Berlin] Alerts Debug: Found log file in current directory.
-[16-Apr-2025 19:13:27 Europe/Berlin] Alerts INFO: Determined log file path: C:\xampp\htdocs\public_html/error_log
-[16-Apr-2025 19:13:35 Europe/Berlin] Dashboard Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
-(
-    [0] => q_age
-    [1] => q_interviewing
-    [2] => q_veteran
-)
-
-[16-Apr-2025 19:13:59 Europe/Berlin] Alerts Debug: Checking current directory path: C:\xampp\htdocs\public_html/error_log
-[16-Apr-2025 19:13:59 Europe/Berlin] Alerts Debug: Found log file in current directory.
-[16-Apr-2025 19:13:59 Europe/Berlin] Alerts INFO: Determined log file path: C:\xampp\htdocs\public_html/error_log
-[16-Apr-2025 19:22:34 Europe/Berlin] Admin 'admin' (ID: 1) switched view to Role: outside_staff, Site ID: 2
-[16-Apr-2025 19:22:52 Europe/Berlin] Dashboard Debug - Filter ID: 2 - Active VALID question columns for data fetch (prefixed): Array
-(
-    [0] => q_age
-    [1] => q_interviewing
-    [2] => q_veteran
-)
-
-[16-Apr-2025 19:22:57 Europe/Berlin] Dashboard Debug - Filter ID: 2 - Active VALID question columns for data fetch (prefixed): Array
-(
-    [0] => q_age
-    [1] => q_interviewing
-    [2] => q_veteran
-)
-
-[16-Apr-2025 19:26:50 Europe/Berlin] Dashboard Debug - Filter ID: 2 - Active VALID question columns for data fetch (prefixed): Array
-(
-    [0] => q_age
-    [1] => q_interviewing
-    [2] => q_veteran
-)
-
-[16-Apr-2025 19:27:41 Europe/Berlin] Dashboard Debug - Filter ID: 2 - Active VALID question columns for data fetch (prefixed): Array
-(
-    [0] => q_age
-    [1] => q_interviewing
-    [2] => q_veteran
-)
-
-[16-Apr-2025 19:27:43 Europe/Berlin] CRITICAL Checkin Error: Configuration file not found at C:\xampp\htdocs\public_html/config.ini
-[16-Apr-2025 19:27:43 Europe/Berlin] Checkin: Using session_site_id 2 for role outside_staff
-[16-Apr-2025 19:27:43 Europe/Berlin] [DEBUG checkin.php] Site 2 Config Flags: AllowEmail=0, AllowNotifier=0
-[16-Apr-2025 19:27:43 Europe/Berlin] Checkin Ad Fetch - Site ID 2 - Left Ad: None, Right Ad: None
-[16-Apr-2025 19:27:49 Europe/Berlin] Dashboard Debug - Filter ID: 2 - Active VALID question columns for data fetch (prefixed): Array
-(
-    [0] => q_age
-    [1] => q_interviewing
-    [2] => q_veteran
-)
-
-[16-Apr-2025 19:27:58 Europe/Berlin] Dashboard Debug - Filter ID: 2 - Active VALID question columns for data fetch (prefixed): Array
-(
-    [0] => q_age
-    [1] => q_interviewing
-    [2] => q_veteran
-)
-
-[16-Apr-2025 19:27:58 Europe/Berlin] Admin 'admin' (ID: 1) switched view to Role: outside_staff, Site ID: 4
-[16-Apr-2025 19:27:58 Europe/Berlin] Dashboard Debug - Filter ID: 4 - Active VALID question columns for data fetch (prefixed): Array
-(
-    [0] => q_age
-    [1] => q_veteran
-)
-
-[16-Apr-2025 19:28:00 Europe/Berlin] CRITICAL Checkin Error: Configuration file not found at C:\xampp\htdocs\public_html/config.ini
-[16-Apr-2025 19:28:00 Europe/Berlin] Checkin: Using session_site_id 4 for role outside_staff
-[16-Apr-2025 19:28:00 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[16-Apr-2025 19:28:00 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: None, Right Ad: None
-[16-Apr-2025 19:28:03 Europe/Berlin] Dashboard Debug - Filter ID: 4 - Active VALID question columns for data fetch (prefixed): Array
-(
-    [0] => q_age
-    [1] => q_veteran
-)
-
-[16-Apr-2025 19:28:05 Europe/Berlin] Dashboard Debug - Filter ID: 4 - Active VALID question columns for data fetch (prefixed): Array
-(
-    [0] => q_age
-    [1] => q_veteran
-)
-
-[16-Apr-2025 19:28:05 Europe/Berlin] Admin 'admin' (ID: 1) reset view to Administrator (All Sites).
-[16-Apr-2025 19:28:05 Europe/Berlin] Dashboard Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
-(
-    [0] => q_age
-    [1] => q_interviewing
-    [2] => q_veteran
-)
-
-[16-Apr-2025 19:28:09 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/site_settings_panel.php'. Selected Site ID = 1
-[16-Apr-2025 19:28:10 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/ads_panel.php'. Selected Site ID = 1
-[16-Apr-2025 19:28:15 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/ads_panel.php'. Selected Site ID = 4
-[16-Apr-2025 19:28:23 Europe/Berlin] DEBUG configurations.php (POST): Prioritizing submitted_tab 'ads-management' for panel inclusion.
-[16-Apr-2025 19:28:23 Europe/Berlin] DEBUG configurations.php (POST): Including panel 'includes/config_panels/ads_panel.php'. Selected Site ID = 4
-[16-Apr-2025 19:28:23 Europe/Berlin] DEBUG ads_panel.php POST: Validating site ID. Action: assign_site_ad,
-                Posted Site ID: 4,
-                Selected Config Site ID: 4,
-                Session Site ID: 4,
-                GET Site ID: '4'
-[16-Apr-2025 19:28:23 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/ads_panel.php'. Selected Site ID = 4
-[16-Apr-2025 19:28:28 Europe/Berlin] DEBUG configurations.php (POST): Prioritizing submitted_tab 'ads-management' for panel inclusion.
-[16-Apr-2025 19:28:28 Europe/Berlin] DEBUG configurations.php (POST): Including panel 'includes/config_panels/ads_panel.php'. Selected Site ID = 4
-[16-Apr-2025 19:28:28 Europe/Berlin] DEBUG ads_panel.php POST: Validating site ID. Action: assign_site_ad,
-                Posted Site ID: 4,
-                Selected Config Site ID: 4,
-                Session Site ID: 4,
-                GET Site ID: '4'
-[16-Apr-2025 19:28:28 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/ads_panel.php'. Selected Site ID = 4
-[16-Apr-2025 19:28:37 Europe/Berlin] DEBUG configurations.php (POST): Including panel 'includes/config_panels/ads_panel.php'. Selected Site ID = 4
-[16-Apr-2025 19:28:37 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/ads_panel.php'. Selected Site ID = 4
-[16-Apr-2025 19:28:40 Europe/Berlin] CRITICAL Checkin Error: Configuration file not found at C:\xampp\htdocs\public_html/config.ini
-[16-Apr-2025 19:28:40 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
-[16-Apr-2025 19:28:40 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[16-Apr-2025 19:28:40 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
-[16-Apr-2025 19:28:42 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/ads_panel.php'. Selected Site ID = 4
-[16-Apr-2025 19:28:48 Europe/Berlin] Dashboard Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
+[17-Apr-2025 00:25:13 Europe/Berlin] AI Agent Email Error: SMTP config missing. Cannot send. Check-in ID: 16
+[17-Apr-2025 00:25:13 Europe/Berlin] Error sending AI Agent email to rlarcher1021@gmail.com for Check-in ID: 16. Error: SMTP configuration is missing.
+[17-Apr-2025 00:25:13 Europe/Berlin] Checkin Email Skipped: SMTP config missing or invalid. Check-in ID: 16
+[17-Apr-2025 00:25:13 Europe/Berlin] CRITICAL Checkin Error: Configuration file not found at C:\xampp\htdocs\public_html/config.ini
+[17-Apr-2025 00:25:13 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[17-Apr-2025 00:25:13 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[17-Apr-2025 00:25:13 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
+[17-Apr-2025 00:25:41 Europe/Berlin] CRITICAL Checkin Error: Configuration file not found at C:\xampp\htdocs\public_html/config.ini
+[17-Apr-2025 00:25:41 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[17-Apr-2025 00:25:41 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[17-Apr-2025 00:25:41 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
+[17-Apr-2025 00:25:42 Europe/Berlin] Alerts Debug: Checking current directory path: C:\xampp\htdocs\public_html/error_log
+[17-Apr-2025 00:25:42 Europe/Berlin] Alerts Debug: Found log file in current directory.
+[17-Apr-2025 00:25:42 Europe/Berlin] Alerts INFO: Determined log file path: C:\xampp\htdocs\public_html/error_log
+[17-Apr-2025 00:27:43 Europe/Berlin] Dashboard Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
 (
     [0] => q_age
     [1] => q_interviewing

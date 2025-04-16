@@ -263,6 +263,79 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $check_in_id = saveCheckin($pdo, $checkin_data_to_save);
 
         if ($check_in_id !== false) {
+
+            // --- START: AI Agent Email Notification Logic ---
+            try {
+                // Fetch AI Agent settings using existing data access function
+                // Note: $allow_email_collection is already fetched earlier
+                $ai_agent_enabled = (int)(getSiteConfigurationValue($pdo, $site_id, 'ai_agent_email_enabled') ?? 0);
+                $ai_agent_email = getSiteConfigurationValue($pdo, $site_id, 'ai_agent_email_address');
+                $ai_agent_message_template = getSiteConfigurationValue($pdo, $site_id, 'ai_agent_email_message');
+
+                // Check conditions for sending AI Agent email
+                if (
+                    !empty($client_email) &&         // Client provided an email
+                    $allow_email_collection == 1 &&  // General email collection is ON
+                    $ai_agent_enabled == 1 &&       // AI Agent feature is ON
+                    !empty($ai_agent_email) &&      // AI agent email is configured
+                    filter_var($ai_agent_email, FILTER_VALIDATE_EMAIL) && // AI agent email is valid
+                    !empty($ai_agent_message_template) // AI agent message template is configured
+                ) {
+                    // Construct the email body
+                    $ai_email_body = $ai_agent_message_template;
+                    $ai_email_body .= "\n\n--- Client Details ---"; // Add separator
+                    $ai_email_body .= "\nFirst Name: " . $first_name;
+                    $ai_email_body .= "\nLast Name: " . $last_name;
+                    $ai_email_body .= "\nEmail: " . $client_email;
+                    $ai_email_body .= "\nCheck-in Time: " . $check_in_time;
+                    $ai_email_body .= "\nSite: " . $site_name;
+
+                    // Construct the subject
+                    $ai_email_subject = "Client Check-in Information: " . $first_name . " " . $last_name;
+
+                    // Use a new PHPMailer instance for the AI agent email
+                    $ai_mail = new PHPMailer(true);
+                    try {
+                        // Configure SMTP settings (reuse from main config if available)
+                        if ($config && isset($config['smtp'])) {
+                            $ai_mail->isSMTP(); $ai_mail->Host = $config['smtp']['host']; $ai_mail->SMTPAuth = true;
+                            $ai_mail->Username = $config['smtp']['username']; $ai_mail->Password = $config['smtp']['password'];
+                            $ai_smtp_port = $config['smtp']['port'] ?? 587; $ai_mail->Port = (int)$ai_smtp_port;
+                            $ai_mail->SMTPSecure = ($ai_smtp_port == 465) ? PHPMailer::ENCRYPTION_SMTPS : PHPMailer::ENCRYPTION_STARTTLS;
+                            $ai_mail->setFrom($config['smtp']['from_email'], $config['smtp']['from_name'] . ' (AI Agent)'); // Indicate source
+                        } else {
+                             error_log("AI Agent Email Error: SMTP config missing. Cannot send. Check-in ID: {$check_in_id}");
+                             throw new Exception("SMTP configuration is missing.");
+                        }
+
+                        $ai_mail->addAddress($ai_agent_email);
+                        $ai_mail->isHTML(false); // Send as plain text
+                        $ai_mail->Subject = $ai_email_subject;
+                        $ai_mail->Body = $ai_email_body;
+                        $ai_mail->send();
+                        error_log("AI Agent email sent successfully to: " . $ai_agent_email . " for Check-in ID: {$check_in_id}");
+
+                    } catch (Exception $e_ai) {
+                        // Log the error if sending failed
+                        error_log("Error sending AI Agent email to " . $ai_agent_email . " for Check-in ID: {$check_in_id}. Error: " . $e_ai->getMessage());
+                        // Do not overwrite the main submission message, just log the failure.
+                    }
+                } else {
+                     // Optional: Log why the AI email wasn't sent if needed for debugging
+                     if ($ai_agent_enabled == 1 && !empty($client_email) && $allow_email_collection == 1) {
+                         if (empty($ai_agent_email) || !filter_var($ai_agent_email, FILTER_VALIDATE_EMAIL)) {
+                             error_log("AI Agent email NOT sent for Check-in ID {$check_in_id}: AI Agent email address missing or invalid.");
+                         } elseif (empty($ai_agent_message_template)) {
+                             error_log("AI Agent email NOT sent for Check-in ID {$check_in_id}: AI Agent message template missing.");
+                         }
+                     }
+                }
+            } catch (Exception $e_fetch) {
+                 error_log("Error fetching AI Agent configuration for Check-in ID {$check_in_id}: " . $e_fetch->getMessage());
+                 // Non-fatal error, proceed without AI email
+            }
+            // --- END: AI Agent Email Notification Logic ---
+
             // --- Send Email Notification ---
             if ($config && isset($config['smtp'])) {
                 $mail = new PHPMailer(true);
