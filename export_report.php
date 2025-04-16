@@ -25,7 +25,7 @@ require_once 'includes/data_access/question_data.php'; // For question functions
 require_once 'includes/data_access/checkin_data.php';  // For check-in functions
 
 // --- Role Check ---
-$allowedRoles = ['site_supervisor', 'director', 'administrator'];
+$allowedRoles = ['azwk_staff', 'outside_staff', 'director', 'administrator'];
 if (!isset($_SESSION['active_role']) || !in_array($_SESSION['active_role'], $allowedRoles)) {
     // Prevent direct access or invalid role state
     http_response_code(403); // Forbidden
@@ -44,7 +44,7 @@ $user_assigned_site_id = $_SESSION['active_site_id'] ?? null; // User's actual a
 // --- Site ID Validation ---
 $effective_site_id_for_query = null; // null means 'all' (for roles that can), specific ID otherwise
 
-if ($_SESSION['active_role'] === 'site_supervisor') {
+if (in_array($_SESSION['active_role'], ['azwk_staff', 'outside_staff'])) {
     // Supervisor MUST export their own site. Ignore any passed site_id.
     if ($user_assigned_site_id === null) {
         http_response_code(400);
@@ -58,10 +58,14 @@ if ($_SESSION['active_role'] === 'site_supervisor') {
         $effective_site_id_for_query = null; // Explicitly null for 'all sites' query
     } elseif (is_numeric($filter_site_id)) {
          // Use data access function to validate site
-         if (isActiveSite($pdo, (int)$filter_site_id)) {
-              $effective_site_id_for_query = (int)$filter_site_id;
+         // Use getActiveSiteById which returns null if site is inactive or not found
+         // Note: The initial require_once at the top of the file should be sufficient,
+         // but we keep this logic structure after the failed isActiveSite attempts.
+         $site_details = getActiveSiteById($pdo, (int)$filter_site_id);
+         if ($site_details !== null) {
+              $effective_site_id_for_query = (int)$filter_site_id; // Site is valid and active
          } else {
-              // Function returns false if inactive, not found, or DB error (error logged in function)
+              // Site not found, inactive, or DB error during lookup
               http_response_code(400);
               die("Export Error: The selected site ID ('" . htmlspecialchars($filter_site_id) . "') is invalid, inactive, or could not be verified.");
          }
@@ -92,13 +96,46 @@ if (strtotime($filter_start_date) > strtotime($filter_end_date)) {
      die("Export Error: Start date cannot be after end date.");
 }
 
+// --- Fetch Active Questions for Headers and Data Query ---
+require_once 'includes/utils.php'; // Need sanitize_title_to_base_name, format_base_name_for_display
+
+$export_question_columns = []; // Stores sanitized column names WITH prefix (q_...) for data access
+$export_column_to_label_map = []; // Map prefixed name -> formatted label for headers
+
+// Fetch active question base titles using data access function based on the *effective* site ID for the query
+$export_base_titles = getActiveQuestionTitles($pdo, $effective_site_id_for_query); // Use null for 'all'
+
+if ($export_base_titles === false) { // Check for DB error
+    error_log("Export Error: Failed to fetch active question titles for site filter '$effective_site_id_for_query'.");
+    // Proceed without question columns, but log the error
+} elseif (is_array($export_base_titles)) {
+    foreach ($export_base_titles as $base_title) {
+        if (!empty($base_title)) {
+            $sanitized_base = sanitize_title_to_base_name($base_title);
+            if (!empty($sanitized_base)) {
+                $prefixed_col_name = 'q_' . $sanitized_base;
+                // Validate column name format before adding
+                if (preg_match('/^q_[a-z0-9_]+$/', $prefixed_col_name) && strlen($prefixed_col_name) <= 64) {
+                    $formatted_label = format_base_name_for_display($sanitized_base);
+                    $export_question_columns[] = $prefixed_col_name; // Store validated prefixed name for query
+                    $export_column_to_label_map[$prefixed_col_name] = $formatted_label; // Map for headers
+                } else {
+                     error_log("Export Warning: Generated prefixed column name '{$prefixed_col_name}' from base '{$base_title}' is invalid and was skipped.");
+                }
+            }
+        }
+    }
+}
+error_log("Export Debug - Filter ID: {$effective_site_id_for_query} - Active VALID question columns for export data fetch: " . print_r($export_question_columns, true));
+
+
 // --- Fetch Data for Export (No Pagination) ---
 // Prepare date parameters for the function
 $start_date_param = date('Y-m-d 00:00:00', strtotime($filter_start_date));
 $end_date_param = date('Y-m-d 23:59:59', strtotime($filter_end_date));
 
-// Use data access function to fetch all data for export
-$export_data = getCheckinDataForExport($pdo, $effective_site_id_for_query, $start_date_param, $end_date_param);
+// Use data access function to fetch all data for export, passing the dynamic columns
+$export_data = getCheckinDataForExport($pdo, $effective_site_id_for_query, $start_date_param, $end_date_param, $export_question_columns);
 $report_error = ''; // Reset error
 
 if ($export_data === false) {
@@ -152,32 +189,21 @@ $headers = [
     'Last Name',
     'Check-in Timestamp',
     'Notified Staff',
-    'Collected Email', // Extracted from JSON
-    // Add specific question headers HERE if you fetch them
-    'Additional Data (JSON)' // Raw JSON as fallback/detail
+    'Client Email' // Now fetched directly
+    // Dynamic question headers will be added here
 ];
 
-// --- Dynamically add Question Headers (Optional but Recommended) ---
-$question_headers = [];
-$question_map = []; // Map ID to text for ordering columns later
-if ($effective_site_id_for_query !== null) { // Fetch questions for a specific site
-    // Use data access function
-    $site_questions = getActiveQuestionsForSite($pdo, $effective_site_id_for_query);
-    if ($site_questions !== false) { // Check for DB error
-        foreach ($site_questions as $q_row) {
-            // Use question_text for header, question_id for mapping
-            $header_text = 'Q: ' . trim(preg_replace('/\s+/', ' ', $q_row['question_text']));
-            $question_headers[] = $header_text;
-            // Use global_question_id from the result for mapping
-            $question_map[$q_row['global_question_id']] = $header_text;
-        }
-    } else {
-        // Error logged in function
-        error_log("Export Warning: Failed to fetch question headers for site $effective_site_id_for_query.");
+// --- Dynamically add Question Headers ---
+$dynamic_question_headers = [];
+if (!empty($export_column_to_label_map)) {
+    foreach ($export_column_to_label_map as $prefixed_col => $formatted_label) {
+        // Use the formatted label for the header
+        $dynamic_question_headers[] = $formatted_label;
     }
+    // Add the dynamic question headers to the main header array
+    $headers = array_merge($headers, $dynamic_question_headers);
 }
-// Add the dynamic question headers BEFORE the raw JSON column
-array_splice($headers, 7, 0, $question_headers); // Insert question headers at index 7
+
 
 // Write the final header row
 fputcsv($output, $headers);
@@ -187,43 +213,23 @@ fputcsv($output, $headers);
 // Iterate over the fetched data array
 if ($export_data !== false && !empty($export_data)) {
     foreach ($export_data as $row) {
-        $csv_row_map = []; // Use associative array temporarily for easier column placement
+        // Build the row data directly in the order of the headers
+        $final_csv_row = [
+            $row['CheckinID'] ?? '',
+            $row['SiteName'] ?? '',
+            $row['FirstName'] ?? '',
+            $row['LastName'] ?? '',
+            $row['CheckinTime'] ?? '',
+            $row['NotifiedStaff'] ?? '',
+            $row['ClientEmail'] ?? '' // Use directly fetched email
+        ];
 
-        // Basic data
-        $csv_row_map['Checkin ID'] = $row['CheckinID'];
-        $csv_row_map['Site Name'] = $row['SiteName'];
-        $csv_row_map['First Name'] = $row['FirstName'];
-        $csv_row_map['Last Name'] = $row['LastName'];
-        $csv_row_map['Check-in Timestamp'] = $row['CheckinTime'];
-        $csv_row_map['Notified Staff'] = $row['NotifiedStaff'] ?? '';
-
-        // Parse JSON
-        $collected_email = '';
-        $answers = [];
-        if (!empty($row['AdditionalDataJSON'])) {
-            $additional_data = json_decode($row['AdditionalDataJSON'], true);
-            if (is_array($additional_data)) {
-                 $collected_email = $additional_data['collected_email'] ?? '';
-                 // Store answers keyed by question ID
-                 foreach ($additional_data as $key => $value) {
-                     if (is_numeric($key)) { // Assuming keys are numeric question IDs
-                         $answers[$key] = $value;
-                     }
-                 }
+        // Add dynamic question answers
+        if (!empty($export_question_columns)) {
+            foreach ($export_question_columns as $q_col_name) { // $q_col_name is 'q_age', 'q_interviewing' etc.
+                // Append the answer for this column, defaulting to empty string if not present
+                $final_csv_row[] = $row[$q_col_name] ?? '';
             }
-        }
-        $csv_row_map['Collected Email'] = $collected_email;
-        $csv_row_map['Additional Data (JSON)'] = $row['AdditionalDataJSON'] ?? '';
-
-        // Add answers to the map based on the fetched question headers
-        foreach ($question_map as $q_id => $q_header) {
-             $csv_row_map[$q_header] = $answers[$q_id] ?? ''; // Use mapped answer or empty string
-        }
-
-        // Build the final CSV row IN THE ORDER OF THE HEADERS
-        $final_csv_row = [];
-        foreach ($headers as $header) {
-            $final_csv_row[] = $csv_row_map[$header] ?? ''; // Ensure order matches $headers
         }
 
         // Write the row

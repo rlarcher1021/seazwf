@@ -29,13 +29,16 @@ function isUsernameTaken(PDO $pdo, string $username): bool
  *
  * @param PDO $pdo The PDO database connection object.
  * @param array $userData Associative array containing user data:
- *        'username', 'full_name', 'email' (optional), 'password_hash', 'role', 'site_id' (nullable), 'is_active'
+ *        'username', 'full_name', 'email' (optional), 'job_title' (optional), 'password_hash', 'role', 'site_id' (nullable), 'is_active'
  * @return int|false The ID of the newly inserted user, or false on failure.
  */
 function addUser(PDO $pdo, array $userData): int|false
 {
-    $sql = "INSERT INTO users (username, full_name, email, password_hash, role, site_id, is_active, created_at)
-            VALUES (:username, :full_name, :email, :password_hash, :role, :site_id, :is_active, NOW())";
+    // Handle optional job_title, store as NULL if empty/whitespace
+    $jobTitleToSave = isset($userData['job_title']) && !empty(trim($userData['job_title'])) ? trim($userData['job_title']) : null;
+
+    $sql = "INSERT INTO users (username, full_name, email, job_title, password_hash, role, site_id, is_active, created_at)
+            VALUES (:username, :full_name, :email, :job_title, :password_hash, :role, :site_id, :is_active, NOW())";
     try {
         $stmt = $pdo->prepare($sql);
         if (!$stmt) {
@@ -46,6 +49,7 @@ function addUser(PDO $pdo, array $userData): int|false
             ':username' => $userData['username'],
             ':full_name' => $userData['full_name'],
             ':email' => $userData['email'] ?: null,
+            ':job_title' => $jobTitleToSave,
             ':password_hash' => $userData['password_hash'],
             ':role' => $userData['role'],
             ':site_id' => $userData['site_id'], // Already determined if null needed based on role
@@ -70,12 +74,15 @@ function addUser(PDO $pdo, array $userData): int|false
  * @param PDO $pdo The PDO database connection object.
  * @param int $userId The ID of the user to update.
  * @param array $userData Associative array containing user data to update:
- *        'full_name', 'email' (optional), 'role', 'site_id' (nullable), 'is_active'
+ *        'full_name', 'email' (optional), 'job_title' (optional), 'role', 'site_id' (nullable), 'is_active'
  * @return bool True on success, false on failure.
  */
 function updateUser(PDO $pdo, int $userId, array $userData): bool
 {
-    $sql = "UPDATE users SET full_name = :full_name, email = :email, role = :role, site_id = :site_id, is_active = :is_active
+    // Handle optional job_title, store as NULL if empty/whitespace
+    $jobTitleToSave = isset($userData['job_title']) && !empty(trim($userData['job_title'])) ? trim($userData['job_title']) : null;
+
+    $sql = "UPDATE users SET full_name = :full_name, email = :email, job_title = :job_title, role = :role, site_id = :site_id, is_active = :is_active
             WHERE id = :user_id";
     try {
         $stmt = $pdo->prepare($sql);
@@ -86,6 +93,7 @@ function updateUser(PDO $pdo, int $userId, array $userData): bool
         $success = $stmt->execute([
             ':full_name' => $userData['full_name'],
             ':email' => $userData['email'] ?: null,
+            ':job_title' => $jobTitleToSave,
             ':role' => $userData['role'],
             ':site_id' => $userData['site_id'], // Already determined if null needed based on role
             ':is_active' => $userData['is_active'],
@@ -263,7 +271,8 @@ function getAllUsersWithSiteNames(PDO $pdo): array
 function getUserById(PDO $pdo, int $userId): ?array
 {
     try {
-        $stmt = $pdo->prepare("SELECT * FROM users WHERE id = :user_id");
+        // Select specific columns including the new job_title
+        $stmt = $pdo->prepare("SELECT id, username, full_name, email, job_title, role, site_id, password_hash, last_login, created_at, is_active FROM users WHERE id = :user_id");
          if (!$stmt) {
             error_log("ERROR getUserById: Prepare failed for user ID {$userId}. PDO Error: " . implode(" | ", $pdo->errorInfo()));
             return null;
@@ -302,6 +311,109 @@ function getUserDetailsForReset(PDO $pdo, int $userId): ?array
     } catch (PDOException $e) {
         error_log("EXCEPTION in getUserDetailsForReset for user ID {$userId}: " . $e->getMessage());
         return null;
+    }
+}
+
+
+
+/**
+ * Verifies the user's current password.
+ *
+ * @param PDO $pdo The PDO database connection object.
+ * @param int $userId The ID of the user.
+ * @param string $currentPassword The password provided by the user.
+ * @return bool True if the password matches, false otherwise.
+ */
+function verifyUserPassword(PDO $pdo, int $userId, string $currentPassword): bool
+{
+    try {
+        $stmt = $pdo->prepare("SELECT password_hash FROM users WHERE id = :user_id");
+        if (!$stmt) {
+            error_log("ERROR verifyUserPassword: Prepare failed for user ID {$userId}. PDO Error: " . implode(" | ", $pdo->errorInfo()));
+            return false;
+        }
+        $stmt->execute([':user_id' => $userId]);
+        $hash_from_db = $stmt->fetchColumn();
+
+        if ($hash_from_db === false) {
+            error_log("ERROR verifyUserPassword: User ID {$userId} not found.");
+            return false; // User not found
+        }
+
+        return password_verify($currentPassword, $hash_from_db);
+
+    } catch (PDOException $e) {
+        error_log("EXCEPTION in verifyUserPassword for user ID {$userId}: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Updates the user's password.
+ *
+ * @param PDO $pdo The PDO database connection object.
+ * @param int $userId The ID of the user.
+ * @param string $newPassword The new password (plain text).
+ * @return bool True on success, false on failure.
+ */
+function updateUserPassword(PDO $pdo, int $userId, string $newPassword): bool
+{
+    try {
+        $newPasswordHash = password_hash($newPassword, PASSWORD_DEFAULT);
+        if ($newPasswordHash === false) {
+             error_log("ERROR updateUserPassword: password_hash failed for user ID {$userId}.");
+             return false;
+        }
+
+        $stmt = $pdo->prepare("UPDATE users SET password_hash = :password_hash WHERE id = :user_id");
+         if (!$stmt) {
+            error_log("ERROR updateUserPassword: Prepare failed for user ID {$userId}. PDO Error: " . implode(" | ", $pdo->errorInfo()));
+            return false;
+        }
+        $success = $stmt->execute([':password_hash' => $newPasswordHash, ':user_id' => $userId]);
+         if (!$success) {
+            error_log("ERROR updateUserPassword: Execute failed for user ID {$userId}. Statement Error: " . implode(" | ", $stmt->errorInfo()));
+        }
+        return $success;
+    } catch (PDOException $e) {
+        error_log("EXCEPTION in updateUserPassword for user ID {$userId}: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Updates the user's profile information (full name and job title).
+ *
+ * @param PDO $pdo The PDO database connection object.
+ * @param int $userId The ID of the user.
+ * @param string $fullName The user's full name.
+ * @param string|null $jobTitle The user's job title (can be null or empty).
+ * @return bool True on success, false on failure.
+ */
+function updateUserProfile(PDO $pdo, int $userId, string $fullName, ?string $jobTitle): bool
+{
+    // Treat empty string job title as NULL in the database
+    $jobTitleToSave = (empty(trim($jobTitle ?? ''))) ? null : trim($jobTitle);
+
+    $sql = "UPDATE users SET full_name = :full_name, job_title = :job_title WHERE id = :user_id";
+    try {
+        $stmt = $pdo->prepare($sql);
+         if (!$stmt) {
+            error_log("ERROR updateUserProfile: Prepare failed for user ID {$userId}. PDO Error: " . implode(" | ", $pdo->errorInfo()));
+            return false;
+        }
+        $success = $stmt->execute([
+            ':full_name' => $fullName,
+            ':job_title' => $jobTitleToSave,
+            ':user_id' => $userId
+        ]);
+         if (!$success) {
+            error_log("ERROR updateUserProfile: Execute failed for user ID {$userId}. Statement Error: " . implode(" | ", $stmt->errorInfo()));
+        }
+        return $success;
+    } catch (PDOException $e) {
+        error_log("EXCEPTION in updateUserProfile for user ID {$userId}: " . $e->getMessage());
+        return false;
     }
 }
 

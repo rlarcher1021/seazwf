@@ -36,7 +36,7 @@ if ($currentUserRole === null) {
 }
 
 // --- Role Check ---
-if ($currentUserRole !== 'site_supervisor') {
+if ($currentUserRole !== 'azwk_staff') {
     error_log("Notifications Access Denied: Role '{$currentUserRole}' attempted access.");
     $_SESSION['flash_message'] = "Access denied. Supervisor role required.";
     $_SESSION['flash_type'] = 'error';

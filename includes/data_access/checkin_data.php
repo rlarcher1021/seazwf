@@ -13,10 +13,18 @@
  */
 function getTodaysCheckinCount(PDO $pdo, $site_filter_id): int
 {
-    $sql = "SELECT COUNT(ci.id) FROM check_ins ci";
-    $params = [];
-    $where_clauses = ["DATE(ci.check_in_time) = CURDATE()"];
+    // Get the start and end of today in the application's timezone
+    $today_start = date('Y-m-d 00:00:00');
+    $tomorrow_start = date('Y-m-d 00:00:00', strtotime('+1 day'));
 
+    $sql = "SELECT COUNT(ci.id) FROM check_ins ci";
+    $params = [
+        ':today_start' => $today_start,
+        ':tomorrow_start' => $tomorrow_start
+    ];
+    $where_clauses = ["ci.check_in_time >= :today_start AND ci.check_in_time < :tomorrow_start"];
+
+    // Site filtering logic remains the same
     if ($site_filter_id !== 'all' && is_numeric($site_filter_id) && $site_filter_id > 0) {
         $where_clauses[] = "ci.site_id = :site_id_filter";
         $params[':site_id_filter'] = (int)$site_filter_id;
@@ -73,7 +81,8 @@ function getLastHourCheckinCount(PDO $pdo, $site_filter_id): int
          if (!$stmt) {
              error_log("ERROR getLastHourCheckinCount: Prepare failed. PDO Error: " . implode(" | ", $pdo->errorInfo()));
              return 0;
-        }
+
+        } // Closing brace for the if (!$stmt) check
         $stmt->execute($params);
         return (int)($stmt->fetchColumn() ?: 0);
     } catch (PDOException $e) {
@@ -129,9 +138,125 @@ function getTodaysCheckinCountByQuestion(PDO $pdo, $site_filter_id, string $ques
     } catch (PDOException $e) {
         // Catch potential errors if the column doesn't exist despite validation (shouldn't happen with prior checks)
         error_log("EXCEPTION in getTodaysCheckinCountByQuestion for column '{$question_column_name}': " . $e->getMessage());
+
+    } // Closing brace for catch block
+    return 0; // Fallback return to satisfy static analysis
+
+} // Closing brace for getTodaysCheckinCountByQuestion function
+
+
+
+/**
+ * Gets the total count of check-ins for the last 7 days (including today),
+ * optionally filtered by site.
+ *
+ * @param PDO $pdo The PDO database connection object.
+ * @param int|string|null $site_filter_id The specific site ID, 'all', or null.
+ * @return int The count of check-ins, or 0 on failure.
+ */
+function getLastSevenDaysCheckinCount(PDO $pdo, $site_filter_id): int
+{
+    // Get the start of 6 days ago and the end of today (start of tomorrow)
+    $seven_days_ago_start = date('Y-m-d 00:00:00', strtotime('-6 days')); // Includes today
+    $tomorrow_start = date('Y-m-d 00:00:00', strtotime('+1 day'));
+
+    $sql = "SELECT COUNT(ci.id) FROM check_ins ci";
+    $params = [
+        ':start_date' => $seven_days_ago_start,
+        ':end_date' => $tomorrow_start
+    ];
+    $where_clauses = ["ci.check_in_time >= :start_date AND ci.check_in_time < :end_date"];
+
+    // Site filtering logic
+    if ($site_filter_id !== 'all' && is_numeric($site_filter_id) && $site_filter_id > 0) {
+        $where_clauses[] = "ci.site_id = :site_id_filter";
+        $params[':site_id_filter'] = (int)$site_filter_id;
+    } elseif ($site_filter_id !== 'all' && $site_filter_id !== null) {
+         error_log("getLastSevenDaysCheckinCount: Invalid site_filter_id provided: " . print_r($site_filter_id, true));
+         return 0; // Invalid filter
+    }
+
+    if (!empty($where_clauses)) {
+        $sql .= " WHERE " . implode(" AND ", $where_clauses);
+    }
+
+    try {
+        $stmt = $pdo->prepare($sql);
+        if (!$stmt) {
+             error_log("ERROR getLastSevenDaysCheckinCount: Prepare failed. PDO Error: " . implode(" | ", $pdo->errorInfo()));
+             return 0;
+        }
+        $stmt->execute($params);
+        return (int)($stmt->fetchColumn() ?: 0);
+    } catch (PDOException $e) {
+        error_log("EXCEPTION in getLastSevenDaysCheckinCount: " . $e->getMessage());
         return 0;
     }
 }
+
+
+/**
+ * Gets the daily check-in counts for the last 7 days (including today),
+ * optionally filtered by site.
+ *
+ * @param PDO $pdo The PDO database connection object.
+ * @param int|string|null $site_filter_id The specific site ID, 'all', or null.
+ * @return array An associative array mapping date ('Y-m-d') to check-in count, or empty array on failure.
+ */
+function getDailyCheckinCountsLast7Days(PDO $pdo, $site_filter_id): array
+{
+    // Get the start of 6 days ago and the end of today (start of tomorrow)
+    $start_date = date('Y-m-d 00:00:00', strtotime('-6 days')); // Includes today
+    $end_date = date('Y-m-d 00:00:00', strtotime('+1 day'));
+
+    $sql = "SELECT DATE(ci.check_in_time) as checkin_date, COUNT(ci.id) as daily_count
+            FROM check_ins ci";
+
+    $params = [
+        ':start_date' => $start_date,
+        ':end_date' => $end_date
+    ];
+    $where_clauses = ["ci.check_in_time >= :start_date AND ci.check_in_time < :end_date"];
+
+    // Site filtering logic
+    if ($site_filter_id !== 'all' && is_numeric($site_filter_id) && $site_filter_id > 0) {
+        $where_clauses[] = "ci.site_id = :site_id_filter";
+        $params[':site_id_filter'] = (int)$site_filter_id;
+    } elseif ($site_filter_id !== 'all' && $site_filter_id !== null) {
+         error_log("getDailyCheckinCountsLast7Days: Invalid site_filter_id provided: " . print_r($site_filter_id, true));
+         return []; // Invalid filter
+    }
+
+    if (!empty($where_clauses)) {
+        $sql .= " WHERE " . implode(" AND ", $where_clauses);
+    }
+
+    $sql .= " GROUP BY checkin_date ORDER BY checkin_date ASC";
+
+    try {
+        $stmt = $pdo->prepare($sql);
+        if (!$stmt) {
+             error_log("ERROR getDailyCheckinCountsLast7Days: Prepare failed. PDO Error: " . implode(" | ", $pdo->errorInfo()));
+             return [];
+        }
+        $stmt->execute($params);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Convert results to 'Y-m-d' => count format
+        $daily_counts = [];
+        foreach ($results as $row) {
+            $daily_counts[$row['checkin_date']] = (int)$row['daily_count'];
+        }
+        return $daily_counts;
+
+    } catch (PDOException $e) {
+        error_log("EXCEPTION in getDailyCheckinCountsLast7Days: " . $e->getMessage());
+        return [];
+    }
+}
+
+
+// Removed stray return and closing braces that were causing syntax errors
 
 /**
  * Fetches a list of recent check-ins, including site name and dynamic question columns.
@@ -594,10 +719,29 @@ function saveCheckin(PDO $pdo, array $checkin_data): int|false
  * @param int|null $site_filter_id The specific site ID, or null for all sites.
  * @param string $start_date Start date string (YYYY-MM-DD HH:MM:SS).
  * @param string $end_date End date string (YYYY-MM-DD HH:MM:SS).
+ * @param array $active_question_columns Array of validated, prefixed question column names (e.g., ['q_needs_assistance']).
  * @return array|false An array of check-in data rows, or false on failure.
  */
-function getCheckinDataForExport(PDO $pdo, ?int $site_filter_id, string $start_date, string $end_date): array|false
+function getCheckinDataForExport(PDO $pdo, ?int $site_filter_id, string $start_date, string $end_date, array $active_question_columns): array|false
 {
+    // Build dynamic SELECT part safely
+    $dynamic_select_sql = "";
+    if (!empty($active_question_columns)) {
+        $safe_dynamic_cols = [];
+        foreach ($active_question_columns as $col) {
+            // Validation should happen before calling, but double-check format
+            if (preg_match('/^q_[a-z0-9_]+$/', $col) && strlen($col) <= 64) {
+                // Use the prefixed name directly as the alias for simplicity in export script
+                $safe_dynamic_cols[] = "`ci`.`" . $col . "` AS `" . $col . "`";
+            } else {
+                error_log("WARNING getCheckinDataForExport: Skipping invalid column name in dynamic select: '{$col}'");
+            }
+        }
+        if (!empty($safe_dynamic_cols)) {
+            $dynamic_select_sql = ", " . implode(", ", $safe_dynamic_cols);
+        }
+    }
+
     // Base SQL - Select necessary columns for export
     $sql = "SELECT
                 ci.id as CheckinID,
@@ -605,8 +749,9 @@ function getCheckinDataForExport(PDO $pdo, ?int $site_filter_id, string $start_d
                 ci.first_name as FirstName,
                 ci.last_name as LastName,
                 ci.check_in_time as CheckinTime,
-                ci.additional_data as AdditionalDataJSON,
+                ci.client_email as ClientEmail, -- Added client email here
                 sn.staff_name as NotifiedStaff
+                {$dynamic_select_sql}
             FROM check_ins ci
             JOIN sites s ON ci.site_id = s.id
             LEFT JOIN staff_notifications sn ON ci.notified_staff_id = sn.id";

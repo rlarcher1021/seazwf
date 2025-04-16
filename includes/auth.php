@@ -9,21 +9,6 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// --- CSRF Token Generation ---
-// Generate a CSRF token if one doesn't exist for the session
-if (session_status() === PHP_SESSION_ACTIVE && empty($_SESSION['csrf_token'])) {
-    try {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-    } catch (Exception $e) {
-        // Handle error during random_bytes generation (rare)
-        error_log("CSRF token generation failed: " . $e->getMessage());
-        // Depending on security policy, might want to die() or redirect here
-        // For now, log and continue, but the token will be empty, failing validation later.
-    }
-}
-// --- End CSRF Token Generation ---
-
-
 $currentPage = basename($_SERVER['PHP_SELF']);
 $allowedUnauthenticated = ['index.php'];
 
@@ -39,20 +24,22 @@ if (!in_array($currentPage, $allowedUnauthenticated)) {
 
     // Define roles allowed for each page
     $accessRules = [
-        'checkin.php' => ['kiosk', 'site_supervisor', 'director', 'administrator'], // ALL roles can access checkin
+        'checkin.php' => ['kiosk', 'azwk_staff', 'outside_staff', 'director', 'administrator'], // ALL roles can access checkin
         'select_checkin_site.php' => ['director', 'administrator'], // ONLY Director/Admin
-        'dashboard.php' => ['site_supervisor', 'director', 'administrator'],
-        'reports.php' => ['site_supervisor', 'director', 'administrator'],
-        'export_report.php' => ['site_supervisor', 'director', 'administrator'], // Match reports access
-        'notifications.php' => ['site_supervisor'],
+        'dashboard.php' => ['azwk_staff', 'outside_staff', 'director', 'administrator'],
+        'reports.php' => ['azwk_staff', 'outside_staff', 'director', 'administrator'],
+        'export_report.php' => ['azwk_staff', 'outside_staff', 'director', 'administrator'], // Match reports access
+        'notifications.php' => ['azwk_staff'], // outside_staff intentionally excluded
         'configurations.php' => ['administrator'],
         'users.php' => ['administrator'],
         'alerts.php' => ['administrator'],
-        'logout.php' => ['kiosk', 'site_supervisor', 'director', 'administrator'], // ALL logged in roles
-        'forum_index.php' => ['site_supervisor', 'director', 'administrator'], // Forum category list
-        'view_category.php' => ['site_supervisor', 'director', 'administrator'], // View topics in a category
-        'view_topic.php' => ['site_supervisor', 'director', 'administrator'], // View posts in a topic
-        'create_topic.php' => ['site_supervisor', 'director', 'administrator'], // Create new topic form/handler
+        'logout.php' => ['kiosk', 'azwk_staff', 'outside_staff', 'director', 'administrator'], // ALL logged in roles
+        'forum_index.php' => ['azwk_staff', 'outside_staff', 'director', 'administrator'], // Forum category list
+        'view_category.php' => ['azwk_staff', 'outside_staff', 'director', 'administrator'], // View topics in a category
+        'view_topic.php' => ['azwk_staff', 'outside_staff', 'director', 'administrator'], // View posts in a topic
+        'create_topic.php' => ['azwk_staff', 'outside_staff', 'director', 'administrator'], // Create new topic form/handler
+        'ajax_report_handler.php' => ['azwk_staff', 'outside_staff', 'director', 'administrator'], // AJAX endpoint for reports/dashboard charts
+        'account.php' => ['azwk_staff', 'outside_staff', 'director', 'administrator'], // User account self-management (exclude kiosk)
         // Add other specific pages here if needed
     ];
 
@@ -82,7 +69,7 @@ if (!in_array($currentPage, $allowedUnauthenticated)) {
         error_log("Access Denied: User '{$_SESSION['username']}' (Active Role: {$role}) attempted to access {$currentPage}");
         // Redirect logic (keep existing)
         $redirectTarget = 'index.php?reason=access_denied';
-        if (in_array($role, ['site_supervisor', 'director', 'administrator'])) {
+        if (in_array($role, ['azwk_staff', 'outside_staff', 'director', 'administrator'])) {
              $redirectTarget = 'dashboard.php?reason=access_denied';
         }
         // Avoid setting session message if maybe redirecting to login? Check target.

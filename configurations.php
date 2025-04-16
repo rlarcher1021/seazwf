@@ -12,6 +12,21 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
+// --- CSRF Token Generation ---
+// Generate a CSRF token if one doesn't exist for the session
+// Moved here from auth.php to ensure token exists before panel POST processing
+if (session_status() === PHP_SESSION_ACTIVE && empty($_SESSION['csrf_token'])) {
+    try {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    } catch (Exception $e) {
+        error_log("CSRF token generation failed in configurations.php: " . $e->getMessage());
+        // Consider dying or redirecting based on security policy
+        die("A critical security token error occurred. Please try again later.");
+    }
+}
+// --- End CSRF Token Generation ---
+
 require_once 'includes/db_connect.php'; // Provides $pdo
 require_once 'includes/auth.php';       // Ensures user is logged in
 require_once 'includes/utils.php';      // Utility functions like sanitizers
@@ -32,12 +47,18 @@ if (!isset($_SESSION['active_role']) || $_SESSION['active_role'] !== 'administra
 // --- Determine Active Tab ---
 // Standardized tab names using hyphens
 $allowed_tabs = ['site-settings', 'questions', 'notifiers', 'ads-management']; // Consolidated questions tab
-// Get tab from GET, fall back to session, then default to 'site-settings'
-$active_tab = $_GET['tab'] ?? $_SESSION['selected_config_tab'] ?? 'site-settings';
-if (!in_array($active_tab, $allowed_tabs)) {
-    $active_tab = 'site-settings'; // Default to site settings if invalid tab provided
+// Determine active tab: Prioritize GET, then session, then default.
+if (isset($_GET['tab']) && in_array($_GET['tab'], $allowed_tabs)) {
+    $active_tab = $_GET['tab'];
+} else {
+    // Fallback to session or default if GET tab is missing or invalid
+    $active_tab = $_SESSION['selected_config_tab'] ?? 'site-settings';
+    // Ensure the fallback value is also valid
+    if (!in_array($active_tab, $allowed_tabs)) {
+        $active_tab = 'site-settings';
+    }
 }
-$_SESSION['selected_config_tab'] = $active_tab; // Store active tab for persistence
+$_SESSION['selected_config_tab'] = $active_tab; // Store the determined active tab for persistence
 
 // --- Determine Selected Site ID ---
 $selected_config_site_id = null; // Initialize
@@ -104,25 +125,46 @@ $panel_files = [
 // Initialize variable to hold potential panel output for GET requests
 $panel_output = '';
 
+// Determine the tab to process, prioritizing POST data
+$tab_to_process = $active_tab; // Default to the tab determined by GET/session
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submitted_tab']) && isset($panel_files[$_POST['submitted_tab']])) {
+    $tab_to_process = $_POST['submitted_tab']; // Override with submitted tab if valid
+    error_log("DEBUG configurations.php (POST): Prioritizing submitted_tab '{$tab_to_process}' for panel inclusion."); // Debug log
+}
+
 // Process panel logic only if it's a valid tab
-if (isset($panel_files[$active_tab])) {
-    $panel_path = $panel_files[$active_tab];
+if (isset($panel_files[$tab_to_process])) {
+    $panel_path = $panel_files[$tab_to_process];
     if (file_exists($panel_path)) {
+        error_log("DEBUG configurations.php ({$_SERVER['REQUEST_METHOD']}): Including panel '{$panel_path}'. Selected Site ID = {$selected_config_site_id}"); // Enhanced Debug log
         // Make $pdo and $selected_config_site_id available to the panel scope
         // $selected_site_details might be needed by the panel for display logic (GET) or processing (POST)
         $selected_site_details = ($selected_config_site_id) ? getSiteDetailsById($pdo, $selected_config_site_id) : null;
 
         // Check if the panel requires a site ID and if one is selected (relevant for GET display)
         $requires_site_id = in_array($active_tab, ['site-settings', 'questions', 'notifiers', 'ads-management']);
-        if ($requires_site_id && $selected_config_site_id === null && $_SERVER['REQUEST_METHOD'] !== 'POST') {
-            // If it's not a POST and site ID is missing, set a flash message to display later
-             $_SESSION['flash_message'] = "Please select a site using the dropdown above to view this configuration section.";
-             $_SESSION['flash_type'] = 'info';
-             // Don't include the panel in this case for GET requests, $panel_output remains empty
+        
+        // Enhanced site ID validation for both GET and POST requests
+        if ($requires_site_id && $selected_config_site_id === null) {
+            // Log the specific scenario for debugging
+            error_log("Configuration Panel Access Blocked: Tab={$active_tab}, Method={$_SERVER['REQUEST_METHOD']}, Site ID=null");
+            
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                // For POST requests, set a more specific error message
+                $_SESSION['flash_message'] = "A valid site must be selected before performing actions on this tab.";
+                $_SESSION['flash_type'] = 'error';
+                
+                // Redirect back to the configurations page
+                header("Location: configurations.php?tab={$active_tab}");
+                exit;
+            } else {
+                // For GET requests, set an info message
+                $_SESSION['flash_message'] = "Please select a site using the dropdown above to view this configuration section.";
+                $_SESSION['flash_type'] = 'info';
+                // $panel_output remains empty
+            }
         } else {
             // For POST requests OR valid GET requests, include the panel file.
-            // The panel itself should handle POST logic internally.
-            // For GET requests, the panel might generate output, so buffer it.
             ob_start();
             require_once $panel_path;
             $panel_output = ob_get_clean(); // Capture output for later display on GET requests
@@ -142,9 +184,17 @@ if (isset($panel_files[$active_tab])) {
 // --- Handle POST Actions Redirect ---
 // Now that the panel has potentially processed the POST and set flash messages, handle the redirect.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Determine the tab to redirect back to
-    $redirect_tab = $active_tab;
-    $redirect_site_id = $selected_config_site_id;
+    // Determine the tab to redirect back to, prioritizing the submitted tab if available
+    $submitted_tab = $_POST['submitted_tab'] ?? null;
+    // Use submitted tab if it's set and corresponds to a valid panel file, otherwise fallback to the active tab determined earlier
+    $redirect_tab = (isset($panel_files[$submitted_tab])) ? $submitted_tab : $active_tab;
+
+    // Determine redirect site ID - Prioritize POST, fallback to selected
+    $posted_site_id_for_redirect = filter_input(INPUT_POST, 'site_id', FILTER_VALIDATE_INT);
+    // Use the posted site ID if it's valid and not null, otherwise use the one determined earlier
+    $redirect_site_id = ($posted_site_id_for_redirect !== false && $posted_site_id_for_redirect !== null)
+                        ? $posted_site_id_for_redirect
+                        : $selected_config_site_id;
 
     // Construct the redirect URL
     $redirect_url = "configurations.php?tab=" . urlencode($redirect_tab);

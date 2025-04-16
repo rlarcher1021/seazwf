@@ -19,6 +19,9 @@ require_once __DIR__ . '/auth.php'; // Use __DIR__ for reliability
 // Database connection needed for fetching sites and other header data
 require_once __DIR__ . '/db_connect.php';
 
+// Utility functions (CSRF, flash messages, etc.)
+require_once __DIR__ . '/utils.php';
+
 // Verify $pdo exists after includes
 if (!isset($pdo) || !$pdo instanceof PDO) {
     error_log("FATAL: PDO connection object not established after including db_connect.php in header.php");
@@ -61,6 +64,14 @@ if ($is_admin) {
 
     // --- Handle Impersonation Form Submission ---
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['impersonate_switch'])) {
+        // --- CSRF Token Verification ---
+        if (!isset($_POST['csrf_token']) || !isset($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+            error_log("CSRF token validation failed during impersonation attempt by User ID: " . ($_SESSION['user_id'] ?? 'Unknown'));
+            // Redirect or display an error, preventing further processing
+            header("Location: " . ($_SERVER['PHP_SELF'] ?? 'dashboard.php') . "?error=csrf"); // Redirect back
+            exit;
+        }
+
         // ... (Impersonation POST handling logic - remains the same as your provided code) ...
         // Verify again it's really an admin posting
         if ($_SESSION['real_role'] === 'administrator') {
@@ -68,7 +79,7 @@ if ($is_admin) {
             $new_site_id_str = $_POST['impersonate_site_id'] ?? 'all';
 
             // Validate Role
-            $allowed_roles = ['administrator', 'director', 'site_supervisor'];
+            $allowed_roles = ['administrator', 'director', 'azwk_staff', 'outside_staff'];
             if (!in_array($new_role, $allowed_roles)) {
                 $new_role = $_SESSION['real_role'];
             }
@@ -81,7 +92,7 @@ if ($is_admin) {
                     $new_site_id = (int)$new_site_id_str;
                 } else {
                     // Invalid site selected, revert based on role
-                     if ($new_role === 'site_supervisor') {
+                     if (in_array($new_role, ['azwk_staff', 'outside_staff'])) {
                           $new_role = 'administrator'; // Revert role too
                      }
                      // Keep $new_site_id as null (All Sites)
@@ -89,7 +100,7 @@ if ($is_admin) {
             }
 
              // Site Supervisor MUST have a site ID and cannot be 'All Sites'
-             if ($new_role === 'site_supervisor') {
+             if (in_array($new_role, ['azwk_staff', 'outside_staff'])) {
                  if ($new_site_id === null) { // If site became null or was 'all'
                      // Find the first available site for the supervisor or revert
                      if (!empty($impersonation_sites)) {
@@ -128,7 +139,7 @@ if ($is_admin) {
             // Remove reset_view if present
             $query_string_imp = preg_replace('/&?reset_view=1/', '', $query_string_imp);
              // Remove site_id if impersonating all sites or role doesn't use it
-             if ($new_site_id === null || !in_array($new_role, ['site_supervisor'])) {
+             if ($new_site_id === null || !in_array($new_role, ['azwk_staff', 'outside_staff'])) {
                   $query_string_imp = preg_replace('/&?site_id=[^&]+/', '', $query_string_imp);
              }
             header("Location: " . $redirect_url_imp . (empty($query_string_imp) ? '' : '?' . ltrim($query_string_imp, '&')));
@@ -166,7 +177,7 @@ if (isset($_SESSION['active_role'])) {
     $current_role_for_link = $_SESSION['active_role'];
     $session_site_id_for_link = $_SESSION['active_site_id'] ?? null;
 
-    if (in_array($current_role_for_link, ['kiosk', 'site_supervisor'])) {
+    if (in_array($current_role_for_link, ['kiosk', 'azwk_staff', 'outside_staff'])) {
         // Direct link for Kiosk/Supervisor (session site ID determines their context)
         $manual_checkin_href = 'checkin.php';
     } elseif (in_array($current_role_for_link, ['administrator', 'director'])) {
@@ -243,18 +254,23 @@ if (isset($_SESSION['active_role'])) {
                     </li>
                     <?php endif; ?>
 
-                    <?php if (in_array($_SESSION['active_role'], ['site_supervisor', 'director', 'administrator'])): ?>
+                    <?php if (in_array($_SESSION['active_role'], ['azwk_staff', 'outside_staff', 'director', 'administrator'])): ?>
                         <li><a href="reports.php" <?php echo $current_page_basename === 'reports.php' ? 'class="active"' : ''; ?>><i class="fas fa-chart-bar"></i> Reports</a></li>
                     <?php endif; ?>
+                    <?php // Account Link (Exclude Kiosk)
+                    if (isset($_SESSION['active_role']) && $_SESSION['active_role'] !== 'kiosk'): ?>
+                        <li><a href="account.php" <?php echo $current_page_basename === 'account.php' ? 'class="active"' : ''; ?>><i class="fas fa-user-cog"></i> Account</a></li>
+                    <?php endif; ?>
+
                     <?php // Forum Link
-                    if (in_array($_SESSION['active_role'], ['site_supervisor', 'director', 'administrator'])): 
+                    if (in_array($_SESSION['active_role'], ['azwk_staff', 'outside_staff', 'director', 'administrator'])): 
                         $is_forum_page = in_array($current_page_basename, ['forum_index.php', 'view_category.php', 'view_topic.php', 'create_topic.php']);
                     ?>
                         <li><a href="forum_index.php" <?php echo $is_forum_page ? 'class="active"' : ''; ?>><i class="fas fa-comments"></i> Forum</a></li>
                     <?php endif; ?>
 
                       <?php // --- START: Notifications (Supervisor ONLY) --- ?>
-                    <?php if (isset($_SESSION['active_role']) && $_SESSION['active_role'] === 'site_supervisor'): ?>
+                    <?php if (isset($_SESSION['active_role']) && in_array($_SESSION['active_role'], ['azwk_staff', 'outside_staff'])): ?>
                         <li><a href="notifications.php" <?php echo $current_page_basename === 'notifications.php' ? 'class="active"' : ''; ?>><i class="fas fa-bell"></i> Notifications</a></li>
                     <?php endif; ?>
                     <?php // --- END: Notifications --- ?>
@@ -279,11 +295,13 @@ if (isset($_SESSION['active_role'])) {
                 <div class="impersonation-controls">
                     <form action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']); ?>?<?php echo htmlspecialchars($_SERVER['QUERY_STRING']); ?>" method="POST" style="display: inline-block;">
                         <input type="hidden" name="impersonate_switch" value="1">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
                         <label for="impersonate_role">View as:</label>
                         <select name="impersonate_role" id="impersonate_role">
                             <option value="administrator" <?php echo ($_SESSION['active_role'] === 'administrator') ? 'selected' : ''; ?>>Admin</option>
                             <option value="director" <?php echo ($_SESSION['active_role'] === 'director') ? 'selected' : ''; ?>>Director</option>
-                            <option value="site_supervisor" <?php echo ($_SESSION['active_role'] === 'site_supervisor') ? 'selected' : ''; ?>>Supervisor</option>
+                            <option value="azwk_staff" <?php echo ($_SESSION['active_role'] === 'azwk_staff') ? 'selected' : ''; ?>>AZWK Staff</option>
+                            <option value="outside_staff" <?php echo ($_SESSION['active_role'] === 'outside_staff') ? 'selected' : ''; ?>>Outside Staff</option>
                         </select>
 
                         <label for="impersonate_site_id">Site:</label>

@@ -28,7 +28,7 @@ require_once 'includes/data_access/question_data.php'; // Provides question fetc
 require_once 'includes/data_access/checkin_data.php'; // Provides check-in fetching functions
 
 // --- Role Check ---
-$allowedRoles = ['site_supervisor', 'director', 'administrator'];
+$allowedRoles = ['azwk_staff', 'outside_staff', 'director', 'administrator'];
 if (!isset($_SESSION['active_role']) || !in_array($_SESSION['active_role'], $allowedRoles)) {
     $_SESSION['flash_message'] = "Access Denied. You do not have permission to view reports."; // Use standard flash keys
     $_SESSION['flash_type'] = 'error';
@@ -62,7 +62,7 @@ if ($user_can_select_sites) {
     }
 } else {
     $sites = [];
-    if ($_SESSION['active_role'] == 'site_supervisor') {
+    if (in_array($_SESSION['active_role'], ['azwk_staff', 'outside_staff'])) {
         $report_error_message .= " No site is assigned to your account.";
     }
 }
@@ -450,21 +450,6 @@ require_once 'includes/header.php';
                  </div> <!-- /.table-container -->
             </div> <!-- /.content-section -->
 
-
-            <!-- Chart Placeholders Section -->
-            <div class="content-section">
-                <h2 class="section-title">Visualizations (Placeholder)</h2>
-                 <div class="charts-row">
-                    <div class="chart-container">
-                        <div class="chart-header"><h2 class="chart-title">Check-ins Over Time</h2></div>
-                        <canvas id="reportCheckinsChart"></canvas>
-                    </div>
-                    <div class="chart-container" id="reportSiteChartContainer">
-                        <div class="chart-header"><h2 class="chart-title">Data by Question (Example)</h2></div>
-                         <canvas id="reportQuestionsChart"></canvas>
-                    </div>
-                </div>
-            </div>
 
     <!-- JavaScript for updating hidden site filter input -->
     <script>

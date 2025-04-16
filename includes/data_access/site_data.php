@@ -357,6 +357,7 @@ function getSiteNameById(PDO $pdo, int $site_id): ?string
         return null;
     }
 
+}
 
 /**
  * Checks if a site exists and is currently active.
@@ -386,7 +387,6 @@ function isActiveSite(PDO $pdo, int $site_id): bool
     }
 }
 
-}
 
 // Add other site and site_configuration related data access functions here later...
 // For example:

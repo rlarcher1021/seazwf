@@ -50,7 +50,7 @@ if (!isset($_SESSION['active_role'])) { header('Location: index.php?status=error
 $current_role = $_SESSION['active_role'];
 
 $manual_site_id = filter_input(INPUT_GET, 'manual_site_id', FILTER_VALIDATE_INT);
-if ($manual_site_id && in_array($current_role, ['administrator', 'director', 'site_supervisor'])) {
+if ($manual_site_id && in_array($current_role, ['administrator', 'director', 'azwk_staff', 'outside_staff'])) {
     // Use data access function to get site details
     $site_details = getActiveSiteDetailsById($pdo, $manual_site_id);
     if ($site_details) {

@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $error_message = "Topic title cannot be empty.";
         } elseif (empty($form_content)) {
             $error_message = "Topic content cannot be empty.";
-        } elseif (mb_strlen($form_title) > 255) { // Check title length (adjust DB limit if needed)
+        } elseif (strlen($form_title) > 255) { // Check title length (adjust DB limit if needed) - Using strlen as mbstring is unavailable
              $error_message = "Topic title is too long (maximum 255 characters).";
         } else {
             // Re-check permission just before creation (belt and suspenders)

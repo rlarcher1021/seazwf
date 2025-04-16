@@ -283,7 +283,7 @@ define('ADMIN_ROLE_NAME', 'administrator');
  * Checks if a user has the required role level for a forum action.
  * Admins always have permission. Higher roles satisfy lower requirements.
  *
- * @param string $requiredRole The minimum role required (e.g., 'site_supervisor', 'director', 'administrator').
+ * @param string $requiredRole The minimum role required (e.g., 'azwk_staff', 'outside_staff', 'director', 'administrator').
  * @param ?string $userRole The user's current role from the session, or null if not logged in.
  * @return bool True if permission granted, false otherwise.
  */
@@ -300,7 +300,8 @@ function checkForumPermissions(string $requiredRole, ?string $userRole): bool {
 
     // Define the hierarchy using EXACT role names from DB/Session
     $roleHierarchy = [
-        'site_supervisor' => 1,
+        'azwk_staff' => 1,
+        'outside_staff' => 1,
         'director' => 2,
          ADMIN_ROLE_NAME => 3 // 'administrator'
     ];

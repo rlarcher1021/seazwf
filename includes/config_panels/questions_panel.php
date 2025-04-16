@@ -107,7 +107,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
     if (!isset($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
         $_SESSION['flash_message'] = 'CSRF token validation failed. Request blocked.';
         $_SESSION['flash_type'] = 'error';
-        error_log("CSRF token validation failed for questions_panel.php from IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'Unknown'));
+        $session_token_debug = $_SESSION['csrf_token'] ?? 'SESSION TOKEN NOT SET'; // Get token for logging
+        $post_token_debug = $_POST['csrf_token'] ?? 'POST TOKEN NOT SET'; // Get token for logging
+        error_log("CSRF token validation failed for questions_panel.php from IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'Unknown') . " | Session Token: " . $session_token_debug . " | POST Token: " . $post_token_debug);
         // Regenerate token on failure? Or just block? Blocking for now.
         // Do not proceed further in the panel script after CSRF failure
         echo "<div class='message-area message-error'>".$_SESSION['flash_message']."</div>"; // Show message immediately
@@ -336,6 +338,7 @@ if (isset($_SESSION['flash_message'])) {
     <h4 class="form-section-title">Edit Global Question Text</h4>
     <form method="POST" action="configurations.php?tab=questions<?php echo $selected_config_site_id ? '&amp;site_id='.$selected_config_site_id : ''; ?>">
         <input type="hidden" name="action" value="update_global_question">
+        <input type="hidden" name="submitted_tab" value="questions"> <!-- Added -->
         <input type="hidden" name="item_id" value="<?php echo $edit_question_data['id']; ?>">
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
         <?php if ($selected_config_site_id): ?>
@@ -363,9 +366,9 @@ if (isset($_SESSION['flash_message'])) {
 <?php endif; ?>
 
 
-// --- END: Display Flash Messages ---
+<!-- END: Display Flash Messages -->
 
-?>
+
 
 <!-- Display Panel Specific Errors (e.g., data loading errors) -->
 <?php if ($panel_error_message): ?>
@@ -380,6 +383,7 @@ if (isset($_SESSION['flash_message'])) {
         <h4 class="form-section-title">Add New Global Question</h4>
         <form method="POST" action="configurations.php?tab=questions<?php echo $selected_config_site_id ? '&amp;site_id='.$selected_config_site_id : ''; ?>">
             <input type="hidden" name="action" value="add_global_question">
+            <input type="hidden" name="submitted_tab" value="questions"> <!-- Added -->
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
             <?php if ($selected_config_site_id): ?>
                 <input type="hidden" name="site_id" value="<?php echo $selected_config_site_id; ?>">
@@ -432,10 +436,11 @@ if (isset($_SESSION['flash_message'])) {
                                     <form method="POST" action="configurations.php?tab=questions<?php echo $selected_config_site_id ? '&amp;site_id='.$selected_config_site_id : ''; ?>"
                                           style="display: inline-block;"
                                           onsubmit="return confirm('WARNING: Deleting globally will remove this question for ALL sites and DELETE the corresponding data column [q_<?php echo htmlspecialchars($gq['question_title']); ?>] from check-ins. This cannot be undone. Proceed?');">
-                                        <input type="hidden" name="action" value="delete_global_question">
-                                        <input type="hidden" name="item_id" value="<?php echo $gq['id']; ?>"> <!-- Pass global_id -->
-                                        <?php if ($selected_config_site_id): ?>
-                                            <input type="hidden" name="site_id" value="<?php echo $selected_config_site_id; ?>">
+                                       <input type="hidden" name="action" value="delete_global_question">
+                                       <input type="hidden" name="submitted_tab" value="questions"> <!-- Added -->
+                                       <input type="hidden" name="item_id" value="<?php echo $gq['id']; ?>"> <!-- Pass global_id -->
+                                       <?php if ($selected_config_site_id): ?>
+                                           <input type="hidden" name="site_id" value="<?php echo $selected_config_site_id; ?>">
                                         <?php endif; ?>
                                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
                                         <button type="submit" class="btn btn-outline btn-sm delete-button" title="Delete Globally">
@@ -457,6 +462,7 @@ if (isset($_SESSION['flash_message'])) {
                 <h4 class="form-section-title">Assign Question to <?php echo htmlspecialchars($site_name); ?></h4>
                 <form method="POST" action="configurations.php?tab=questions&amp;site_id=<?php echo $selected_config_site_id; ?>">
                     <input type="hidden" name="action" value="assign_site_question">
+                    <input type="hidden" name="submitted_tab" value="questions"> <!-- Added -->
                     <input type="hidden" name="site_id" value="<?php echo $selected_config_site_id; ?>">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
 
@@ -524,6 +530,7 @@ if (isset($_SESSION['flash_message'])) {
                                         <?php if (!$is_first): ?>
                                             <form method="POST" action="configurations.php?tab=questions&amp;site_id=<?php echo $selected_config_site_id; ?>" style="display: inline-block;">
                                                 <input type="hidden" name="action" value="reorder_site_question">
+                                                <input type="hidden" name="submitted_tab" value="questions"> <!-- Added -->
                                                 <input type="hidden" name="item_id" value="<?php echo $global_id; ?>"> <!-- Pass global_id -->
                                                 <input type="hidden" name="direction" value="up">
                                                 <input type="hidden" name="site_id" value="<?php echo $selected_config_site_id; ?>">
@@ -539,6 +546,7 @@ if (isset($_SESSION['flash_message'])) {
                                         <?php if (!$is_last): ?>
                                             <form method="POST" action="configurations.php?tab=questions&amp;site_id=<?php echo $selected_config_site_id; ?>" style="display: inline-block;">
                                                 <input type="hidden" name="action" value="reorder_site_question">
+                                                <input type="hidden" name="submitted_tab" value="questions"> <!-- Added -->
                                                 <input type="hidden" name="item_id" value="<?php echo $global_id; ?>"> <!-- Pass global_id -->
                                                 <input type="hidden" name="direction" value="down">
                                                 <input type="hidden" name="site_id" value="<?php echo $selected_config_site_id; ?>">
@@ -561,6 +569,7 @@ if (isset($_SESSION['flash_message'])) {
                                         <!-- Toggle Active/Inactive -->
                                         <form method="POST" action="configurations.php?tab=questions&amp;site_id=<?php echo $selected_config_site_id; ?>" style="display: inline-block;">
                                             <input type="hidden" name="action" value="toggle_site_question">
+                                            <input type="hidden" name="submitted_tab" value="questions"> <!-- Added -->
                                             <input type="hidden" name="item_id" value="<?php echo $global_id; ?>"> <!-- Pass global_id -->
                                             <input type="hidden" name="site_id" value="<?php echo $selected_config_site_id; ?>">
                                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
@@ -572,6 +581,7 @@ if (isset($_SESSION['flash_message'])) {
                                         <!-- Unassign from Site -->
                                         <form method="POST" action="configurations.php?tab=questions&amp;site_id=<?php echo $selected_config_site_id; ?>" style="display: inline-block;" onsubmit="return confirm('Unassign this question from <?php echo htmlspecialchars($site_name); ?>?');">
                                             <input type="hidden" name="action" value="remove_site_question">
+                                            <input type="hidden" name="submitted_tab" value="questions"> <!-- Added -->
                                             <input type="hidden" name="item_id" value="<?php echo $global_id; ?>"> <!-- Pass global_id -->
                                             <input type="hidden" name="site_id" value="<?php echo $selected_config_site_id; ?>">
                                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">

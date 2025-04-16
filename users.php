@@ -86,6 +86,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $site_id_input = filter_input(INPUT_POST, 'site_id', FILTER_VALIDATE_INT);
             $site_id = ($site_id_input === false || $site_id_input <= 0) ? null : $site_id_input;
             $is_active = isset($_POST['is_active']) ? 1 : 0;
+            $job_title = trim(filter_input(INPUT_POST, 'job_title', FILTER_SANITIZE_SPECIAL_CHARS)); // Added job_title
 
             // Perform validation checks
             $errors = [];
@@ -94,8 +95,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             if (empty($password)) $errors[] = "Password is required.";
             if ($password !== $confirm_password) $errors[] = "Passwords do not match.";
             if (strlen($password) < 8) $errors[] = "Password must be at least 8 characters long.";
-            if (!in_array($role, ['kiosk', 'site_supervisor', 'director', 'administrator'])) $errors[] = "Invalid role selected.";
-            if (($role === 'kiosk' || $role === 'site_supervisor') && $site_id === null) {
+            if (!in_array($role, ['kiosk', 'azwk_staff', 'outside_staff', 'director', 'administrator'])) $errors[] = "Invalid role selected.";
+            if (in_array($role, ['kiosk', 'azwk_staff', 'outside_staff']) && $site_id === null) {
                  $errors[] = "A valid Site must be assigned for Kiosk and Site Supervisor roles.";
             }
             if (!empty($email) && $email === false) { // Check if validation failed specifically for email format
@@ -121,7 +122,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     'password_hash' => $password_hash,
                     'role' => $role,
                     'site_id' => $actual_site_id,
-                    'is_active' => $is_active
+                    'is_active' => $is_active,
+                    'job_title' => $job_title ?: null // Added job_title
                 ];
 
                 // Use data access function to add user
@@ -160,12 +162,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $site_id_input = filter_input(INPUT_POST, 'site_id', FILTER_VALIDATE_INT);
             $site_id = ($site_id_input === false || $site_id_input <= 0) ? null : $site_id_input;
             $is_active = isset($_POST['is_active']) ? 1 : 0;
+            $job_title_edit = trim(filter_input(INPUT_POST, 'job_title_edit', FILTER_SANITIZE_SPECIAL_CHARS)); // Added job_title_edit
 
             // Perform validation checks
             $errors = [];
             if (empty($full_name)) $errors[] = "Full Name is required.";
-            if (!in_array($role, ['kiosk', 'site_supervisor', 'director', 'administrator'])) $errors[] = "Invalid role selected.";
-            if (($role === 'kiosk' || $role === 'site_supervisor') && $site_id === null) {
+            if (!in_array($role, ['kiosk', 'azwk_staff', 'outside_staff', 'director', 'administrator'])) $errors[] = "Invalid role selected.";
+            if (in_array($role, ['kiosk', 'azwk_staff', 'outside_staff']) && $site_id === null) {
                  $errors[] = "A valid Site must be assigned for Kiosk and Site Supervisor roles.";
             }
             if (!empty($email_edit) && $email_edit === false) {
@@ -186,7 +189,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                      'email' => $email_edit ?: null,
                      'role' => $role,
                      'site_id' => $actual_site_id,
-                     'is_active' => $is_active
+                     'is_active' => $is_active,
+                     'job_title' => $job_title_edit ?: null // Added job_title
                  ];
 
                  // Use data access function to update user
@@ -569,6 +573,11 @@ require_once 'includes/header.php';
                                 <p class="form-description">Optional. Used for notifications if needed.</p>
                             </div>
                             <div class="form-group">
+                               <label for="add_job_title" class="form-label">Job Title:</label>
+                               <input type="text" id="add_job_title" name="job_title" class="form-control" value="<?php echo htmlspecialchars($form_data['job_title'] ?? ''); ?>">
+                               <p class="form-description">Optional. User's professional title.</p>
+                           </div>
+                            <div class="form-group">
                                 <label for="add_password" class="form-label">Password:</label>
                                 <input type="password" id="add_password" name="password" class="form-control" required minlength="8">
                                 <p class="form-description">Minimum 8 characters.</p>
@@ -582,12 +591,13 @@ require_once 'includes/header.php';
                                 <select id="add_role" name="role" class="form-control" required onchange="toggleSiteSelect(this.value, 'add_site_id_group')">
                                     <option value="">-- Select Role --</option>
                                     <option value="kiosk" <?php echo (($form_data['role'] ?? '') === 'kiosk') ? 'selected' : ''; ?>>Kiosk</option>
-                                    <option value="site_supervisor" <?php echo (($form_data['role'] ?? '') === 'site_supervisor') ? 'selected' : ''; ?>>Site Supervisor</option>
+                                    <option value="azwk_staff" <?php echo (($form_data['role'] ?? '') === 'azwk_staff') ? 'selected' : ''; ?>>AZWK Staff</option>
+                                    <option value="outside_staff" <?php echo (($form_data['role'] ?? '') === 'outside_staff') ? 'selected' : ''; ?>>Outside Staff</option>
                                     <option value="director" <?php echo (($form_data['role'] ?? '') === 'director') ? 'selected' : ''; ?>>Director</option>
                                     <option value="administrator" <?php echo (($form_data['role'] ?? '') === 'administrator') ? 'selected' : ''; ?>>Administrator</option>
                                 </select>
                             </div>
-                             <div class="form-group" id="add_site_id_group" style="display: <?php echo (in_array($form_data['role'] ?? '', ['kiosk', 'site_supervisor'])) ? 'block' : 'none'; ?>;">
+                             <div class="form-group" id="add_site_id_group" style="display: <?php echo (in_array($form_data['role'] ?? '', ['kiosk', 'azwk_staff', 'outside_staff'])) ? 'block' : 'none'; ?>;">
                                 <label for="add_site_id" class="form-label">Assign to Site:</label>
                                 <select id="add_site_id" name="site_id" class="form-control">
                                      <option value="">-- Select Site --</option>
@@ -642,16 +652,22 @@ require_once 'includes/header.php';
                                 <p class="form-description">Optional. Used for notifications if needed.</p>
                             </div>
                             <div class="form-group">
+                               <label for="edit_job_title" class="form-label">Job Title:</label>
+                               <input type="text" id="edit_job_title" name="job_title_edit" class="form-control" value="<?php echo htmlspecialchars($edit_user_data['job_title'] ?? ''); ?>">
+                               <p class="form-description">Optional. User's professional title.</p>
+                           </div>
+                            <div class="form-group">
                                 <label for="edit_role" class="form-label">Role:</label>
                                 <select id="edit_role" name="role" class="form-control" required onchange="toggleSiteSelect(this.value, 'edit_site_id_group')">
                                      <option value="">-- Select Role --</option>
                                      <option value="kiosk" <?php echo ($edit_user_data['role'] === 'kiosk') ? 'selected' : ''; ?>>Kiosk</option>
-                                     <option value="site_supervisor" <?php echo ($edit_user_data['role'] === 'site_supervisor') ? 'selected' : ''; ?>>Site Supervisor</option>
+                                     <option value="azwk_staff" <?php echo ($edit_user_data['role'] === 'azwk_staff') ? 'selected' : ''; ?>>AZWK Staff</option>
+                                     <option value="outside_staff" <?php echo ($edit_user_data['role'] === 'outside_staff') ? 'selected' : ''; ?>>Outside Staff</option>
                                      <option value="director" <?php echo ($edit_user_data['role'] === 'director') ? 'selected' : ''; ?>>Director</option>
                                      <option value="administrator" <?php echo ($edit_user_data['role'] === 'administrator') ? 'selected' : ''; ?>>Administrator</option>
                                 </select>
                             </div>
-                             <div class="form-group" id="edit_site_id_group" style="display: <?php echo (in_array($edit_user_data['role'], ['kiosk', 'site_supervisor'])) ? 'block' : 'none'; ?>;">
+                             <div class="form-group" id="edit_site_id_group" style="display: <?php echo (in_array($edit_user_data['role'], ['kiosk', 'azwk_staff', 'outside_staff'])) ? 'block' : 'none'; ?>;">
                                 <label for="edit_site_id" class="form-label">Assign to Site:</label>
                                 <select id="edit_site_id" name="site_id" class="form-control">
                                      <option value="">-- Select Site --</option>
@@ -761,7 +777,7 @@ require_once 'includes/header.php';
         function toggleSiteSelect(role, targetGroupId) {
             const group = document.getElementById(targetGroupId);
             if (group) {
-                if (role === 'kiosk' || role === 'site_supervisor') {
+                if (role === 'kiosk' || role === 'azwk_staff' || role === 'outside_staff') {
                     group.style.display = 'block';
                 } else {
                     group.style.display = 'none';

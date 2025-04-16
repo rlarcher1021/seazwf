@@ -19,7 +19,7 @@ require_once 'includes/auth.php';       // Ensures user is logged in, provides $
 require_once 'includes/utils.php';      // General utility functions like sanitizers
 require_once 'includes/data_access/site_data.php'; // Functions for site data
 require_once 'includes/data_access/question_data.php'; // Functions for question data
-require_once 'includes/data_access/checkin_data.php'; // Functions for check-in data
+// Moved checkin_data include closer to usage below
 
 // --- Page Setup ---
 $pageTitle = "Dashboard";
@@ -46,7 +46,7 @@ if ($user_can_select_sites) {
     }
 } else {
     $sites_for_dropdown = [];
-    if (isset($_SESSION['active_role']) && $_SESSION['active_role'] == 'site_supervisor') {
+    if (isset($_SESSION['active_role']) && in_array($_SESSION['active_role'], ['azwk_staff', 'outside_staff'])) {
         $dashboard_error = "No site is assigned to your account.";
     }
 }
@@ -125,11 +125,13 @@ $dashboard_manual_checkin_href = '#';
 // $dashboard_manual_checkin_action_attr = ''; // Not needed
 
 
+// Moved require_once here to ensure it's loaded right before use
+require_once 'includes/data_access/checkin_data.php'; // Functions for check-in data
+
 // --- Fetch Main Dashboard Data (Using $site_filter_id) ---
 $todays_checkins = 0;
 $checkins_last_hour = 0;
-$dynamic_stat_1_value = 0;
-$dynamic_stat_1_label = "Needs Assistance"; // Default label for stat card
+$checkins_last_7_days = 0; // Initialize new variable
 $recent_checkins_list = [];
 
 // Only fetch if a valid site filter context exists
@@ -141,35 +143,34 @@ if ($site_filter_id !== null || ($site_filter_id === 'all' && $user_can_select_s
     // Stat 2: Check-ins Last Hour
     $checkins_last_hour = getLastHourCheckinCount($pdo, $site_filter_id);
 
-    // --- Stat 3: Dynamic Stat ---
-    // CONFIGURATION: Set the BASE name (e.g., 'needs_assistance') of the question to track here
-    $dynamic_stat_base_name = 'needs_assistance';
-    // CONFIGURATION: Set the label for the card
-    $dynamic_stat_1_label = format_base_name_for_display($dynamic_stat_base_name) . " Today"; // Use formatted name
-    $dynamic_column_name = 'q_' . sanitize_title_to_base_name($dynamic_stat_base_name); // Construct prefixed name
-
-    $dynamic_stat_1_value = 'N/A'; // Default if not applicable
-
-    // Check if the constructed column name is among the *validated* active ones for the current filter
-    if (!empty($active_question_columns) && in_array($dynamic_column_name, $active_question_columns)) {
-        // Call the data access function - it includes validation
-        $dynamic_stat_1_value = getTodaysCheckinCountByQuestion($pdo, $site_filter_id, $dynamic_column_name);
-        // The function returns 0 on error or if column is invalid/not found, so no need for 'ERR' state here.
-    } else {
-        // If the column isn't active for this filter, display 0
-        error_log("Dashboard Info: Configured dynamic column '{$dynamic_column_name}' not found among active/valid columns for filter '{$site_filter_id}'. Setting stat to 0.");
-        $dynamic_stat_1_value = 0;
-    }
-    // --- End Stat 3 ---
+    // Stat 3: Check-ins Last 7 Days
+    $checkins_last_7_days = getLastSevenDaysCheckinCount($pdo, $site_filter_id);
 
     // --- Recent Check-ins List ---
     // Pass the validated $active_question_columns to the function
     $recent_checkins_list = getRecentCheckins($pdo, $site_filter_id, $active_question_columns, 5);
     // --- End Recent Check-ins ---
 
+    // --- Check-ins Over Time Data ---
+    $daily_checkin_counts_raw = getDailyCheckinCountsLast7Days($pdo, $site_filter_id);
+    $chart_time_labels = [];
+    $chart_time_data = [];
+    for ($i = 6; $i >= 0; $i--) {
+        $date_obj = new DateTime("-{$i} days");
+        $date_key = $date_obj->format('Y-m-d');
+        $chart_time_labels[] = $date_obj->format('M j'); // e.g., Apr 16
+        $chart_time_data[] = $daily_checkin_counts_raw[$date_key] ?? 0; // Use count if exists, else 0
+    }
+    $chart_time_labels_json = json_encode($chart_time_labels);
+    $chart_time_data_json = json_encode($chart_time_data);
+    // --- End Check-ins Over Time Data ---
+
 } else {
     // If $site_filter_id is null (e.g., supervisor with no site assigned), stats remain at default 0/[]
     $dashboard_error .= " Cannot load dashboard data without a valid site context.";
+    // Initialize chart data arrays as empty JSON for JS safety
+    $chart_time_labels_json = '[]';
+    $chart_time_data_json = '[]';
 }
 
 
@@ -232,10 +233,10 @@ require_once 'includes/header.php'; // Provides sidebar, opening tags
                         <div class="card-header"><h2 class="card-title">Today's Check-ins</h2><div class="card-icon"><i class="fas fa-users"></i></div></div>
                         <div class="card-body"><div class="stat-value"><?php echo number_format($todays_checkins); ?></div><div class="stat-label">Total check-ins today</div></div>
                     </div>
-                    <!-- Card 2: Dynamic Stat -->
+                    <!-- Card 2: Check-ins Last 7 Days -->
                     <div class="card">
-                         <div class="card-header"><h2 class="card-title"><?php echo htmlspecialchars($dynamic_stat_1_label); ?></h2><div class="card-icon"><i class="fas fa-question-circle"></i></div></div>
-                         <div class="card-body"><div class="stat-value"><?php echo ($dynamic_stat_1_value === 'N/A' || $dynamic_stat_1_value === 'ERR') ? $dynamic_stat_1_value : number_format($dynamic_stat_1_value); ?></div><div class="stat-label">Based on question responses today</div></div>
+                         <div class="card-header"><h2 class="card-title">Check-ins Last 7 Days</h2><div class="card-icon"><i class="fas fa-calendar-week"></i></div></div>
+                         <div class="card-body"><div class="stat-value"><?php echo number_format($checkins_last_7_days); ?></div><div class="stat-label">Total check-ins in the past week</div></div>
                     </div>
                     <!-- Card 3: Check-ins Last Hour -->
                     <div class="card">
@@ -324,7 +325,18 @@ require_once 'includes/header.php'; // Provides sidebar, opening tags
                         </div>
                     </div>
                     <div class="chart-container">
-                        <div class="chart-header"><h2 class="chart-title">Question Responses</h2></div>
+                        <div class="chart-header" style="display: flex; justify-content: space-between; align-items: center;">
+                            <h2 class="chart-title" style="margin-bottom: 0;">Question Responses</h2>
+                            <div class="chart-timeframe-selector">
+                                <label for="responses-timeframe" style="font-size: 0.9em; margin-right: 5px;">Timeframe:</label>
+                                <select id="responses-timeframe" name="responses_timeframe" style="padding: 2px 5px; font-size: 0.9em;">
+                                    <option value="today" selected>Today</option>
+                                    <option value="last_7_days">Last 7 Days</option>
+                                    <option value="last_30_days">Last 30 Days</option>
+                                    <option value="last_365_days">Last Year</option>
+                                </select>
+                            </div>
+                        </div>
                          <div class="chart-placeholder">
                            <canvas id="responsesChart"></canvas>
                         </div>
@@ -383,42 +395,146 @@ document.addEventListener('DOMContentLoaded', function() {
     // Chart 1: Check-ins Over Time (Placeholder)
     const ctxTimeDash = document.getElementById('checkinsChart');
     if (ctxTimeDash) {
-        const timeLabelsDash = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']; // Example
-        const timeDataDash = [12, 19, 3, 5, 2, 3, 7]; // Example
-        if (timeLabelsDash.length > 0) {
-            new Chart(ctxTimeDash, { type: 'line', data: { labels: timeLabelsDash, datasets: [{ label: 'Check-ins', data: timeDataDash, tension: 0.1, borderColor: 'var(--color-primary)', backgroundColor: 'rgba(30, 58, 138, 0.1)', fill: true }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } } });
-        } else { /* No data message */ }
+        // Use data embedded by PHP
+        const timeLabelsDash = <?php echo $chart_time_labels_json ?? '[]'; ?>;
+        const timeDataDash = <?php echo $chart_time_data_json ?? '[]'; ?>;
+
+        if (timeLabelsDash.length > 0 && timeDataDash.length > 0) {
+            new Chart(ctxTimeDash, { type: 'line', data: { labels: timeLabelsDash, datasets: [{ label: 'Check-ins', data: timeDataDash, tension: 0.1, borderColor: 'var(--color-primary)', backgroundColor: 'rgba(30, 58, 138, 0.1)', fill: true }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, suggestedMax: Math.max(...timeDataDash) + 1 } } } }); // Added suggestedMax
+        } else {
+             const ctx = ctxTimeDash.getContext('2d');
+             ctx.textAlign = 'center'; ctx.fillStyle = 'var(--color-gray)';
+             ctx.fillText('No check-in data available for chart.', ctxTimeDash.canvas.width / 2, ctxTimeDash.canvas.height / 2);
+        }
     }
 
-    // Chart 2: Question Responses
+    // Chart 2: Question Responses (Dynamic Update)
     const ctxQuestionsDash = document.getElementById('responsesChart');
-    if (ctxQuestionsDash) {
-        // Use the data embedded by PHP
-        const questionChartLabelsDash = <?php echo $chart_labels_json ?? '[]'; ?>;
-        const questionColumnsDash = <?php echo $question_columns_json ?? '[]'; ?>;
-        const reportDataDash = <?php echo empty($recent_checkins_list) ? '[]' : json_encode($recent_checkins_list); // Use recent checkins list for sample data source ?>;
+    const timeframeSelector = document.getElementById('responses-timeframe');
+    const siteSelector = document.getElementById('site-select'); // Get site selector
+    let responsesChartInstance = null; // Variable to hold the chart instance
 
-        let yesCountsDash = [];
-        if (reportDataDash.length > 0 && questionColumnsDash.length > 0 && questionChartLabelsDash.length === questionColumnsDash.length) {
-            yesCountsDash = Array(questionColumnsDash.length).fill(0);
-            reportDataDash.forEach(row => {
-                questionColumnsDash.forEach((colName, index) => {
-                    if (row.hasOwnProperty(colName) && row[colName] === 'YES') {
-                        if (index < yesCountsDash.length) yesCountsDash[index]++;
-                    }
-                });
+    // Function to display messages on the chart canvas
+    function displayChartMessage(canvasContext, message) {
+        const canvas = canvasContext.canvas;
+        canvasContext.clearRect(0, 0, canvas.width, canvas.height); // Clear previous drawing
+        canvasContext.save();
+        canvasContext.textAlign = 'center';
+        canvasContext.textBaseline = 'middle';
+        canvasContext.fillStyle = 'var(--color-gray)';
+        canvasContext.fillText(message, canvas.width / 2, canvas.height / 2);
+        canvasContext.restore();
+    }
+
+    // Function to fetch and update the responses chart
+    async function updateResponsesChart() {
+        if (!ctxQuestionsDash || !responsesChartInstance) return; // Ensure canvas and chart instance exist
+
+        const selectedTimeframe = timeframeSelector ? timeframeSelector.value : 'today';
+        // Get site_id carefully, considering it might not exist or be 'all'
+        const selectedSiteId = siteSelector ? siteSelector.value : '<?php echo $site_filter_id ?? "all"; ?>'; // Use PHP value as fallback
+
+        // If no valid site context (null from PHP or empty string from selector), display message and exit
+        if (selectedSiteId === null || selectedSiteId === '') {
+             console.log("No valid site selected. Cannot update responses chart.");
+             displayChartMessage(ctxQuestionsDash.getContext('2d'), 'Select a site to view question responses.');
+             return;
+        }
+
+        console.log(`Updating responses chart for site: ${selectedSiteId}, timeframe: ${selectedTimeframe}`);
+        displayChartMessage(ctxQuestionsDash.getContext('2d'), 'Loading data...'); // Show loading message
+
+        try {
+            const formData = new FormData();
+            formData.append('action', 'get_question_responses_data');
+            formData.append('site_id', selectedSiteId);
+            formData.append('time_frame', selectedTimeframe);
+
+            const response = await fetch('ajax_report_handler.php', {
+                method: 'POST',
+                body: formData
             });
-        } else if (questionColumnsDash.length > 0) {
-            yesCountsDash = Array(questionColumnsDash.length).fill(0);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            if (result.success && result.data) {
+                if (result.data.labels && result.data.labels.length > 0) {
+                    // Update chart data
+                    responsesChartInstance.data.labels = result.data.labels;
+                    responsesChartInstance.data.datasets[0].data = result.data.data;
+                    responsesChartInstance.update();
+                    console.log("Responses chart updated successfully.");
+                } else {
+                    // No data returned, display message
+                    displayChartMessage(ctxQuestionsDash.getContext('2d'), 'No question response data found for this period.');
+                    // Clear existing data
+                    responsesChartInstance.data.labels = [];
+                    responsesChartInstance.data.datasets[0].data = [];
+                    responsesChartInstance.update();
+                }
+            } else {
+                throw new Error(result.message || 'Failed to fetch chart data.');
+            }
+
+        } catch (error) {
+            console.error('Error updating responses chart:', error);
+            displayChartMessage(ctxQuestionsDash.getContext('2d'), 'Error loading chart data.');
+            // Optionally clear data on error
+             responsesChartInstance.data.labels = [];
+             responsesChartInstance.data.datasets[0].data = [];
+             responsesChartInstance.update();
+        }
+    }
+
+    if (ctxQuestionsDash) {
+        // Initial chart setup with empty data
+        const initialLabels = <?php echo $chart_labels_json ?? '[]'; ?>; // Use PHP labels for initial structure if available
+        responsesChartInstance = new Chart(ctxQuestionsDash, {
+            type: 'pie',
+            data: {
+                labels: initialLabels, // Start with labels if known, data loaded async
+                datasets: [{
+                    label: 'Yes Answers',
+                    data: [], // Start with empty data
+                    backgroundColor: ['rgba(255, 107, 53, 0.7)','rgba(30, 58, 138, 0.7)','rgba(75, 192, 192, 0.7)','rgba(255, 205, 86, 0.7)','rgba(153, 102, 255, 0.7)'], // Add more colors if needed
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top' }
+                },
+                animation: {
+                    duration: 500 // Optional: add a small animation duration
+                }
+            }
+        });
+
+        // Add event listener to the timeframe selector
+        if (timeframeSelector) {
+            timeframeSelector.addEventListener('change', updateResponsesChart);
+        } else {
+             console.error("Timeframe selector #responses-timeframe not found.");
         }
 
-        if (questionChartLabelsDash.length > 0) {
-            new Chart(ctxQuestionsDash, { type: 'pie', data: { labels: questionChartLabelsDash, datasets: [{ label: 'Yes Answers', data: yesCountsDash, backgroundColor: ['rgba(255, 107, 53, 0.7)','rgba(30, 58, 138, 0.7)','rgba(75, 192, 192, 0.7)','rgba(255, 205, 86, 0.7)','rgba(153, 102, 255, 0.7)'], hoverOffset: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } } } });
-        } else { /* No data message */
-             const ctx = ctxQuestionsDash.getContext('2d');
-             ctx.textAlign = 'center'; ctx.fillStyle = 'var(--color-gray)';
-             ctx.fillText('No question data available for chart.', ctxQuestionsDash.canvas.width / 2, ctxQuestionsDash.canvas.height / 2);
-        }
+        // Add event listener to the site selector as well, to refresh chart on site change
+         if (siteSelector) {
+             // The site selector reloads the page, so we don't need a JS listener here.
+             // The initial load handles the site change.
+         }
+
+        // Initial data load
+        // Use setTimeout to ensure the chart is fully rendered before the first data load attempt
+        setTimeout(updateResponsesChart, 100);
+
+    } else {
+        console.error("Canvas element #responsesChart not found.");
     }
     // --- End Chart Initialization ---
 
