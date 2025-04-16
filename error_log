@@ -1,39 +1,24 @@
-[17-Apr-2025 00:24:59 Europe/Berlin] Admin action: Error log cleared by user ID: 1
-[17-Apr-2025 00:24:59 Europe/Berlin] Alerts Debug: Checking current directory path: C:\xampp\htdocs\public_html/error_log
-[17-Apr-2025 00:24:59 Europe/Berlin] Alerts Debug: Found log file in current directory.
-[17-Apr-2025 00:24:59 Europe/Berlin] Alerts INFO: Determined log file path: C:\xampp\htdocs\public_html/error_log
-[17-Apr-2025 00:25:03 Europe/Berlin] CRITICAL Checkin Error: Configuration file not found at C:\xampp\htdocs\public_html/config.ini
-[17-Apr-2025 00:25:03 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
-[17-Apr-2025 00:25:03 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[17-Apr-2025 00:25:03 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
-[17-Apr-2025 00:25:13 Europe/Berlin] CRITICAL Checkin Error: Configuration file not found at C:\xampp\htdocs\public_html/config.ini
-[17-Apr-2025 00:25:13 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
-[17-Apr-2025 00:25:13 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[17-Apr-2025 00:25:13 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
-[17-Apr-2025 00:25:13 Europe/Berlin] [DEBUG checkin.php POST] Prepared Question answers array FINAL: Array
+[17-Apr-2025 00:42:24 Europe/Berlin] Admin action: Error log cleared by user ID: 1
+[17-Apr-2025 00:42:24 Europe/Berlin] Alerts Debug: Checking current directory path: C:\xampp\htdocs\public_html/error_log
+[17-Apr-2025 00:42:24 Europe/Berlin] Alerts Debug: Found log file in current directory.
+[17-Apr-2025 00:42:24 Europe/Berlin] Alerts INFO: Determined log file path: C:\xampp\htdocs\public_html/error_log
+[17-Apr-2025 00:42:27 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[17-Apr-2025 00:42:27 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[17-Apr-2025 00:42:27 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
+[17-Apr-2025 00:42:33 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[17-Apr-2025 00:42:33 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[17-Apr-2025 00:42:33 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
+[17-Apr-2025 00:42:33 Europe/Berlin] [DEBUG checkin.php POST] Prepared Question answers array FINAL: Array
 (
     [q_age] => YES
     [q_veteran] => YES
 )
 
-[17-Apr-2025 00:25:13 Europe/Berlin] AI Agent Email Error: SMTP config missing. Cannot send. Check-in ID: 16
-[17-Apr-2025 00:25:13 Europe/Berlin] Error sending AI Agent email to rlarcher1021@gmail.com for Check-in ID: 16. Error: SMTP configuration is missing.
-[17-Apr-2025 00:25:13 Europe/Berlin] Checkin Email Skipped: SMTP config missing or invalid. Check-in ID: 16
-[17-Apr-2025 00:25:13 Europe/Berlin] CRITICAL Checkin Error: Configuration file not found at C:\xampp\htdocs\public_html/config.ini
-[17-Apr-2025 00:25:13 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
-[17-Apr-2025 00:25:13 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[17-Apr-2025 00:25:13 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
-[17-Apr-2025 00:25:41 Europe/Berlin] CRITICAL Checkin Error: Configuration file not found at C:\xampp\htdocs\public_html/config.ini
-[17-Apr-2025 00:25:41 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
-[17-Apr-2025 00:25:41 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[17-Apr-2025 00:25:41 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
-[17-Apr-2025 00:25:42 Europe/Berlin] Alerts Debug: Checking current directory path: C:\xampp\htdocs\public_html/error_log
-[17-Apr-2025 00:25:42 Europe/Berlin] Alerts Debug: Found log file in current directory.
-[17-Apr-2025 00:25:42 Europe/Berlin] Alerts INFO: Determined log file path: C:\xampp\htdocs\public_html/error_log
-[17-Apr-2025 00:27:43 Europe/Berlin] Dashboard Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
-(
-    [0] => q_age
-    [1] => q_interviewing
-    [2] => q_veteran
-)
-
+[17-Apr-2025 00:42:39 Europe/Berlin] AI Agent email sent successfully to: rlarcher1021@gmail.com for Check-in ID: 17
+[17-Apr-2025 00:42:39 Europe/Berlin] Checkin Email Error: Primary recipient '' invalid or missing in config. Check-in ID: 17
+[17-Apr-2025 00:42:44 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[17-Apr-2025 00:42:44 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[17-Apr-2025 00:42:44 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
+[17-Apr-2025 00:42:49 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[17-Apr-2025 00:42:49 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[17-Apr-2025 00:42:49 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class

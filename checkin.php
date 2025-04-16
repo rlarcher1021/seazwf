@@ -30,7 +30,8 @@ require_once 'includes/data_access/checkin_data.php'; // Checkin data functions
 
 // --- Load Configuration ---
 $config = null;
-$configPath = __DIR__ . '/config.ini';
+// Go up one level from public_html (__DIR__) and then into the 'config' directory
+$configPath = dirname(__DIR__) . '/config/config.ini';
 if (!file_exists($configPath)) {
     error_log("CRITICAL Checkin Error: Configuration file not found at " . $configPath);
 } else {
