@@ -338,67 +338,154 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             // --- END: AI Agent Email Notification Logic ---
 
             // --- Send Email Notification ---
-            if ($config && isset($config['smtp'])) {
-                $mail = new PHPMailer(true);
-                try {
-                    // Server settings
-                    $mail->isSMTP(); $mail->Host = $config['smtp']['host']; $mail->SMTPAuth = true;
-                    $mail->Username = $config['smtp']['username']; $mail->Password = $config['smtp']['password'];
-                    $smtp_port = $config['smtp']['port'] ?? 587; $mail->Port = (int)$smtp_port;
-                    $mail->SMTPSecure = ($smtp_port == 465) ? PHPMailer::ENCRYPTION_SMTPS : PHPMailer::ENCRYPTION_STARTTLS;
+ // --- BEGIN REPLACEMENT: NEW Staff Notifier Email Block ---
 
-                    // Recipients
-                    $mail->setFrom($config['smtp']['from_email'], $config['smtp']['from_name']);
-                    $primary_recipient = $config['smtp']['primary_recipient'] ?? null;
-                    if ($primary_recipient && filter_var($primary_recipient, FILTER_VALIDATE_EMAIL)) {
-                         $mail->addAddress($primary_recipient, 'Check-In Admin');
-                    } else { error_log("Checkin Email Error: Primary recipient '{$primary_recipient}' invalid or missing in config. Check-in ID: {$check_in_id}"); }
+            // Check if staff notification is enabled for the site AND a specific staff member was selected/found
+            if ($allow_notifier && $notified_staff_id && isset($staff_notifiers[$notified_staff_id])) {
 
-                    // CC Notifier
-                    if ($allow_notifier && $notified_staff_id && isset($staff_notifiers[$notified_staff_id])) {
-                        $notifier_email = $staff_notifiers[$notified_staff_id]['staff_email'];
-                        $notifier_name = $staff_notifiers[$notified_staff_id]['staff_name'];
-                        if (filter_var($notifier_email, FILTER_VALIDATE_EMAIL)) {
-                            $mail->addCC($notifier_email, $notifier_name);
-                        } else { error_log("Checkin Email Warning: Invalid notifier email for ID {$notified_staff_id}: '{$notifier_email}'. Check-in ID: {$check_in_id}"); }
+                // Check if SMTP settings are available in the global config
+                if ($config && isset($config['smtp'])) {
+                    $notifier = $staff_notifiers[$notified_staff_id];
+                    $notifier_email = $notifier['staff_email'];
+                    $notifier_name = $notifier['staff_name'];
+
+                    // Validate the notifier's email address
+                    if (filter_var($notifier_email, FILTER_VALIDATE_EMAIL)) {
+                        // Proceed only if the email is valid
+                        // Ensure PHPMailer class is available (adjust path if needed, or use Composer autoload)
+                        // require_once 'vendor/phpmailer/phpmailer/src/Exception.php';
+                        // require_once 'vendor/phpmailer/phpmailer/src/PHPMailer.php';
+                        // require_once 'vendor/phpmailer/phpmailer/src/SMTP.php';
+                        // Note: If using Composer's autoload.php, these requires are likely not needed here.
+
+                        // TO THIS:
+                        $mail = new PHPMailer(true);
+
+                        try {
+                            // --- Server settings ---
+                            $mail->isSMTP();
+                            $mail->Host = $config['smtp']['host'];
+                            $mail->SMTPAuth = true;
+                            $mail->Username = $config['smtp']['username'];
+                            $mail->Password = $config['smtp']['password'];
+                            $smtp_port = $config['smtp']['port'] ?? 587;
+                            $mail->Port = (int)$smtp_port;
+                            $mail->SMTPSecure = ($smtp_port == 465) ? PHPMailer::ENCRYPTION_SMTPS : PHPMailer::ENCRYPTION_STARTTLS;
+                            // --- Recipient ---
+                            // Set From address using config values
+                            $from_email = $config['smtp']['from_email'] ?? 'noreply@example.com'; // Provide a fallback
+                            $from_name = $config['smtp']['from_name'] ?? 'Check-In System';
+                            $mail->setFrom($from_email, $from_name);
+
+                            // Add the specific staff notifier as the primary recipient
+                            $mail->addAddress($notifier_email, $notifier_name);
+
+                            // --- BEGIN REVISED Content for Staff Notifier ---
+                $mail->isHTML(true); // Use HTML format
+                // Keep subject specific to staff notification? Or revert to generic? Let's keep it specific for now.
+                $mail->Subject = 'Staff Notification: Client Check-in at ' . htmlspecialchars($site_name);
+
+                // Build the detailed email body again
+                $emailBody = "<h2>Staff Notification</h2>";
+                $emailBody .= "<p>A client has checked in up front and wanted you to know:</p>"; // New introductory phrase
+                $emailBody .= "<hr>"; // Separator
+                $emailBody .= "<p><strong>Site:</strong> " . htmlspecialchars($site_name) . "</p>";
+                $emailBody .= "<p><strong>Name:</strong> " . htmlspecialchars($first_name) . " " . htmlspecialchars($last_name) . "</p>";
+                $emailBody .= "<p><strong>Time:</strong> " . htmlspecialchars($check_in_time) . "</p>";
+
+                // Include Client Email if collected and allowed
+                if ($allow_email_collection && !empty($client_email)) {
+                     $emailBody .= "<p><strong>Client Email:</strong> " . htmlspecialchars($client_email) . "</p>";
+                } else {
+                     $emailBody .= "<p><strong>Client Email:</strong> Not Provided / Not Collected</p>";
+                }
+
+                // Include Question Responses (Requires $question_answers and $assigned_questions to be available)
+                if (!empty($question_answers)) {
+                    $emailBody .= "<h3>Responses:</h3><ul>";
+                    // Build mapping from column name (q_...) to question text
+                    // Ensure $assigned_questions is populated before this email block!
+                    $col_to_text_map = [];
+                    if (isset($assigned_questions) && is_array($assigned_questions)) {
+                         // Ensure sanitize_title_to_base_name function is available!
+                         if (!function_exists('sanitize_title_to_base_name')) {
+                              error_log("CRITICAL: sanitize_title_to_base_name function missing in checkin.php email generation.");
+                              // Add fallback or skip question details
+                         } else {
+                              foreach ($assigned_questions as $q_data) {
+                                   $base_name = sanitize_title_to_base_name($q_data['question_title']);
+                                   if (!empty($base_name)) {
+                                       $col_name = 'q_' . $base_name;
+                                       $col_to_text_map[$col_name] = $q_data['question_text'];
+                                   }
+                              }
+                         }
+                    } else {
+                         error_log("WARNING: \$assigned_questions variable not available for email generation in checkin.php.");
+                         // Consider adding a note to the email body
                     }
-                    // CC Client
-                    if ($allow_email_collection && !empty($client_email)) {
-                        $mail->addCC($client_email, $first_name . ' ' . $last_name);
-                    }
 
-                    // Content
-                    $mail->isHTML(true); $mail->Subject = 'New Client Check-In at ' . htmlspecialchars($site_name);
-                    $emailBody = "<h2>New Client Check-In</h2><p><strong>Site:</strong> " . htmlspecialchars($site_name) . "</p><p><strong>Name:</strong> " . htmlspecialchars($first_name) . " " . htmlspecialchars($last_name) . "</p><p><strong>Time:</strong> " . htmlspecialchars($check_in_time) . "</p>";
-                    if ($allow_email_collection && !empty($client_email)) $emailBody .= "<p><strong>Client Email:</strong> " . htmlspecialchars($client_email) . "</p>";
-                    if (!empty($question_answers)) {
-                        $emailBody .= "<h3>Responses:</h3><ul>";
-                        $col_to_text_map = [];
-                        foreach ($assigned_questions as $q_data) {
-                            $base_name = sanitize_title_to_base_name($q_data['question_title']);
-                            if (!empty($base_name)) {
-                                $col_name = 'q_' . $base_name;
-                                $col_to_text_map[$col_name] = $q_data['question_text'];
-                            }
+                    // Loop through answers and add them using the mapped text
+                    foreach($question_answers as $col_name => $answer){
+                        $question_text = $col_to_text_map[$col_name] ?? "Question (" . htmlspecialchars($col_name) . ")"; // Fallback if text mapping failed
+                        $emailBody .= "<li><strong>" . htmlspecialchars($question_text) . ":</strong> " . htmlspecialchars($answer) . "</li>";
+                    }
+                    $emailBody .= "</ul>";
+                } else {
+                     $emailBody .= "<p>No specific question responses recorded for this check-in.</p>";
+                }
+
+                // Add Check-in ID for reference
+                if (isset($check_in_id) && $check_in_id) {
+                     $emailBody .= "<p>(Check-in Record ID: " . htmlspecialchars($check_in_id) . ")</p>";
+                }
+
+                // Assign to PHPMailer body
+                $mail->Body = $emailBody;
+
+                // Create a slightly more detailed AltBody (plain text)
+                $altBody = "Staff Notification\n\nA client has checked in up front and wanted you to know:\n";
+                $altBody .= "--------------------\n";
+                $altBody .= "Site: " . $site_name . "\n";
+                $altBody .= "Name: " . $first_name . " " . $last_name . "\n";
+                $altBody .= "Time: " . $check_in_time . "\n";
+                $altBody .= "Client Email: " . ($allow_email_collection && !empty($client_email) ? $client_email : 'Not Provided / Not Collected') . "\n";
+                if (!empty($question_answers)) {
+                    $altBody .= "\nResponses:\n";
+                     // Simplified plain text for answers
+                     foreach($question_answers as $col_name => $answer){
+                          $question_text = $col_to_text_map[$col_name] ?? "Question (" . $col_name . ")";
+                          $altBody .= "- " . $question_text . ": " . $answer . "\n";
+                     }
+                } else {
+                     $altBody .= "\nNo specific question responses recorded.\n";
+                }
+                $altBody .= "\n(Check-in Record ID: " . ($check_in_id ?? 'N/A') . ")";
+                $mail->AltBody = $altBody;
+
+                // --- END REVISED Content for Staff Notifier ---
+                            // --- Send the email ---
+                            $mail->send();
+                            // Optional: Log success for this specific notification
+                            error_log("Staff notification email sent successfully to {$notifier_email} for check-in ID: {$check_in_id}");
+
+                        } catch (Exception $e) {
+                            // Log error if sending this specific notification failed
+                            error_log("Staff Notification Email Send Error to {$notifier_email} for check-in ID {$check_in_id}: {$mail->ErrorInfo}");
+                            // Optional: Modify the main user message or type if desired, e.g.:
+                            // if ($message_type === 'success') { $message_type = 'warning'; $submission_message .= ' (Staff notification failed)'; }
                         }
-                        foreach($question_answers as $col_name => $answer){
-                            $question_text = $col_to_text_map[$col_name] ?? "Question ({$col_name})";
-                            $emailBody .= "<li><strong>" . htmlspecialchars($question_text) . ":</strong> " . htmlspecialchars($answer) . "</li>";
-                        }
-                        $emailBody .= "</ul>";
+                    } else {
+                        // Log warning if the selected notifier has an invalid email
+                        error_log("Staff Notification Email Skipped: Invalid notifier email '{$notifier_email}' for staff ID {$notified_staff_id}. Check-in ID: {$check_in_id}");
                     }
-                     if ($allow_notifier && $notified_staff_id && isset($staff_notifiers[$notified_staff_id])) $emailBody .= "<p><strong>Staff Notified:</strong> " . htmlspecialchars($staff_notifiers[$notified_staff_id]['staff_name']) . "</p>";
+                } else {
+                    // Log warning if SMTP settings are missing for the notifier email
+                    error_log("Staff Notification Email Skipped: SMTP config missing or invalid. Check-in ID: {$check_in_id}");
+                }
+            } // --- END REPLACEMENT: NEW Staff Notifier Email Block ---
 
-                    $mail->Body = $emailBody;
-                    $mail->AltBody = strip_tags(str_replace(['<p>', '</li>', '</ul>', '<h2>', '<h3>'], ["\n", "\n", "\n", "\n\n", "\n"], $emailBody));
-                    $mail->send();
-                    $submission_message = "Check-in successful! Thank you."; $message_type = 'success';
-                } catch (Exception $e) { error_log("Checkin Email Send Error: {$mail->ErrorInfo}. Check-in ID: {$check_in_id}"); $submission_message = "Check-in successful, but notification failed."; $message_type = 'warning'; }
-            } else { error_log("Checkin Email Skipped: SMTP config missing or invalid. Check-in ID: {$check_in_id}"); $submission_message = "Check-in successful! (Email offline)."; $message_type = 'warning'; }
-            // Clear form data only on full success
-            $_SESSION['form_data'] = [];
-
-        } else { // saveCheckin returned false
+         } else { // saveCheckin returned false
              $submission_message = "Error saving check-in. Please try again or contact support. Ref: SAVE_FAIL"; $message_type = 'error'; $_SESSION['form_data'] = $_POST; // Keep form data for retry
              // Detailed error logged within saveCheckin function
         }
