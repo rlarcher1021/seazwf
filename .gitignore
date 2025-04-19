@@ -1,5 +1,6 @@
  Example .gitignore entries
 .well-known
+.roo
 # Configuration files with sensitive data (create examples like wp-config-sample.php)
 wp-config.php
 .env

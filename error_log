@@ -323,3 +323,17 @@ Stack trace:
 [17-Apr-2025 03:01:23 Europe/Berlin] Alerts Debug: Checking current directory path: C:\xampp\htdocs\public_html/error_log
 [17-Apr-2025 03:01:23 Europe/Berlin] Alerts Debug: Found log file in current directory.
 [17-Apr-2025 03:01:23 Europe/Berlin] Alerts INFO: Determined log file path: C:\xampp\htdocs\public_html/error_log
+[17-Apr-2025 16:56:20 Europe/Berlin] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in C:\xampp\phpMyAdmin\libraries\classes\Header.php on line 678
+[17-Apr-2025 16:56:20 Europe/Berlin] PHP Fatal error:  Uncaught Error: Call to a member function getDisplay() on null in C:\xampp\phpMyAdmin\libraries\classes\ResponseRenderer.php:293
+Stack trace:
+#0 C:\xampp\phpMyAdmin\libraries\classes\ResponseRenderer.php(411): PhpMyAdmin\ResponseRenderer->getDisplay()
+#1 [internal function]: PhpMyAdmin\ResponseRenderer->response()
+#2 {main}
+  thrown in C:\xampp\phpMyAdmin\libraries\classes\ResponseRenderer.php on line 293
+[17-Apr-2025 19:18:33 Europe/Berlin] Dashboard Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
+(
+    [0] => q_age
+    [1] => q_interviewing
+    [2] => q_veteran
+)
+

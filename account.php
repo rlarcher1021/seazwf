@@ -119,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             // 3. Validate Password Complexity (Server-side)
             // Regex: >= 10 chars, 1 uppercase, 1 lowercase, 1 number, 1 special char
-            elseif (!preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+={}\[\]:;\"\'<>,.?~\\\\/-])[A-Za-z\d!@#$%^&*()_+={}\[\]:;\"\'<>,.?~\\\\/-]{10,}$/', $newPassword)) {
+            elseif (!preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+={}\[\]:;\"\'<>,.?~\\\\\/\\-])[A-Za-z\d!@#$%^&*()_+={}\[\]:;\"\'<>,.?~\\\\\/\\-]{10,}$/', $newPassword)) {
                  set_flash_message('password_error', 'New password does not meet complexity requirements. Must be at least 10 characters long and include uppercase, lowercase, number, and special character (!@#$%^&*).');
             }
             // 4. All Validations Pass - Update Password
