@@ -46,7 +46,7 @@ if (!isset($_SESSION['active_role']) || $_SESSION['active_role'] !== 'administra
 
 // --- Determine Active Tab ---
 // Standardized tab names using hyphens
-$allowed_tabs = ['site-settings', 'questions', 'notifiers', 'ads-management']; // Consolidated questions tab
+$allowed_tabs = ['site-settings', 'questions', 'notifiers', 'ads-management', 'departments']; // Consolidated questions tab, Added departments
 // Determine active tab: Prioritize GET, then session, then default.
 if (isset($_GET['tab']) && in_array($_GET['tab'], $allowed_tabs)) {
     $active_tab = $_GET['tab'];
@@ -119,7 +119,8 @@ $panel_files = [
     'site-settings' => 'includes/config_panels/site_settings_panel.php',
     'questions' => 'includes/config_panels/questions_panel.php',       // Consolidated questions panel
     'notifiers' => 'includes/config_panels/notifiers_panel.php',
-    'ads-management' => 'includes/config_panels/ads_panel.php'
+    'ads-management' => 'includes/config_panels/ads_panel.php',
+    'departments' => 'includes/config_panels/departments_panel.php' // Added departments panel
 ];
 
 // Initialize variable to hold potential panel output for GET requests
@@ -142,6 +143,7 @@ if (isset($panel_files[$tab_to_process])) {
         $selected_site_details = ($selected_config_site_id) ? getSiteDetailsById($pdo, $selected_config_site_id) : null;
 
         // Check if the panel requires a site ID and if one is selected (relevant for GET display)
+        // Departments tab does not require a site ID
         $requires_site_id = in_array($active_tab, ['site-settings', 'questions', 'notifiers', 'ads-management']);
         
         // Enhanced site ID validation for both GET and POST requests
@@ -267,7 +269,8 @@ require_once 'includes/header.php'; // Includes session_start() if not already s
                          'site-settings' => 'Site Settings',
                          'questions' => 'Questions', // Consolidated tab
                          'notifiers' => 'Email Notifiers',
-                         'ads-management' => 'Ads Management'
+                         'ads-management' => 'Ads Management',
+                         'departments' => 'Departments' // Added Departments tab
                      ];
 
                      // Determine base URL for tabs (without site_id initially)
@@ -275,13 +278,17 @@ require_once 'includes/header.php'; // Includes session_start() if not already s
 
                      foreach ($tabs_config as $tab_id => $tab_name):
                          $tab_url = $base_tab_url . urlencode($tab_id);
+                         // Define tabs that require a site ID
+                         $site_specific_tabs = ['site-settings', 'questions', 'notifiers', 'ads-management'];
+
                          // Add site_id only if required by the tab and a site is selected
-                         if (in_array($tab_id, ['site-settings', 'questions', 'notifiers', 'ads-management']) && $selected_config_site_id !== null) { // Updated for consolidated questions tab
+                         if (in_array($tab_id, $site_specific_tabs) && $selected_config_site_id !== null) {
                              $tab_url .= '&site_id=' . $selected_config_site_id;
                          }
                          $is_active = ($active_tab === $tab_id) ? 'active' : '';
+
                          // Disable site-specific tabs if no site is selected
-                         $is_disabled = !$selected_config_site_id && in_array($tab_id, ['site-settings', 'questions', 'notifiers', 'ads-management']); // Updated for consolidated questions tab
+                         $is_disabled = !$selected_config_site_id && in_array($tab_id, $site_specific_tabs);
                          $disabled_class = $is_disabled ? 'disabled' : '';
                          $link_attributes = $is_disabled ? 'onclick="return false;" style="cursor: not-allowed; opacity: 0.6;"' : 'href="' . htmlspecialchars($tab_url) . '"';
                      ?>

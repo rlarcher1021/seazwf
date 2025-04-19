@@ -209,6 +209,9 @@ if (isset($_SESSION['active_role'])) {
     <!-- Main Stylesheet -->
     <link rel="stylesheet" href="assets/css/main.css?v=<?php echo filemtime(__DIR__ . '/../assets/css/main.css'); // Cache busting ?>">
 
+    <!-- CSRF Token for AJAX requests -->
+    <meta name="csrf-token" content="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
+
     <!-- Chart.js (Include only if needed globally or move to specific pages) -->
     <!-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> -->
 

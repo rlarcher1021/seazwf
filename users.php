@@ -24,6 +24,7 @@ require_once 'includes/db_connect.php'; // Provides $pdo
 require_once 'includes/auth.php';       // Ensures user is logged in, provides $_SESSION['active_role'] etc.
 require_once 'includes/data_access/site_data.php'; // For getAllActiveSites
 require_once 'includes/data_access/user_data.php'; // For user functions
+require_once 'includes/data_access/department_data.php'; // For department functions
 
 
 // --- Role Check: Only Administrators can access this page ---
@@ -43,6 +44,9 @@ unset($_SESSION['flash_message'], $_SESSION['flash_type']);
 $sites_list = getAllActiveSites($pdo); // Use data access function
 $site_fetch_error = ($sites_list === []) ? "Error loading site list for forms." : ''; // Check if function returned empty array (error)
 
+// --- Fetch Departments for Dropdowns ---
+$departments_list = getAllDepartments($pdo); // Fetch departments
+$department_fetch_error = ($departments_list === []) ? "Error loading department list for forms." : ''; // Basic error check
 
 // --- Handle Form Submissions (POST Requests) ---
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -87,6 +91,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $site_id = ($site_id_input === false || $site_id_input <= 0) ? null : $site_id_input;
             $is_active = isset($_POST['is_active']) ? 1 : 0;
             $job_title = trim(filter_input(INPUT_POST, 'job_title', FILTER_SANITIZE_SPECIAL_CHARS)); // Added job_title
+            $department_id_input = filter_input(INPUT_POST, 'department_id', FILTER_VALIDATE_INT);
+            // Convert false (from empty string or invalid int) or 0 to null
+            $department_id = ($department_id_input === false || $department_id_input === 0) ? null : $department_id_input;
 
             // Perform validation checks
             $errors = [];
@@ -123,7 +130,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     'role' => $role,
                     'site_id' => $actual_site_id,
                     'is_active' => $is_active,
-                    'job_title' => $job_title ?: null // Added job_title
+                    'job_title' => $job_title ?: null, // Added job_title
+                    'department_id' => $department_id // Added department_id
                 ];
 
                 // Use data access function to add user
@@ -163,6 +171,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $site_id = ($site_id_input === false || $site_id_input <= 0) ? null : $site_id_input;
             $is_active = isset($_POST['is_active']) ? 1 : 0;
             $job_title_edit = trim(filter_input(INPUT_POST, 'job_title_edit', FILTER_SANITIZE_SPECIAL_CHARS)); // Added job_title_edit
+            $department_id_input_edit = filter_input(INPUT_POST, 'department_id_edit', FILTER_VALIDATE_INT);
+            // Convert false (from empty string or invalid int) or 0 to null
+            $department_id_edit = ($department_id_input_edit === false || $department_id_input_edit === 0) ? null : $department_id_input_edit;
 
             // Perform validation checks
             $errors = [];
@@ -190,7 +201,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                      'role' => $role,
                      'site_id' => $actual_site_id,
                      'is_active' => $is_active,
-                     'job_title' => $job_title_edit ?: null // Added job_title
+                     'job_title' => $job_title_edit ?: null, // Added job_title
+                     'department_id' => $department_id_edit // Added department_id
                  ];
 
                  // Use data access function to update user
@@ -431,6 +443,10 @@ require_once 'includes/header.php';
              <?php if ($user_fetch_error): ?>
                 <div class="message-area error-message"><?php echo htmlspecialchars($user_fetch_error); ?></div>
             <?php endif; ?>
+            <!-- Display Department Fetching Error -->
+            <?php if ($department_fetch_error): ?>
+               <div class="message-area error-message"><?php echo htmlspecialchars($department_fetch_error); ?></div>
+            <?php endif; ?>
 
             <!-- User Management Content Section -->
             <div class="content-section">
@@ -453,6 +469,7 @@ require_once 'includes/header.php';
                                 <th>Email</th>
                                 <th>Role</th>
                                 <th>Assigned Site</th>
+                                <th>Department</th> <!-- Added Department Column -->
                                 <th>Last Login</th>
                                 <th>Status</th>
                                 <th>Actions</th>
@@ -481,6 +498,7 @@ require_once 'includes/header.php';
                                                 else { echo 'N/A'; }
                                             ?>
                                         </td>
+                                        <td><?php echo isset($user['department_name']) ? htmlspecialchars($user['department_name']) : '<span style="color: #888;">None</span>'; ?></td> <!-- Display Department Name -->
                                         <td><?php echo $user['last_login'] ? date('Y-m-d H:i', strtotime($user['last_login'])) : 'Never'; ?></td>
                                         <td><span class="status-badge <?php echo $user['is_active'] ? 'status-active' : 'status-inactive'; ?>"><?php echo $user['is_active'] ? 'Active' : 'Inactive'; ?></span></td>
                                         <td class="actions-cell">
@@ -516,7 +534,7 @@ require_once 'includes/header.php';
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
-                                <tr><td colspan="8" style="text-align: center;">No users found.</td></tr>
+                                <tr><td colspan="9" style="text-align: center;">No users found.</td></tr> <!-- Updated colspan to 9 -->
                             <?php endif; ?>
                         </tbody>
                     </table>
@@ -613,6 +631,25 @@ require_once 'includes/header.php';
                                 </select>
                                 <p class="form-description">Required for Kiosk and Site Supervisor roles.</p>
                              </div>
+                             <!-- Department Dropdown (Admin Only - but whole page is admin only) -->
+                             <div class="form-group">
+                                <label for="add_department_id" class="form-label">Department:</label>
+                                <select id="add_department_id" name="department_id" class="form-control">
+                                    <option value="">-- None --</option>
+                                    <?php if (!empty($departments_list)): ?>
+                                        <?php foreach ($departments_list as $dept): ?>
+                                            <option value="<?php echo $dept['id']; ?>" <?php echo (($form_data['department_id'] ?? null) == $dept['id']) ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars($dept['name']); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    <?php elseif ($department_fetch_error): ?>
+                                        <option value="" disabled>Error loading departments</option>
+                                    <?php else: ?>
+                                         <option value="" disabled>No departments available</option>
+                                    <?php endif; ?>
+                                </select>
+                                <p class="form-description">Optional. Assign user to a department.</p>
+                             </div>
                              <div class="form-group" style="grid-column: 1 / -1;">
                                  <label class="form-label">
                                      <input type="checkbox" name="is_active" value="1" <?php echo (!isset($form_data['action']) || !empty($form_data['is_active'])) ? 'checked' : ''; // Default checked on new form or if previously checked ?>> Active User
@@ -683,6 +720,25 @@ require_once 'includes/header.php';
                                 </select>
                                 <p class="form-description">Required for Kiosk and Site Supervisor roles.</p>
                             </div>
+                             <!-- Department Dropdown (Admin Only - but whole page is admin only) -->
+                             <div class="form-group">
+                                <label for="edit_department_id" class="form-label">Department:</label>
+                                <select id="edit_department_id" name="department_id_edit" class="form-control">
+                                    <option value="">-- None --</option>
+                                    <?php if (!empty($departments_list)): ?>
+                                        <?php foreach ($departments_list as $dept): ?>
+                                            <option value="<?php echo $dept['id']; ?>" <?php echo (($edit_user_data['department_id'] ?? null) == $dept['id']) ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars($dept['name']); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                     <?php elseif ($department_fetch_error): ?>
+                                        <option value="" disabled>Error loading departments</option>
+                                    <?php else: ?>
+                                         <option value="" disabled>No departments available</option>
+                                    <?php endif; ?>
+                                </select>
+                                <p class="form-description">Optional. Assign user to a department.</p>
+                             </div>
                             <div class="form-group" style="grid-column: 1 / -1;">
                                  <label class="form-label">
                                      <input type="checkbox" name="is_active" value="1" <?php echo ($edit_user_data['is_active'] == 1) ? 'checked' : ''; ?>> Active User

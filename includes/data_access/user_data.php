@@ -29,7 +29,7 @@ function isUsernameTaken(PDO $pdo, string $username): bool
  *
  * @param PDO $pdo The PDO database connection object.
  * @param array $userData Associative array containing user data:
- *        'username', 'full_name', 'email' (optional), 'job_title' (optional), 'password_hash', 'role', 'site_id' (nullable), 'is_active'
+ *        'username', 'full_name', 'email' (optional), 'job_title' (optional), 'password_hash', 'role', 'site_id' (nullable), 'is_active', 'department_id' (nullable)
  * @return int|false The ID of the newly inserted user, or false on failure.
  */
 function addUser(PDO $pdo, array $userData): int|false
@@ -37,8 +37,8 @@ function addUser(PDO $pdo, array $userData): int|false
     // Handle optional job_title, store as NULL if empty/whitespace
     $jobTitleToSave = isset($userData['job_title']) && !empty(trim($userData['job_title'])) ? trim($userData['job_title']) : null;
 
-    $sql = "INSERT INTO users (username, full_name, email, job_title, password_hash, role, site_id, is_active, created_at)
-            VALUES (:username, :full_name, :email, :job_title, :password_hash, :role, :site_id, :is_active, NOW())";
+    $sql = "INSERT INTO users (username, full_name, email, job_title, password_hash, role, site_id, department_id, is_active, created_at)
+            VALUES (:username, :full_name, :email, :job_title, :password_hash, :role, :site_id, :department_id, :is_active, NOW())";
     try {
         $stmt = $pdo->prepare($sql);
         if (!$stmt) {
@@ -53,6 +53,7 @@ function addUser(PDO $pdo, array $userData): int|false
             ':password_hash' => $userData['password_hash'],
             ':role' => $userData['role'],
             ':site_id' => $userData['site_id'], // Already determined if null needed based on role
+            ':department_id' => $userData['department_id'] ?? null, // Add department_id, default to null if not provided
             ':is_active' => $userData['is_active']
         ]);
 
@@ -74,7 +75,7 @@ function addUser(PDO $pdo, array $userData): int|false
  * @param PDO $pdo The PDO database connection object.
  * @param int $userId The ID of the user to update.
  * @param array $userData Associative array containing user data to update:
- *        'full_name', 'email' (optional), 'job_title' (optional), 'role', 'site_id' (nullable), 'is_active'
+ *        'full_name', 'email' (optional), 'job_title' (optional), 'role', 'site_id' (nullable), 'is_active', 'department_id' (nullable)
  * @return bool True on success, false on failure.
  */
 function updateUser(PDO $pdo, int $userId, array $userData): bool
@@ -82,7 +83,7 @@ function updateUser(PDO $pdo, int $userId, array $userData): bool
     // Handle optional job_title, store as NULL if empty/whitespace
     $jobTitleToSave = isset($userData['job_title']) && !empty(trim($userData['job_title'])) ? trim($userData['job_title']) : null;
 
-    $sql = "UPDATE users SET full_name = :full_name, email = :email, job_title = :job_title, role = :role, site_id = :site_id, is_active = :is_active
+    $sql = "UPDATE users SET full_name = :full_name, email = :email, job_title = :job_title, role = :role, site_id = :site_id, department_id = :department_id, is_active = :is_active
             WHERE id = :user_id";
     try {
         $stmt = $pdo->prepare($sql);
@@ -96,6 +97,7 @@ function updateUser(PDO $pdo, int $userId, array $userData): bool
             ':job_title' => $jobTitleToSave,
             ':role' => $userData['role'],
             ':site_id' => $userData['site_id'], // Already determined if null needed based on role
+            ':department_id' => $userData['department_id'] ?? null, // Add department_id, default to null if not provided
             ':is_active' => $userData['is_active'],
             ':user_id' => $userId
         ]);
@@ -237,9 +239,12 @@ function deleteUser(PDO $pdo, int $userId): bool
  */
 function getAllUsersWithSiteNames(PDO $pdo): array
 {
-    $sql = "SELECT u.id, u.username, u.full_name, u.email, u.role, u.site_id, u.last_login, u.is_active, s.name as site_name
+    // Added u.department_id and LEFT JOIN for department name
+    $sql = "SELECT u.id, u.username, u.full_name, u.email, u.role, u.site_id, u.department_id, u.last_login, u.is_active,
+                   s.name as site_name, d.name as department_name
             FROM users u
             LEFT JOIN sites s ON u.site_id = s.id
+            LEFT JOIN departments d ON u.department_id = d.id
             ORDER BY u.username ASC";
     try {
         $stmt = $pdo->query($sql);
@@ -252,6 +257,8 @@ function getAllUsersWithSiteNames(PDO $pdo): array
         foreach ($users as &$user) {
             $user['is_active'] = (int)$user['is_active'];
             $user['site_id'] = ($user['site_id'] !== null) ? (int)$user['site_id'] : null;
+            $user['department_id'] = ($user['department_id'] !== null) ? (int)$user['department_id'] : null; // Cast department_id
+            // department_name will be null if no department is assigned or join fails
         }
         unset($user); // Break reference
         return $users;
@@ -271,8 +278,8 @@ function getAllUsersWithSiteNames(PDO $pdo): array
 function getUserById(PDO $pdo, int $userId): ?array
 {
     try {
-        // Select specific columns including the new job_title
-        $stmt = $pdo->prepare("SELECT id, username, full_name, email, job_title, role, site_id, password_hash, last_login, created_at, is_active FROM users WHERE id = :user_id");
+        // Select specific columns including job_title and department_id
+        $stmt = $pdo->prepare("SELECT id, username, full_name, email, job_title, role, site_id, department_id, password_hash, last_login, created_at, is_active FROM users WHERE id = :user_id");
          if (!$stmt) {
             error_log("ERROR getUserById: Prepare failed for user ID {$userId}. PDO Error: " . implode(" | ", $pdo->errorInfo()));
             return null;
@@ -282,6 +289,7 @@ function getUserById(PDO $pdo, int $userId): ?array
         if ($user) {
              $user['is_active'] = (int)$user['is_active'];
              $user['site_id'] = ($user['site_id'] !== null) ? (int)$user['site_id'] : null;
+             $user['department_id'] = ($user['department_id'] !== null) ? (int)$user['department_id'] : null; // Cast department_id
         }
         return $user ?: null;
     } catch (PDOException $e) {

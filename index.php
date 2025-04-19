@@ -80,10 +80,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $error_message = 'Please enter both username and password.';
     } else {
         try {
-            // Prepare SQL statement to prevent SQL injection
-            $sql = "SELECT id, username, password_hash, role, site_id, full_name
-                    FROM users
-                    WHERE username = :username AND is_active = TRUE";
+            // Prepare SQL statement to prevent SQL injection - Added LEFT JOIN for department slug
+            $sql = "SELECT u.id, u.username, u.password_hash, u.role, u.site_id, u.department_id, u.full_name, d.slug AS department_slug
+                    FROM users u
+                    LEFT JOIN departments d ON u.department_id = d.id
+                    WHERE u.username = :username AND u.is_active = TRUE";
             $stmt = $pdo->prepare($sql);
 
             // Bind parameters
@@ -102,11 +103,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 // Regenerate session ID for security (prevents session fixation)
                 session_regenerate_id(true);
 
-                                // Password is correct!
-
-                // Regenerate session ID for security (prevents session fixation)
-                session_regenerate_id(true);
-
                 // --- Store user data in session variables ---
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['username'] = $user['username'];
@@ -117,9 +113,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $_SESSION['real_site_id'] = $user['site_id']; // Will be NULL for Admin/Director
 
                 // Initialize the ACTIVE role and site_id (starts same as real)
-                // Use null coalescing operator (??) in case real_site_id is null
                 $_SESSION['active_role'] = $user['role'];
                 $_SESSION['active_site_id'] = $user['site_id'] ?? null; // active_site_id can be null (All Sites) or an int
+
+                // Store department ID and the newly fetched department SLUG
+                $_SESSION['department_id'] = isset($user['department_id']) && $user['department_id'] !== null ? (int)$user['department_id'] : null;
+                $_SESSION['department_slug'] = $user['department_slug'] ?? null; // Store the slug, will be null if no department or no slug
 
                 $_SESSION['last_login'] = time(); // Store login time
 
