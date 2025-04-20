@@ -32,10 +32,30 @@ if (ini_get("session.use_cookies")) {
 // 3. Finally, destroy the session data on the server
 session_destroy();
 
-// --- Redirect to Login Page ---
-// Redirect the user back to the main login page.
-// Add a parameter to indicate successful logout (optional).
-header('Location: index.php?status=logged_out');
-exit; // Important: Stop script execution after redirect
+// --- Clear Client-Side Storage & Redirect ---
 
+// Output JavaScript to clear sessionStorage and then redirect
+?>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Logging Out...</title>
+    <script>
+        // Clear chat-related session storage items
+        sessionStorage.removeItem('aiChatHistory');
+        sessionStorage.removeItem('aiChatState');
+        sessionStorage.removeItem('aiChatSize');
+
+        // Redirect to the login page
+        window.location.href = 'index.php?status=logged_out';
+    </script>
+</head>
+<body>
+    <p>Logging out, please wait...</p>
+</body>
+</html>
+<?php
+// Note: The PHP exit is no longer strictly necessary here as the script ends,
+// but it's good practice if more code were potentially added later.
+exit;
 ?>

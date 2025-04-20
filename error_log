@@ -1,15 +1,8 @@
-[19-Apr-2025 23:32:05 Europe/Berlin] Admin action: Error log cleared by user ID: 1
-[19-Apr-2025 23:32:05 Europe/Berlin] Alerts Debug: Checking current directory path: C:\xampp\htdocs\public_html/error_log
-[19-Apr-2025 23:32:05 Europe/Berlin] Alerts Debug: Found log file in current directory.
-[19-Apr-2025 23:32:05 Europe/Berlin] Alerts INFO: Determined log file path: C:\xampp\htdocs\public_html/error_log
-[19-Apr-2025 23:33:40 Europe/Berlin] Dashboard Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
-(
-    [0] => q_age
-    [1] => q_interviewing
-    [2] => q_veteran
-)
-
-[19-Apr-2025 23:37:35 Europe/Berlin] Dashboard Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
+[21-Apr-2025 00:17:20 Europe/Berlin] Admin action: Error log cleared by user ID: 1
+[21-Apr-2025 00:17:20 Europe/Berlin] Alerts Debug: Checking current directory path: C:\xampp\htdocs\public_html/error_log
+[21-Apr-2025 00:17:20 Europe/Berlin] Alerts Debug: Found log file in current directory.
+[21-Apr-2025 00:17:20 Europe/Berlin] Alerts INFO: Determined log file path: C:\xampp\htdocs\public_html/error_log
+[21-Apr-2025 00:18:35 Europe/Berlin] Dashboard Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
 (
     [0] => q_age
     [1] => q_interviewing

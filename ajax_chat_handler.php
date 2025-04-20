@@ -51,6 +51,10 @@ if (!isset($_POST['message']) || trim($_POST['message']) === '') {
 
 $userMessage = trim($_POST['message']);
 
+// --- Database Connection ---
+// Required for fetching site name
+require_once 'includes/db_connect.php'; // Contains the $pdo object
+
 // --- Load Configuration ---
 $n8nWebhookUrl = null;
 $n8nWebhookSecret = null;
@@ -87,12 +91,37 @@ $n8nWebhookUrl = $config['N8N_WEBHOOK_URL'];
 $n8nWebhookSecret = $config['N8N_WEBHOOK_SECRET'];
 
 // --- Prepare Data for n8n ---
+
+// Retrieve user details from session
+$userFullName = $_SESSION['full_name'] ?? 'User'; // Default to 'User' if not set
+$userSiteId = $_SESSION['active_site_id'] ?? null; // Use active site ID
+$userSiteName = null; // Initialize site name
+
+// Fetch site name if site ID is available
+if ($userSiteId !== null && isset($pdo)) { // Check if $pdo is set from db_connect.php
+    try {
+        $siteSql = "SELECT name FROM sites WHERE id = :site_id";
+        $siteStmt = $pdo->prepare($siteSql);
+        $siteStmt->bindParam(':site_id', $userSiteId, PDO::PARAM_INT);
+        $siteStmt->execute();
+        $siteResult = $siteStmt->fetch(PDO::FETCH_ASSOC);
+        if ($siteResult) {
+            $userSiteName = $siteResult['name'];
+        }
+    } catch (PDOException $e) {
+        // Log the error but continue execution, sending null for site name
+        error_log("AI Chat Error: Failed to fetch site name for site ID {$userSiteId}. Error: " . $e->getMessage());
+    }
+}
+
 // Use active_role to reflect the current user context (including impersonation)
 $payload = json_encode([
     'message' => $userMessage,
     'user_role' => $_SESSION['active_role'] ?? null, // Send the role the user is currently acting as
     'user_department_identifier' => $_SESSION['department_slug'] ?? null, // Use slug, updated key name
-    'user_id' => $_SESSION['user_id'] // This should be the actual logged-in user's ID, not impersonated
+    'user_id' => $_SESSION['user_id'], // This should be the actual logged-in user's ID, not impersonated
+    'user_full_name' => $userFullName, // Added user's full name
+    'user_site_name' => $userSiteName // Added user's site name (or null)
 ]);
 
 if ($payload === false) {

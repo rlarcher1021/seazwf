@@ -235,6 +235,27 @@ $current_page_basename = basename($_SERVER['PHP_SELF']);
     height: 40px;
     flex-shrink: 0;
 }
+
+
+/* Ensure jQuery UI Resizable handles are visible and have correct cursors */
+.ui-resizable-handle {
+    position: absolute;
+    font-size: 0.1px;
+    display: block;
+    touch-action: none;
+    z-index: 1051; /* Ensure handles are above the widget content */
+}
+.ui-resizable-disabled .ui-resizable-handle, .ui-resizable-autohide .ui-resizable-handle {
+    display: none;
+}
+.ui-resizable-n { cursor: n-resize; height: 7px; width: 100%; top: -5px; left: 0; }
+.ui-resizable-s { cursor: s-resize; height: 7px; width: 100%; bottom: -5px; left: 0; }
+.ui-resizable-e { cursor: e-resize; width: 7px; right: -5px; top: 0; height: 100%; }
+.ui-resizable-w { cursor: w-resize; width: 7px; left: -5px; top: 0; height: 100%; }
+.ui-resizable-se { cursor: se-resize; width: 12px; height: 12px; right: 1px; bottom: 1px; }
+.ui-resizable-sw { cursor: sw-resize; width: 9px; height: 9px; left: -5px; bottom: -5px; }
+.ui-resizable-nw { cursor: nw-resize; width: 9px; height: 9px; left: -5px; top: -5px; }
+.ui-resizable-ne { cursor: ne-resize; width: 9px; height: 9px; right: -5px; top: -5px; }
 </style>
 <!-- END: AI Chat Widget CSS -->
 
@@ -255,8 +276,7 @@ if (isset($_SESSION['user_id']) && (!isset($_SESSION['role']) || $_SESSION['role
         </button>
     </div>
     <div id="chat-messages">
-        <!-- Messages will appear here -->
-        <div class="chat-message ai">Hello! How can I assist you today?</div>
+        <!-- Messages will appear here (dynamically added by JS) -->
     </div>
     <div class="chat-input-area">
         <input type="text" id="chat-input" class="form-control" placeholder="Type your message...">
@@ -283,10 +303,14 @@ if (isset($_SESSION['user_id']) && (!isset($_SESSION['role']) || $_SESSION['role
 
 <!-- Bootstrap JS Dependencies - IMPORTANT: Keep this order -->
 
-<!-- 1. jQuery (Correct CDN) -->
-<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+<!-- 1. jQuery (Full version needed for jQuery UI) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
 
-<!-- 2. Bootstrap Bundle JS (Includes Popper.js) -->
+<!-- 2. jQuery UI (Core, Widget, Mouse, Resizable) -->
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js" integrity="sha256-lSjKY0/srUM9BE3dPm+c4fBo1dky2v27Gdjm2uoZaL0=" crossorigin="anonymous"></script>
+
+<!-- 3. Bootstrap Bundle JS (Includes Popper.js) -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-LtrjvnR4Twt/qOuYxE721u19sVFLVSA4hf/rRt6PrZTmiPltdZcI7q7PXQBYTKyf" crossorigin="anonymous"></script>
 
 <!-- Output Page-Specific JavaScript -->
@@ -298,115 +322,237 @@ if (!empty($GLOBALS['footer_scripts'])) {
 
 <!-- START: AI Chat Widget JavaScript -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const chatToggleButton = document.getElementById('chat-toggle-button');
-    const chatWidget = document.getElementById('ai-chat-widget');
-    const closeChatButton = chatWidget ? chatWidget.querySelector('.close-chat') : null;
-    const messagesContainer = document.getElementById('chat-messages');
-    const inputField = document.getElementById('chat-input');
-    const sendButton = document.getElementById('chat-send-button');
-    const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+jQuery(document).ready(function($) { // Use jQuery wrapper
+    const chatToggleButton = $('#chat-toggle-button');
+    const chatWidget = $('#ai-chat-widget');
+    const closeChatButton = chatWidget.find('.close-chat');
+    const messagesContainer = $('#chat-messages');
+    const inputField = $('#chat-input');
+    const sendButton = $('#chat-send-button');
+    const csrfTokenMeta = $('meta[name="csrf-token"]');
 
     // Ensure elements exist before adding listeners (widget might not be rendered for kiosk/logged out)
-    if (!chatToggleButton || !chatWidget || !closeChatButton || !messagesContainer || !inputField || !sendButton || !csrfTokenMeta) {
+    if (!chatToggleButton.length || !chatWidget.length || !closeChatButton.length || !messagesContainer.length || !inputField.length || !sendButton.length || !csrfTokenMeta.length) {
         // console.log('Chat widget elements not found, skipping JS setup.');
         return; // Exit if essential elements are missing
     }
 
-    const csrfToken = csrfTokenMeta.getAttribute('content');
+    const csrfToken = csrfTokenMeta.attr('content');
+    let chatHistory = []; // Array to hold message objects { sender: '...', text: '...' }
 
-    // --- Toggle Chat Widget --- 
-    chatToggleButton.addEventListener('click', () => {
-        chatWidget.classList.toggle('open');
-        // Optional: Focus input when opening
-        if (chatWidget.classList.contains('open')) {
+    // --- Storage Keys ---
+    const historyKey = 'aiChatHistory';
+    const stateKey = 'aiChatState';
+    const sizeKey = 'aiChatSize';
+
+    // --- Load from Session Storage ---
+    const loadState = () => {
+        // 1. Load Size (Apply first)
+        try {
+            const savedSize = sessionStorage.getItem(sizeKey);
+            if (savedSize) {
+                const size = JSON.parse(savedSize);
+                // Basic validation
+                if (size && size.width && size.height) {
+                    chatWidget.css({
+                        width: size.width,
+                        height: size.height
+                    });
+                }
+            }
+        } catch (e) {
+            console.error("Error parsing saved chat size:", e);
+            sessionStorage.removeItem(sizeKey); // Clear corrupted data
+        }
+
+        // 2. Load History
+        try {
+            const savedHistory = sessionStorage.getItem(historyKey);
+            if (savedHistory) {
+                chatHistory = JSON.parse(savedHistory);
+                // Basic validation
+                if (!Array.isArray(chatHistory)) {
+                    chatHistory = []; // Reset if not an array
+                    throw new Error("Saved history is not an array.");
+                }
+                messagesContainer.empty(); // Clear default message
+                chatHistory.forEach(msg => addMessage(msg.text, msg.sender, false)); // Add messages without saving again
+                messagesContainer.scrollTop(messagesContainer[0].scrollHeight); // Scroll to bottom after loading
+            } else {
+                 // If no history, add default greeting and save it
+                 const defaultGreeting = { sender: 'ai', text: 'Hello! How can I assist you today?' };
+                 chatHistory = [defaultGreeting];
+                 messagesContainer.empty(); // Clear potential static message in HTML
+                 addMessage(defaultGreeting.text, defaultGreeting.sender, true); // Save this initial state
+            }
+        } catch (e) {
+            console.error("Error parsing saved chat history:", e);
+            sessionStorage.removeItem(historyKey); // Clear corrupted data
+            chatHistory = []; // Reset history
+            messagesContainer.empty(); // Clear potentially corrupted display
+             // Add and save default greeting after error
+            const defaultGreeting = { sender: 'ai', text: 'Hello! How can I assist you today?' };
+            chatHistory = [defaultGreeting];
+            addMessage(defaultGreeting.text, defaultGreeting.sender, true);
+        }
+
+        // 3. Load Open/Closed State
+        const savedState = sessionStorage.getItem(stateKey);
+        if (savedState === 'open') {
+            chatWidget.addClass('open');
             inputField.focus();
+        } else {
+            chatWidget.removeClass('open'); // Ensure it's closed if not explicitly 'open'
+        }
+    };
+
+    // --- Save to Session Storage ---
+    const saveHistory = () => {
+        try {
+            sessionStorage.setItem(historyKey, JSON.stringify(chatHistory));
+        } catch (e) {
+            console.error("Error saving chat history:", e);
+            // Potentially notify user or implement more robust error handling
+        }
+    };
+
+    const saveState = (state) => { // state = 'open' or 'closed'
+        try {
+            sessionStorage.setItem(stateKey, state);
+        } catch (e) {
+            console.error("Error saving chat state:", e);
+        }
+    };
+
+    const saveSize = (width, height) => {
+        try {
+            const size = { width: width, height: height };
+            sessionStorage.setItem(sizeKey, JSON.stringify(size));
+        } catch (e) {
+            console.error("Error saving chat size:", e);
+        }
+    };
+
+    // --- Add Message Helper (Modified) ---
+    // Added 'sender' parameter, renamed 'type' to 'sender' for clarity
+    // Added 'save' parameter to control saving (avoid double saving on load)
+    const addMessage = (text, sender, save = true) => {
+        const messageDiv = $('<div></div>') // Use jQuery to create element
+            .addClass('chat-message')
+            .addClass(sender) // sender = 'user', 'ai', 'error', 'loading', 'system'
+            .text(text); // Use .text() for security against XSS
+
+        messagesContainer.append(messageDiv);
+
+        // Add to history array (only for user, ai, error, system messages, not loading)
+        if (sender !== 'loading' && save) {
+            chatHistory.push({ sender: sender, text: text });
+            saveHistory(); // Save history after adding a message
+        }
+
+        // Scroll to bottom
+        messagesContainer.scrollTop(messagesContainer[0].scrollHeight);
+        return messageDiv; // Return the jQuery element
+    };
+
+
+    // --- Toggle Chat Widget ---
+    chatToggleButton.on('click', () => {
+        chatWidget.toggleClass('open');
+        const isOpen = chatWidget.hasClass('open');
+        saveState(isOpen ? 'open' : 'closed');
+        if (isOpen) {
+            inputField.focus();
+            messagesContainer.scrollTop(messagesContainer[0].scrollHeight); // Ensure scrolled down when opening
         }
     });
 
-    closeChatButton.addEventListener('click', () => {
-        chatWidget.classList.remove('open');
+    closeChatButton.on('click', () => {
+        chatWidget.removeClass('open');
+        saveState('closed');
     });
 
-    // --- Send Message --- 
+    // --- Send Message ---
     const sendMessage = () => {
-        const messageText = inputField.value.trim();
-        if (messageText === '') return; // Don't send empty messages
+        const messageText = inputField.val().trim();
+        if (messageText === '') return;
 
-        // 1. Display user message immediately
-        addMessage(messageText, 'user');
-        inputField.value = ''; // Clear input
+        // 1. Display user message & save
+        addMessage(messageText, 'user'); // Will also save history
+        inputField.val(''); // Clear input
         inputField.focus();
 
-        // 2. Show loading indicator
-        const loadingIndicator = addMessage('...', 'loading'); // Add temporary loading message
+        // 2. Show loading indicator (don't save loading message to history)
+        const loadingIndicator = addMessage('...', 'loading', false);
 
-        // 3. Send AJAX request
-        fetch('ajax_chat_handler.php', {
+        // 3. Send AJAX request (Using jQuery AJAX for consistency)
+        $.ajax({
+            url: 'ajax_chat_handler.php',
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded', // PHP expects form data
-                'X-Requested-With': 'XMLHttpRequest' // Standard header for AJAX
+            data: {
+                message: messageText,
+                csrf_token: csrfToken
             },
-            body: new URLSearchParams({
-                'message': messageText,
-                'csrf_token': csrfToken
-            })
-        })
-        .then(response => {
-            if (!response.ok) {
-                 // Try to parse error from JSON body for specific cases
-                 return response.json().then(errData => {
-                    throw new Error(errData.error || `HTTP error ${response.status}`);
-                 }).catch(() => {
-                    // If JSON parsing fails or no error key, throw generic error
-                    throw new Error(`HTTP error ${response.status}`);
-                 });
+            dataType: 'json', // Expect JSON response
+            beforeSend: function(xhr) {
+                xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            },
+            success: function(data) {
+                loadingIndicator.remove();
+                if (data.success && data.reply) {
+                    addMessage(data.reply, 'ai'); // Will save history
+                } else {
+                    const errorMessage = data.error || 'An unknown error occurred.';
+                    addMessage(errorMessage, 'error'); // Will save history
+                }
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                console.error('Chat AJAX Error:', textStatus, errorThrown, jqXHR.responseText);
+                loadingIndicator.remove();
+                let errorMessage = 'Could not connect to the assistant.';
+                 // Try to parse response text if available
+                 try {
+                    const errorData = JSON.parse(jqXHR.responseText);
+                    if (errorData && errorData.error) {
+                        errorMessage = `Error: ${errorData.error}`;
+                    } else {
+                         errorMessage = `Error: ${errorThrown || textStatus}`;
+                    }
+                 } catch(e) {
+                    // Stick with the generic error if parsing fails
+                    errorMessage = `Error: ${errorThrown || textStatus}`;
+                 }
+                addMessage(errorMessage, 'error'); // Will save history
             }
-            return response.json();
-        })
-        .then(data => {
-            // 4. Remove loading indicator
-            loadingIndicator.remove();
-
-            // 5. Handle response
-            if (data.success && data.reply) {
-                addMessage(data.reply, 'ai');
-            } else {
-                const errorMessage = data.error || 'An unknown error occurred.';
-                addMessage(errorMessage, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Chat Error:', error);
-            // 4. Remove loading indicator even on error
-            loadingIndicator.remove();
-            // 5. Display error message
-            addMessage(`Error: ${error.message || 'Could not connect to the assistant.'}`, 'error');
         });
     };
 
-    // --- Add Message Helper --- 
-    const addMessage = (text, type) => {
-        const messageDiv = document.createElement('div');
-        messageDiv.classList.add('chat-message', type); // type = 'user', 'ai', 'error', 'loading'
-        messageDiv.textContent = text;
-        messagesContainer.appendChild(messageDiv);
+    // --- Event Listeners for Sending ---
+    sendButton.on('click', sendMessage);
 
-        // Scroll to bottom
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        return messageDiv; // Return the element (useful for removing loading indicator)
-    };
-
-    // --- Event Listeners for Sending --- 
-    sendButton.addEventListener('click', sendMessage);
-
-    inputField.addEventListener('keypress', (event) => {
+    inputField.on('keypress', (event) => {
         if (event.key === 'Enter') {
-            event.preventDefault(); // Prevent default form submission (if any)
+            event.preventDefault();
             sendMessage();
         }
     });
+
+    // --- Initialize Resizable ---
+    chatWidget.resizable({
+        handles: "n, e, s, w, ne, se, sw, nw", // Allow resizing from all sides/corners
+        minHeight: 300,
+        minWidth: 250,
+        stop: function(event, ui) {
+            // Save the size when resizing stops
+            saveSize(ui.size.width + 'px', ui.size.height + 'px');
+        },
+        // Optional: Containment if needed, e.g., containment: "document"
+        // Optional: Ghost or helper for visual feedback during resize
+        // ghost: true
+    });
+
+    // --- Initial Load ---
+    loadState(); // Load history, state, and size on page load
 
 });
 </script>
