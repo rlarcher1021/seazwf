@@ -74,7 +74,7 @@ $current_page_basename = basename($_SERVER['PHP_SELF']);
                             // Each list item links directly to checkin.php with the manual_site_id
                             echo '<li class="list-group-item list-group-item-action">';
                             // Link itself, covers the whole list item for easier clicking
-                            echo '<a href="checkin.php?manual_site_id=' . htmlspecialchars($site['id']) . '" class="stretched-link" style="text-decoration: none; color: inherit;">';
+                            echo '<a href="checkin.php?manual_site_id=' . htmlspecialchars($site['id']) . '" class="stretched-link" class="text-decoration-none text-reset">';
                             echo htmlspecialchars($site['name']);
                             echo '</a></li>';
                         }
@@ -297,7 +297,7 @@ if (isset($_SESSION['user_id']) && (!isset($_SESSION['role']) || $_SESSION['role
 
 
 <!-- Footer Copyright -->
-<footer style="text-align: center; padding: 15px; font-size: 12px; color: var(--color-gray, #6B7280); margin-top: 20px; border-top: 1px solid var(--color-border, #E5E7EB);">
+<footer class="text-center p-3 small text-muted mt-4 border-top">
     © <?php echo date("Y"); ?> Arizona@Work - Southeastern Arizona. All Rights Reserved.
 </footer>
 

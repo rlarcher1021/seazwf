@@ -94,7 +94,7 @@ if ($site_id_for_checkin === null || $config_error !== null) {
     ob_start();
     // Ensure main.css is linked even for error page
     echo '<!DOCTYPE html><html lang="en"><head><title>Error</title><link rel="stylesheet" href="assets/css/main.css?v='.filemtime(__DIR__ . '/assets/css/main.css').'"></head><body class="checkin-page">';
-    echo '<div class="message-area message-error" style="margin:20px; padding: 20px; max-width: 600px; margin-left: auto; margin-right:auto; background-color: #fff;">'; // Style error box similar to checkin container
+    echo '<div class="message-area message-error" class="m-3 p-3 mx-auto bg-white" style="max-width: 600px;">'; // Style error box similar to checkin container
     echo '<h1>Configuration Error</h1><p>' . htmlspecialchars($config_error ?: "Error: Cannot determine site context. Ref: SITE_CTX_FAIL") . '</p>';
     echo '<p><a href="index.php">Return to Login</a></p>';
     echo '</div></body></html>';

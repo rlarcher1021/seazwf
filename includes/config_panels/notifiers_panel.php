@@ -168,8 +168,8 @@ if ($selected_config_site_id !== null) {
                      <input type="hidden" name="site_id" value="<?php echo $selected_config_site_id; ?>">
                      <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
                     <div class="settings-form two-column">
-                        <div class="form-group"><label for="add_n_name" class="form-label">Staff Name:</label><input type="text" id="add_n_name" name="staff_name" class="form-control" required></div>
-                        <div class="form-group"><label for="add_n_email" class="form-label">Staff Email:</label><input type="email" id="add_n_email" name="staff_email" class="form-control" required></div>
+                        <div class="mb-3"><label for="add_n_name" class="form-label">Staff Name:</label><input type="text" id="add_n_name" name="staff_name" class="form-control" required></div>
+                        <div class="mb-3"><label for="add_n_email" class="form-label">Staff Email:</label><input type="email" id="add_n_email" name="staff_email" class="form-control" required></div>
                     </div>
                     <div class="form-actions"> <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Add Notifier</button> <a href="configurations.php?site_id=<?php echo $selected_config_site_id; ?>&tab=notifiers" class="btn btn-outline">Cancel</a> </div>
                 </form>
@@ -183,8 +183,8 @@ if ($selected_config_site_id !== null) {
                       <input type="hidden" name="item_id" value="<?php echo $edit_notifier_data['id']; ?>">
                       <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
                      <div class="settings-form two-column">
-                         <div class="form-group"><label for="edit_n_name" class="form-label">Staff Name:</label><input type="text" id="edit_n_name" name="staff_name_edit" class="form-control" required value="<?php echo htmlspecialchars($edit_notifier_data['staff_name']); ?>"></div>
-                         <div class="form-group"><label for="edit_n_email" class="form-label">Staff Email:</label><input type="email" id="edit_n_email" name="staff_email_edit" class="form-control" required value="<?php echo htmlspecialchars($edit_notifier_data['staff_email']); ?>"></div>
+                         <div class="mb-3"><label for="edit_n_name" class="form-label">Staff Name:</label><input type="text" id="edit_n_name" name="staff_name_edit" class="form-control" required value="<?php echo htmlspecialchars($edit_notifier_data['staff_name']); ?>"></div>
+                         <div class="mb-3"><label for="edit_n_email" class="form-label">Staff Email:</label><input type="email" id="edit_n_email" name="staff_email_edit" class="form-control" required value="<?php echo htmlspecialchars($edit_notifier_data['staff_email']); ?>"></div>
                      </div>
                      <div class="form-actions"> <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Changes</button> <a href="configurations.php?site_id=<?php echo $selected_config_site_id; ?>&tab=notifiers" class="btn btn-outline">Cancel</a> </div>
                  </form>
@@ -195,7 +195,7 @@ if ($selected_config_site_id !== null) {
         <?php if($view_state === 'list'): ?>
         <h4 class="form-section-title">Existing Notifiers</h4>
         <div class="table-container">
-            <table>
+            <table class="table table-striped table-hover">
                 <thead><tr><th>Staff Name</th><th>Email Address</th><th>Status</th><th>Actions</th></tr></thead>
                 <tbody>
                     <?php if (!empty($notifiers)): ?>
@@ -206,12 +206,12 @@ if ($selected_config_site_id !== null) {
                                 <td><span class="status-badge <?php echo $n['is_active'] ? 'status-active' : 'status-inactive'; ?>"><?php echo $n['is_active'] ? 'Active' : 'Inactive'; ?></span></td>
                                 <td class="actions-cell">
                                      <a href="?site_id=<?php echo $selected_config_site_id; ?>&tab=notifiers&view=edit_notifier&edit_item_id=<?php echo $n['id']; ?>" class="btn btn-outline btn-sm" title="Edit"><i class="fas fa-edit"></i></a>
-                                     <form method="POST" action="configurations.php?tab=notifiers&site_id=<?php echo $selected_config_site_id; ?>" style="display: inline-block;"><input type="hidden" name="action" value="toggle_notifier_active"><input type="hidden" name="site_id" value="<?php echo $selected_config_site_id; ?>"><input type="hidden" name="item_id" value="<?php echo $n['id']; ?>"><button type="submit" class="btn btn-outline btn-sm" title="<?php echo $n['is_active'] ? 'Deactivate' : 'Activate'; ?>"><i class="fas <?php echo $n['is_active'] ? 'fa-toggle-off' : 'fa-toggle-on'; ?>"></i><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>"></button></form>
-                                     <form method="POST" action="configurations.php?tab=notifiers&site_id=<?php echo $selected_config_site_id; ?>" style="display: inline-block;" onsubmit="return confirm('Delete this notifier?');"><input type="hidden" name="action" value="delete_notifier"><input type="hidden" name="site_id" value="<?php echo $selected_config_site_id; ?>"><input type="hidden" name="item_id" value="<?php echo $n['id']; ?>"><button type="submit" class="btn btn-outline btn-sm delete-button" title="Delete"><i class="fas fa-trash"></i></button></form>
+                                     <form method="POST" action="configurations.php?tab=notifiers&site_id=<?php echo $selected_config_site_id; ?>" class="d-inline-block"><input type="hidden" name="action" value="toggle_notifier_active"><input type="hidden" name="site_id" value="<?php echo $selected_config_site_id; ?>"><input type="hidden" name="item_id" value="<?php echo $n['id']; ?>"><button type="submit" class="btn btn-outline btn-sm" title="<?php echo $n['is_active'] ? 'Deactivate' : 'Activate'; ?>"><i class="fas <?php echo $n['is_active'] ? 'fa-toggle-off' : 'fa-toggle-on'; ?>"></i><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>"></button></form>
+                                     <form method="POST" action="configurations.php?tab=notifiers&site_id=<?php echo $selected_config_site_id; ?>" class="d-inline-block" onsubmit="return confirm('Delete this notifier?');"><input type="hidden" name="action" value="delete_notifier"><input type="hidden" name="site_id" value="<?php echo $selected_config_site_id; ?>"><input type="hidden" name="item_id" value="<?php echo $n['id']; ?>"><button type="submit" class="btn btn-danger btn-sm" title="Delete"><i class="fas fa-trash"></i></button></form>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
-                    <?php else: ?> <tr><td colspan="4" style="text-align: center;">No notifiers defined for this site.</td></tr> <?php endif; ?>
+                    <?php else: ?> <tr><td colspan="4" class="text-center">No notifiers defined for this site.</td></tr> <?php endif; ?>
                 </tbody>
             </table>
         </div>

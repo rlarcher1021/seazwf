@@ -290,7 +290,7 @@ require_once 'includes/header.php'; // Includes session_start() if not already s
                          // Disable site-specific tabs if no site is selected
                          $is_disabled = !$selected_config_site_id && in_array($tab_id, $site_specific_tabs);
                          $disabled_class = $is_disabled ? 'disabled' : '';
-                         $link_attributes = $is_disabled ? 'onclick="return false;" style="cursor: not-allowed; opacity: 0.6;"' : 'href="' . htmlspecialchars($tab_url) . '"';
+                         $link_attributes = $is_disabled ? 'onclick="return false;" class="disabled"' : 'href="' . htmlspecialchars($tab_url) . '"';
                      ?>
                          <a <?php echo $link_attributes; ?> class="tab <?php echo $is_active; ?> <?php echo $disabled_class; ?>" data-tab="<?php echo $tab_id; ?>">
                              <?php echo htmlspecialchars($tab_name); ?>

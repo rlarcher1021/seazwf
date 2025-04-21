@@ -1,45 +1,132 @@
-[21-Apr-2025 05:08:56 Europe/Berlin] Admin action: Error log cleared by user ID: 1
-[21-Apr-2025 05:08:56 Europe/Berlin] Alerts Debug: Checking current directory path: C:\xampp\htdocs\public_html/error_log
-[21-Apr-2025 05:08:56 Europe/Berlin] Alerts Debug: Found log file in current directory.
-[21-Apr-2025 05:08:56 Europe/Berlin] Alerts INFO: Determined log file path: C:\xampp\htdocs\public_html/error_log
-[21-Apr-2025 05:09:00 Europe/Berlin] Reports Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
+[21-Apr-2025 07:03:39 Europe/Berlin] Admin action: Error log cleared by user ID: 1
+[21-Apr-2025 07:03:39 Europe/Berlin] Alerts Debug: Checking current directory path: C:\xampp\htdocs\public_html/error_log
+[21-Apr-2025 07:03:39 Europe/Berlin] Alerts Debug: Found log file in current directory.
+[21-Apr-2025 07:03:39 Europe/Berlin] Alerts INFO: Determined log file path: C:\xampp\htdocs\public_html/error_log
+[21-Apr-2025 07:03:42 Europe/Berlin] Dashboard Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
 (
     [0] => q_age
     [1] => q_interviewing
     [2] => q_veteran
 )
 
-[21-Apr-2025 05:09:03 Europe/Berlin] Reports Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
+[21-Apr-2025 07:07:16 Europe/Berlin] Dashboard Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
 (
     [0] => q_age
     [1] => q_interviewing
     [2] => q_veteran
 )
 
-[21-Apr-2025 05:09:05 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
-[21-Apr-2025 05:09:05 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[21-Apr-2025 05:09:05 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
-[21-Apr-2025 05:09:12 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
-[21-Apr-2025 05:09:12 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[21-Apr-2025 05:09:12 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
-[21-Apr-2025 05:09:12 Europe/Berlin] [DEBUG checkin.php POST] Prepared Question answers array FINAL: Array
+[21-Apr-2025 07:07:18 Europe/Berlin] Dashboard Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
+(
+    [0] => q_age
+    [1] => q_interviewing
+    [2] => q_veteran
+)
+
+[21-Apr-2025 07:08:11 Europe/Berlin] Reports Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
+(
+    [0] => q_age
+    [1] => q_interviewing
+    [2] => q_veteran
+)
+
+[21-Apr-2025 07:08:34 Europe/Berlin] Reports Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
+(
+    [0] => q_age
+    [1] => q_interviewing
+    [2] => q_veteran
+)
+
+[21-Apr-2025 07:09:15 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/departments_panel.php'. Selected Site ID = 4
+[21-Apr-2025 07:09:16 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/site_settings_panel.php'. Selected Site ID = 4
+[21-Apr-2025 07:09:19 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/questions_panel.php'. Selected Site ID = 4
+[21-Apr-2025 07:09:20 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/notifiers_panel.php'. Selected Site ID = 4
+[21-Apr-2025 07:09:20 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/ads_panel.php'. Selected Site ID = 4
+[21-Apr-2025 07:09:21 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/departments_panel.php'. Selected Site ID = 4
+[21-Apr-2025 07:09:23 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/site_settings_panel.php'. Selected Site ID = 4
+[21-Apr-2025 07:09:30 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/site_settings_panel.php'. Selected Site ID = 4
+[21-Apr-2025 07:09:36 Europe/Berlin] Alerts Debug: Checking current directory path: C:\xampp\htdocs\public_html/error_log
+[21-Apr-2025 07:09:36 Europe/Berlin] Alerts Debug: Found log file in current directory.
+[21-Apr-2025 07:09:36 Europe/Berlin] Alerts INFO: Determined log file path: C:\xampp\htdocs\public_html/error_log
+[21-Apr-2025 07:09:40 Europe/Berlin] Alerts Debug: Checking current directory path: C:\xampp\htdocs\public_html/error_log
+[21-Apr-2025 07:09:40 Europe/Berlin] Alerts Debug: Found log file in current directory.
+[21-Apr-2025 07:09:40 Europe/Berlin] Alerts INFO: Determined log file path: C:\xampp\htdocs\public_html/error_log
+[21-Apr-2025 20:57:20 Europe/Berlin] Dashboard Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
+(
+    [0] => q_age
+    [1] => q_interviewing
+    [2] => q_veteran
+)
+
+[21-Apr-2025 20:57:27 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[21-Apr-2025 20:57:27 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[21-Apr-2025 20:57:27 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
+[21-Apr-2025 20:57:33 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[21-Apr-2025 20:57:33 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[21-Apr-2025 20:57:33 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
+[21-Apr-2025 20:57:33 Europe/Berlin] [DEBUG checkin.php POST] Prepared Question answers array FINAL: Array
 (
     [q_age] => YES
     [q_veteran] => YES
 )
 
-[21-Apr-2025 05:09:12 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
-[21-Apr-2025 05:09:12 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[21-Apr-2025 05:09:12 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
-[21-Apr-2025 05:10:28 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
-[21-Apr-2025 05:10:28 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[21-Apr-2025 05:10:28 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
-[21-Apr-2025 05:10:38 Europe/Berlin] [DEBUG users.php] Entering delete_user action for user ID: 11
-[21-Apr-2025 05:10:38 Europe/Berlin] [DEBUG users.php] deleteUser function returned true for user ID: 11
-[21-Apr-2025 05:43:51 Europe/Berlin] Dashboard Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
+[21-Apr-2025 20:57:33 Europe/Berlin] EXCEPTION in saveCheckin: SQLSTATE[23000]: Integrity constraint violation: 1452 Cannot add or update a child row: a foreign key constraint fails (`checkin_system`.`check_ins`, CONSTRAINT `fk_checkins_staff` FOREIGN KEY (`notified_staff_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE) --- SQL: INSERT INTO check_ins (site_id, first_name, last_name, check_in_time, notified_staff_id, client_email, `q_age`, `q_veteran`) VALUES (:site_id, :first_name, :last_name, :check_in_time, :notified_staff_id, :client_email, :q_age, :q_veteran) --- Values: Array
 (
-    [0] => q_age
-    [1] => q_interviewing
-    [2] => q_veteran
+    [:site_id] => 4
+    [:first_name] => Robert
+    [:last_name] => Archer
+    [:check_in_time] => 2025-04-21 20:57:33
+    [:notified_staff_id] => 2
+    [:client_email] => 
+    [:q_age] => YES
+    [:q_veteran] => YES
 )
 
+[21-Apr-2025 20:57:33 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[21-Apr-2025 20:57:33 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[21-Apr-2025 20:57:33 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
+[21-Apr-2025 20:59:12 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[21-Apr-2025 20:59:12 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[21-Apr-2025 20:59:12 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
+[21-Apr-2025 21:00:43 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[21-Apr-2025 21:00:43 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[21-Apr-2025 21:00:43 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
+[21-Apr-2025 21:02:14 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[21-Apr-2025 21:02:14 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[21-Apr-2025 21:02:14 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
+[21-Apr-2025 21:03:45 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[21-Apr-2025 21:03:45 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[21-Apr-2025 21:03:45 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
+[21-Apr-2025 21:05:16 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[21-Apr-2025 21:05:16 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[21-Apr-2025 21:05:16 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
+[21-Apr-2025 21:06:47 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[21-Apr-2025 21:06:47 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[21-Apr-2025 21:06:47 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
+[21-Apr-2025 21:08:18 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[21-Apr-2025 21:08:18 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[21-Apr-2025 21:08:18 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
+[21-Apr-2025 21:09:49 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[21-Apr-2025 21:09:49 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[21-Apr-2025 21:09:49 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
+[21-Apr-2025 21:11:21 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[21-Apr-2025 21:11:21 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[21-Apr-2025 21:11:21 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
+[21-Apr-2025 21:12:52 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[21-Apr-2025 21:12:52 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[21-Apr-2025 21:12:52 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
+[21-Apr-2025 21:14:23 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[21-Apr-2025 21:14:23 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[21-Apr-2025 21:14:23 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
+[21-Apr-2025 21:15:54 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[21-Apr-2025 21:15:54 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[21-Apr-2025 21:15:54 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
+[21-Apr-2025 21:17:25 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[21-Apr-2025 21:17:25 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[21-Apr-2025 21:17:25 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
+[21-Apr-2025 21:18:56 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[21-Apr-2025 21:18:56 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[21-Apr-2025 21:18:56 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
+[21-Apr-2025 21:20:27 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[21-Apr-2025 21:20:27 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[21-Apr-2025 21:20:27 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1

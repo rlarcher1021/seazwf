@@ -296,11 +296,11 @@ if (isset($_SESSION['active_role'])) {
                 <?php // --- Impersonation Controls ---
                 if ($is_admin): ?>
                 <div class="impersonation-controls">
-                    <form action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']); ?>?<?php echo htmlspecialchars($_SERVER['QUERY_STRING']); ?>" method="POST" style="display: inline-block;">
+                    <form action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']); ?>?<?php echo htmlspecialchars($_SERVER['QUERY_STRING']); ?>" method="POST" class="d-inline-block">
                         <input type="hidden" name="impersonate_switch" value="1">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
                         <label for="impersonate_role">View as:</label>
-                        <select name="impersonate_role" id="impersonate_role">
+                        <select name="impersonate_role" id="impersonate_role" class="form-select form-select-sm">
                             <option value="administrator" <?php echo ($_SESSION['active_role'] === 'administrator') ? 'selected' : ''; ?>>Admin</option>
                             <option value="director" <?php echo ($_SESSION['active_role'] === 'director') ? 'selected' : ''; ?>>Director</option>
                             <option value="azwk_staff" <?php echo ($_SESSION['active_role'] === 'azwk_staff') ? 'selected' : ''; ?>>AZWK Staff</option>
@@ -308,7 +308,7 @@ if (isset($_SESSION['active_role'])) {
                         </select>
 
                         <label for="impersonate_site_id">Site:</label>
-                        <select name="impersonate_site_id" id="impersonate_site_id">
+                        <select name="impersonate_site_id" id="impersonate_site_id" class="form-select form-select-sm">
                             <option value="all" <?php echo ($_SESSION['active_site_id'] === null) ? 'selected' : ''; ?>>All</option>
                             <?php foreach ($impersonation_sites as $site): ?>
                             <option value="<?php echo $site['id']; ?>" <?php echo ($_SESSION['active_site_id'] == $site['id']) ? 'selected' : ''; ?>>
@@ -316,9 +316,9 @@ if (isset($_SESSION['active_role'])) {
                             </option>
                             <?php endforeach; ?>
                         </select>
-                         <button type="submit" class="button button-small">Apply</button>
+                         <button type="submit" class="btn btn-primary btn-sm">Apply</button>
                          <?php if ($is_impersonating): ?>
-                            <a href="<?php echo htmlspecialchars($_SERVER['PHP_SELF']); ?>?reset_view=1" class="button button-small button-secondary">Reset</a>
+                            <a href="<?php echo htmlspecialchars($_SERVER['PHP_SELF']); ?>?reset_view=1" class="btn btn-secondary btn-sm">Reset</a>
                          <?php endif; ?>
                     </form>
                 </div>

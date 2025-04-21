@@ -127,9 +127,9 @@ if (!empty($log_file_path)) {
                     // Basic filtering/highlighting (optional)
                     $line_escaped = htmlspecialchars($line, ENT_QUOTES, 'UTF-8');
                      if (stripos($line_escaped, 'fatal error') !== false) {
-                         $log_content .= '<strong style="color: red;">' . $line_escaped . "</strong>\n";
+                         $log_content .= '<strong class="text-danger">' . $line_escaped . "</strong>\n";
                      } elseif (stripos($line_escaped, 'warning') !== false) {
-                         $log_content .= '<em style="color: orange;">' . $line_escaped . "</em>\n";
+                         $log_content .= '<em class="text-warning">' . $line_escaped . "</em>\n";
                      } else {
                         $log_content .= $line_escaped . "\n";
                      }
@@ -175,17 +175,17 @@ require_once 'includes/header.php';
            <code><?php echo !empty($log_file_path) ? htmlspecialchars($log_file_path) : '<em>Not Found</em>'; ?></code>
         </p>
         <?php if (!empty($log_file_path) && is_file($log_file_path)): ?>
-            <form method="POST" action="alerts.php" onsubmit="return confirm('Are you SURE you want to permanently clear the error log? This action cannot be undone.');" style="display: inline-block; margin-top: 10px;">
+            <form method="POST" action="alerts.php" onsubmit="return confirm('Are you SURE you want to permanently clear the error log? This action cannot be undone.');" class="d-inline-block mt-2">
                 <input type="hidden" name="action" value="clear_log">
                 <button type="submit" class="btn btn-outline delete-button">
                     <i class="fas fa-eraser"></i> Clear Error Log
                 </button>
             </form>
              <?php if (!is_writable($log_file_path)): ?>
-                 <p style="color: var(--color-error-text); margin-top: 10px;"><i class="fas fa-exclamation-triangle"></i> Warning: Clear button disabled. Log file is not writable by the web server.</p>
+                 <p class="text-danger mt-2"><i class="fas fa-exclamation-triangle"></i> Warning: Clear button disabled. Log file is not writable by the web server.</p>
              <?php endif; ?>
         <?php else: ?>
-            <p style="color: var(--color-error-text); margin-top: 10px;">Clear button disabled because the log file path could not be determined or the file does not exist.</p>
+            <p class="text-danger mt-2">Clear button disabled because the log file path could not be determined or the file does not exist.</p>
         <?php endif; ?>
     </div>
 
@@ -199,7 +199,7 @@ require_once 'includes/header.php';
          <?php elseif (empty($log_content)): ?>
              <p><em>Could not read log file content.</em></p>
          <?php else: ?>
-             <div class="error-log-display" style="max-height: 600px; overflow-y: auto; background-color: #f8f9fa; border: 1px solid var(--color-border); padding: 10px; font-size: 0.85em; line-height: 1.4;">
+             <div class="error-log-display" class="bg-light border p-2 small lh-sm" style="max-height: 600px; overflow-y: auto;">
                  <?php echo $log_content; // Content includes <pre> tags and is htmlspecialchars'd ?>
              </div>
          <?php endif; ?>

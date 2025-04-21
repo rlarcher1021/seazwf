@@ -452,7 +452,7 @@ require_once 'includes/header.php';
             <div class="content-section">
 
                 <!-- User List Table (Show only if action is 'list') -->
-                <div class="table-container <?php if ($current_action !== 'list') echo 'hidden'; ?>">
+                <div class="table-container <?php if ($current_action !== 'list') echo 'd-none'; ?>">
                     <div class="table-header">
                         <h2 class="table-title">User Accounts</h2>
                         <div class="table-actions">
@@ -461,7 +461,7 @@ require_once 'includes/header.php';
                             </a>
                         </div>
                     </div>
-                    <table>
+                    <table class="table table-striped table-hover">
                         <thead>
                             <tr>
                                 <th>Username</th>
@@ -487,7 +487,7 @@ require_once 'includes/header.php';
                                                 if (!empty($email_value)) {
                                                     echo '<a href="mailto:' . htmlspecialchars($email_value) . '">' . htmlspecialchars($email_value) . '</a>';
                                                 } else {
-                                                    echo '<span style="color: #888;">No Email</span>'; // Display 'No Email' dimmed
+                                                    echo '<span class="text-muted">No Email</span>'; // Display 'No Email' dimmed
                                                 }
                                             ?>
                                         </td>
@@ -498,7 +498,7 @@ require_once 'includes/header.php';
                                                 else { echo 'N/A'; }
                                             ?>
                                         </td>
-                                        <td><?php echo isset($user['department_name']) ? htmlspecialchars($user['department_name']) : '<span style="color: #888;">None</span>'; ?></td> <!-- Display Department Name -->
+                                        <td><?php echo isset($user['department_name']) ? htmlspecialchars($user['department_name']) : '<span class="text-muted">None</span>'; ?></td> <!-- Display Department Name -->
                                         <td><?php echo $user['last_login'] ? date('Y-m-d H:i', strtotime($user['last_login'])) : 'Never'; ?></td>
                                         <td><span class="status-badge <?php echo $user['is_active'] ? 'status-active' : 'status-inactive'; ?>"><?php echo $user['is_active'] ? 'Active' : 'Inactive'; ?></span></td>
                                         <td class="actions-cell">
@@ -512,7 +512,7 @@ require_once 'includes/header.php';
                                             </a>
                                             <!-- Activate/Deactivate Button -->
                                             <?php if ($_SESSION['user_id'] != $user['id']): // Prevent toggling own status ?>
-                                                <form method="POST" action="users.php" style="display: inline-block;">
+                                                <form method="POST" action="users.php" class="d-inline-block">
                                                     <input type="hidden" name="action" value="toggle_active">
                                                     <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
                                                     <button type="submit" class="btn btn-outline btn-sm" title="<?php echo $user['is_active'] ? 'Deactivate' : 'Activate'; ?>">
@@ -523,7 +523,7 @@ require_once 'includes/header.php';
                                             <?php endif; ?>
                                             <!-- Delete Button (Triggers Modal) -->
                                             <?php if ($_SESSION['user_id'] != $user['id']): // Prevent deleting own account ?>
-                                                <button type="button" class="btn btn-outline btn-sm delete-user-btn" style="color: var(--color-trend-down);" title="Delete User"
+                                                <button type="button" class="btn btn-danger btn-sm delete-user-btn" title="Delete User"
                                                         data-toggle="modal" data-target="#deleteUserModal"
                                                         data-user-id="<?php echo $user['id']; ?>"
                                                         data-username="<?php echo htmlspecialchars($user['username']); ?>">
@@ -534,7 +534,7 @@ require_once 'includes/header.php';
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
-                                <tr><td colspan="9" style="text-align: center;">No users found.</td></tr> <!-- Updated colspan to 9 -->
+                                <tr><td colspan="9" class="text-center">No users found.</td></tr> <!-- Updated colspan to 9 -->
                             <?php endif; ?>
                         </tbody>
                     </table>
@@ -556,7 +556,7 @@ require_once 'includes/header.php';
                       </div>
                       <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                        <form method="POST" action="users.php" style="display:inline;" id="deleteUserForm">
+                        <form method="POST" action="users.php" class="d-inline" id="deleteUserForm">
                             <input type="hidden" name="action" value="delete_user">
                             <input type="hidden" name="user_id" id="delete-user-id-input" value="">
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
@@ -570,43 +570,43 @@ require_once 'includes/header.php';
 
                 <!-- Add User Form (Shown when action=add) -->
                 <?php if ($current_action === 'add'): ?>
-                 <div class="admin-form-container <?php if ($current_action !== 'add') echo 'hidden'; ?>" id="add-user-form">
+                 <div class="mt-4 <?php if ($current_action !== 'add') echo 'd-none'; ?>" id="add-user-form">
                     <h3 class="settings-section-title">Add New User</h3>
                     <form method="POST" action="users.php">
                         <input type="hidden" name="action" value="add_user">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
                          <?php $form_data = $_SESSION['form_data'] ?? []; unset($_SESSION['form_data']); // Get repopulation data ?>
                         <div class="settings-form">
-                            <div class="form-group">
+                            <div class="mb-3">
                                 <label for="add_username" class="form-label">Username:</label>
                                 <input type="text" id="add_username" name="username" class="form-control" required value="<?php echo htmlspecialchars($form_data['username'] ?? ''); ?>">
                             </div>
-                             <div class="form-group">
+                             <div class="mb-3">
                                 <label for="add_full_name" class="form-label">Full Name:</label>
                                 <input type="text" id="add_full_name" name="full_name" class="form-control" required value="<?php echo htmlspecialchars($form_data['full_name'] ?? ''); ?>">
                             </div>
-                            <div class="form-group">
+                            <div class="mb-3">
                                 <label for="add_user_email" class="form-label">Email Address:</label>
                                 <input type="email" id="add_user_email" name="email" class="form-control" placeholder="user@example.com" value="<?php echo htmlspecialchars($form_data['email'] ?? ''); ?>">
                                 <p class="form-description">Optional. Used for notifications if needed.</p>
                             </div>
-                            <div class="form-group">
+                            <div class="mb-3">
                                <label for="add_job_title" class="form-label">Job Title:</label>
                                <input type="text" id="add_job_title" name="job_title" class="form-control" value="<?php echo htmlspecialchars($form_data['job_title'] ?? ''); ?>">
                                <p class="form-description">Optional. User's professional title.</p>
                            </div>
-                            <div class="form-group">
+                            <div class="mb-3">
                                 <label for="add_password" class="form-label">Password:</label>
                                 <input type="password" id="add_password" name="password" class="form-control" required minlength="8">
                                 <p class="form-description">Minimum 8 characters.</p>
                             </div>
-                             <div class="form-group">
+                             <div class="mb-3">
                                 <label for="add_confirm_password" class="form-label">Confirm Password:</label>
                                 <input type="password" id="add_confirm_password" name="confirm_password" class="form-control" required>
                             </div>
-                             <div class="form-group">
+                             <div class="mb-3">
                                 <label for="add_role" class="form-label">Role:</label>
-                                <select id="add_role" name="role" class="form-control" required onchange="toggleSiteSelect(this.value, 'add_site_id_group')">
+                                <select id="add_role" name="role" class="form-select" required onchange="toggleSiteSelect(this.value, 'add_site_id_group')">
                                     <option value="">-- Select Role --</option>
                                     <option value="kiosk" <?php echo (($form_data['role'] ?? '') === 'kiosk') ? 'selected' : ''; ?>>Kiosk</option>
                                     <option value="azwk_staff" <?php echo (($form_data['role'] ?? '') === 'azwk_staff') ? 'selected' : ''; ?>>AZWK Staff</option>
@@ -615,9 +615,9 @@ require_once 'includes/header.php';
                                     <option value="administrator" <?php echo (($form_data['role'] ?? '') === 'administrator') ? 'selected' : ''; ?>>Administrator</option>
                                 </select>
                             </div>
-                             <div class="form-group" id="add_site_id_group" style="display: <?php echo (in_array($form_data['role'] ?? '', ['kiosk', 'azwk_staff', 'outside_staff'])) ? 'block' : 'none'; ?>;">
+                             <div id="add_site_id_group" class="mb-3 <?php echo (in_array($form_data['role'] ?? '', ['kiosk', 'azwk_staff', 'outside_staff'])) ? '' : 'd-none'; ?>">
                                 <label for="add_site_id" class="form-label">Assign to Site:</label>
-                                <select id="add_site_id" name="site_id" class="form-control">
+                                <select id="add_site_id" name="site_id" class="form-select">
                                      <option value="">-- Select Site --</option>
                                      <?php if (!empty($sites_list)): ?>
                                          <?php foreach ($sites_list as $site): ?>
@@ -632,9 +632,9 @@ require_once 'includes/header.php';
                                 <p class="form-description">Required for Kiosk and Site Supervisor roles.</p>
                              </div>
                              <!-- Department Dropdown (Admin Only - but whole page is admin only) -->
-                             <div class="form-group">
+                             <div class="mb-3">
                                 <label for="add_department_id" class="form-label">Department:</label>
-                                <select id="add_department_id" name="department_id" class="form-control">
+                                <select id="add_department_id" name="department_id" class="form-select">
                                     <option value="">-- None --</option>
                                     <?php if (!empty($departments_list)): ?>
                                         <?php foreach ($departments_list as $dept): ?>
@@ -650,9 +650,10 @@ require_once 'includes/header.php';
                                 </select>
                                 <p class="form-description">Optional. Assign user to a department.</p>
                              </div>
-                             <div class="form-group" style="grid-column: 1 / -1;">
-                                 <label class="form-label">
-                                     <input type="checkbox" name="is_active" value="1" <?php echo (!isset($form_data['action']) || !empty($form_data['is_active'])) ? 'checked' : ''; // Default checked on new form or if previously checked ?>> Active User
+                             <div class="form-check mb-3" style="grid-column: 1 / -1;">
+                                 <input class="form-check-input" type="checkbox" name="is_active" value="1" id="add_is_active" <?php echo (!isset($form_data['action']) || !empty($form_data['is_active'])) ? 'checked' : ''; // Default checked on new form or if previously checked ?>>
+                                 <label class="form-check-label" for="add_is_active">
+                                     Active User
                                  </label>
                              </div>
                         </div>
@@ -667,35 +668,35 @@ require_once 'includes/header.php';
 
                  <!-- Edit User Form (Shown when action=edit) -->
                 <?php if ($current_action === 'edit' && $edit_user_data): ?>
-                 <div class="admin-form-container <?php if ($current_action !== 'edit') echo 'hidden'; ?>" id="edit-user-form">
+                 <div class="mt-4 <?php if ($current_action !== 'edit') echo 'd-none'; ?>" id="edit-user-form">
                     <h3 class="settings-section-title">Edit User: <?php echo htmlspecialchars($edit_user_data['username']); ?></h3>
                     <form method="POST" action="users.php">
                         <input type="hidden" name="action" value="edit_user">
                         <input type="hidden" name="user_id" value="<?php echo $edit_user_data['id']; ?>">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
                         <div class="settings-form">
-                             <div class="form-group">
+                             <div class="mb-3">
                                 <label for="edit_username" class="form-label">Username:</label>
                                 <input type="text" id="edit_username" name="username_display" class="form-control" value="<?php echo htmlspecialchars($edit_user_data['username']); ?>" disabled>
                                  <p class="form-description">Username cannot be changed.</p>
                             </div>
-                             <div class="form-group">
+                             <div class="mb-3">
                                 <label for="edit_full_name" class="form-label">Full Name:</label>
                                 <input type="text" id="edit_full_name" name="full_name" class="form-control" required value="<?php echo htmlspecialchars($edit_user_data['full_name']); ?>">
                             </div>
-                            <div class="form-group">
+                            <div class="mb-3">
                                 <label for="edit_user_email" class="form-label">Email Address:</label>
                                 <input type="email" id="edit_user_email" name="email_edit" class="form-control" placeholder="user@example.com" value="<?php echo htmlspecialchars($edit_user_data['email'] ?? ''); // Use null coalescing ?>">
                                 <p class="form-description">Optional. Used for notifications if needed.</p>
                             </div>
-                            <div class="form-group">
+                            <div class="mb-3">
                                <label for="edit_job_title" class="form-label">Job Title:</label>
                                <input type="text" id="edit_job_title" name="job_title_edit" class="form-control" value="<?php echo htmlspecialchars($edit_user_data['job_title'] ?? ''); ?>">
                                <p class="form-description">Optional. User's professional title.</p>
                            </div>
-                            <div class="form-group">
+                            <div class="mb-3">
                                 <label for="edit_role" class="form-label">Role:</label>
-                                <select id="edit_role" name="role" class="form-control" required onchange="toggleSiteSelect(this.value, 'edit_site_id_group')">
+                                <select id="edit_role" name="role" class="form-select" required onchange="toggleSiteSelect(this.value, 'edit_site_id_group')">
                                      <option value="">-- Select Role --</option>
                                      <option value="kiosk" <?php echo ($edit_user_data['role'] === 'kiosk') ? 'selected' : ''; ?>>Kiosk</option>
                                      <option value="azwk_staff" <?php echo ($edit_user_data['role'] === 'azwk_staff') ? 'selected' : ''; ?>>AZWK Staff</option>
@@ -704,9 +705,9 @@ require_once 'includes/header.php';
                                      <option value="administrator" <?php echo ($edit_user_data['role'] === 'administrator') ? 'selected' : ''; ?>>Administrator</option>
                                 </select>
                             </div>
-                             <div class="form-group" id="edit_site_id_group" style="display: <?php echo (in_array($edit_user_data['role'], ['kiosk', 'azwk_staff', 'outside_staff'])) ? 'block' : 'none'; ?>;">
+                             <div id="edit_site_id_group" class="mb-3 <?php echo (in_array($edit_user_data['role'], ['kiosk', 'azwk_staff', 'outside_staff'])) ? '' : 'd-none'; ?>">
                                 <label for="edit_site_id" class="form-label">Assign to Site:</label>
-                                <select id="edit_site_id" name="site_id" class="form-control">
+                                <select id="edit_site_id" name="site_id" class="form-select">
                                      <option value="">-- Select Site --</option>
                                       <?php if (!empty($sites_list)): ?>
                                          <?php foreach ($sites_list as $site): ?>
@@ -721,9 +722,9 @@ require_once 'includes/header.php';
                                 <p class="form-description">Required for Kiosk and Site Supervisor roles.</p>
                             </div>
                              <!-- Department Dropdown (Admin Only - but whole page is admin only) -->
-                             <div class="form-group">
+                             <div class="mb-3">
                                 <label for="edit_department_id" class="form-label">Department:</label>
-                                <select id="edit_department_id" name="department_id_edit" class="form-control">
+                                <select id="edit_department_id" name="department_id_edit" class="form-select">
                                     <option value="">-- None --</option>
                                     <?php if (!empty($departments_list)): ?>
                                         <?php foreach ($departments_list as $dept): ?>
@@ -733,15 +734,16 @@ require_once 'includes/header.php';
                                         <?php endforeach; ?>
                                      <?php elseif ($department_fetch_error): ?>
                                         <option value="" disabled>Error loading departments</option>
-                                    <?php else: ?>
+                                     <?php else: ?>
                                          <option value="" disabled>No departments available</option>
                                     <?php endif; ?>
                                 </select>
                                 <p class="form-description">Optional. Assign user to a department.</p>
                              </div>
-                            <div class="form-group" style="grid-column: 1 / -1;">
-                                 <label class="form-label">
-                                     <input type="checkbox" name="is_active" value="1" <?php echo ($edit_user_data['is_active'] == 1) ? 'checked' : ''; ?>> Active User
+                             <div class="form-check mb-3" style="grid-column: 1 / -1;">
+                                 <input class="form-check-input" type="checkbox" name="is_active" value="1" id="edit_is_active" <?php echo ($edit_user_data['is_active'] == 1) ? 'checked' : ''; ?>>
+                                 <label class="form-check-label" for="edit_is_active">
+                                     Active User
                                  </label>
                              </div>
                         </div>
@@ -756,19 +758,19 @@ require_once 'includes/header.php';
 
                  <!-- Reset Password Form (Shown when action=resetpw) -->
                 <?php if ($current_action === 'resetpw' && $show_reset_password_form && isset($user_to_reset)): ?>
-                 <div class="admin-form-container <?php if ($current_action !== 'resetpw') echo 'hidden'; ?>" id="reset-password-form">
+                 <div class="mt-4 <?php if ($current_action !== 'resetpw') echo 'd-none'; ?>" id="reset-password-form">
                      <h3 class="settings-section-title">Reset Password for: <?php echo htmlspecialchars($user_to_reset['username']); ?> (<?php echo htmlspecialchars($user_to_reset['full_name']); ?>)</h3>
                      <form method="POST" action="users.php">
                          <input type="hidden" name="action" value="reset_password">
                          <input type="hidden" name="user_id" value="<?php echo $edit_user_id; ?>">
                          <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
                          <div class="settings-form" style="grid-template-columns: 1fr;"> <!-- Single column for password -->
-                              <div class="form-group">
+                              <div class="mb-3">
                                 <label for="reset_new_password" class="form-label">New Password:</label>
                                 <input type="password" id="reset_new_password" name="new_password" class="form-control" required minlength="8">
                                 <p class="form-description">Minimum 8 characters.</p>
                             </div>
-                             <div class="form-group">
+                             <div class="mb-3">
                                 <label for="reset_confirm_new_password" class="form-label">Confirm New Password:</label>
                                 <input type="password" id="reset_confirm_new_password" name="confirm_new_password" class="form-control" required>
                             </div>
@@ -853,13 +855,6 @@ require_once 'includes/header.php';
              if(editRoleSelect) { toggleSiteSelect(editRoleSelect.value, 'edit_site_id_group'); }
         });
     </script>
-    <!-- Simple CSS for hiding forms and spacing action buttons -->
-    <style>
-        .hidden { display: none; }
-        .admin-form-container { margin-top: 20px; } /* Add some space above forms */
-        .actions-cell form, .actions-cell button, .actions-cell a { margin-right: 5px; display: inline-block; vertical-align: middle;} /* Inline actions */
-        .actions-cell form:last-child, .actions-cell button:last-child, .actions-cell a:last-child { margin-right: 0; }
-    </style>
 
 <?php
 // --- Include Footer ---

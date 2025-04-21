@@ -187,7 +187,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                             $display_name = htmlspecialchars(format_base_name_for_display($base_title_to_delete));
                             $message = "Global question '{$display_name}' deleted.";
                             if (!$column_deleted) {
-                                $message .= " <strong style='color:orange;'>Warning:</strong> Could not drop column 'q_{$base_title_to_delete}'. Manual check required.";
+                                $message .= " <strong class='text-warning'>Warning:</strong> Could not drop column 'q_{$base_title_to_delete}'. Manual check required.";
                             }
                             $message_type = 'success';
                         } else { $message = "Failed to delete global question record."; }
@@ -334,7 +334,7 @@ if (isset($_SESSION['flash_message'])) {
 
 <!-- 1a. Edit Global Question Form (Conditional) -->
 <?php if ($view_state === 'edit_global_question' && $edit_question_data): ?>
-<div class="admin-form-container form-section" style="border: 2px solid #007bff; padding: 15px; margin-bottom: 20px;">
+<div class="admin-form-container form-section" class="border border-primary border-2 p-3 mb-4">
     <h4 class="form-section-title">Edit Global Question Text</h4>
     <form method="POST" action="configurations.php?tab=questions<?php echo $selected_config_site_id ? '&amp;site_id='.$selected_config_site_id : ''; ?>">
         <input type="hidden" name="action" value="update_global_question">
@@ -346,11 +346,11 @@ if (isset($_SESSION['flash_message'])) {
         <?php endif; ?>
 
         <div class="settings-form one-column">
-            <div class="form-group">
+            <div class="mb-3">
                 <label class="form-label">Question Title (Read-only):</label>
                 <p><code><?php echo htmlspecialchars($edit_question_data['question_title']); ?></code></p>
             </div>
-            <div class="form-group">
+            <div class="mb-3">
                 <label for="edit_question_text" class="form-label">Question Text (Displayed to Client):</label>
                 <textarea id="edit_question_text" name="edit_question_text" class="form-control" rows="3" required><?php echo htmlspecialchars($edit_question_data['question_text']); ?></textarea>
             </div>
@@ -390,12 +390,12 @@ if (isset($_SESSION['flash_message'])) {
             <?php endif; ?>
 
             <div class="settings-form two-column">
-                <div class="form-group">
+                <div class="mb-3">
                     <label for="question_title" class="form-label">Question Title / Short Name:</label>
                     <input type="text" id="question_title" name="question_title" class="form-control" required>
                     <p class="form-description">Enter a short, descriptive title (e.g., "Reason for Visit"). The system will automatically format it for database use (e.g., to "reason_for_visit").</p>
                 </div>
-                <div class="form-group full-width">
+                <div class="mb-3 full-width">
                     <label for="question_text" class="form-label">Question Text (Displayed to Client):</label>
                     <textarea id="question_text" name="question_text" class="form-control" rows="2" required></textarea>
                 </div>
@@ -412,7 +412,7 @@ if (isset($_SESSION['flash_message'])) {
     <div class="content-section">
         <h4 class="form-section-title">Available Global Questions</h4>
         <div class="table-container">
-            <table>
+            <table class="table table-striped table-hover">
                 <thead>
                     <tr>
                         <th>Question Text</th>
@@ -434,7 +434,7 @@ if (isset($_SESSION['flash_message'])) {
 
                                     <!-- Delete Globally Form -->
                                     <form method="POST" action="configurations.php?tab=questions<?php echo $selected_config_site_id ? '&amp;site_id='.$selected_config_site_id : ''; ?>"
-                                          style="display: inline-block;"
+                                          class="d-inline-block"
                                           onsubmit="return confirm('WARNING: Deleting globally will remove this question for ALL sites and DELETE the corresponding data column [q_<?php echo htmlspecialchars($gq['question_title']); ?>] from check-ins. This cannot be undone. Proceed?');">
                                        <input type="hidden" name="action" value="delete_global_question">
                                        <input type="hidden" name="submitted_tab" value="questions"> <!-- Added -->
@@ -443,7 +443,7 @@ if (isset($_SESSION['flash_message'])) {
                                            <input type="hidden" name="site_id" value="<?php echo $selected_config_site_id; ?>">
                                         <?php endif; ?>
                                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
-                                        <button type="submit" class="btn btn-outline btn-sm delete-button" title="Delete Globally">
+                                        <button type="submit" class="btn btn-danger btn-sm" title="Delete Globally">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </form>
@@ -451,14 +451,14 @@ if (isset($_SESSION['flash_message'])) {
                             </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <tr><td colspan="3" style="text-align: center;">No global questions defined yet.</td></tr>
+                        <tr><td colspan="3" class="text-center">No global questions defined yet.</td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>
         </div>
 
         <?php if ($selected_config_site_id !== null): // Only show assignment if a site is selected ?>
-            <div class="admin-form-container form-section" style="margin-top: 20px;">
+            <div class="admin-form-container form-section" class="mt-4">
                 <h4 class="form-section-title">Assign Question to <?php echo htmlspecialchars($site_name); ?></h4>
                 <form method="POST" action="configurations.php?tab=questions&amp;site_id=<?php echo $selected_config_site_id; ?>">
                     <input type="hidden" name="action" value="assign_site_question">
@@ -467,9 +467,9 @@ if (isset($_SESSION['flash_message'])) {
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
 
                     <div class="settings-form one-column">
-                        <div class="form-group">
+                        <div class="mb-3">
                             <label for="global_question_id_to_assign" class="form-label">Select Question to Assign:</label>
-                            <select id="global_question_id_to_assign" name="global_question_id_to_assign" class="form-control" required>
+                            <select id="global_question_id_to_assign" name="global_question_id_to_assign" class="form-select" required>
                                 <option value="" disabled selected>-- Select an unassigned question --</option>
                                 <?php
                                 $unassigned_found = false;
@@ -496,23 +496,23 @@ if (isset($_SESSION['flash_message'])) {
                 </form>
             </div>
         <?php else: ?>
-            <p style="margin-top: 20px;">Select a site from the dropdown above to manage its assigned questions.</p>
+            <p class="mt-4">Select a site from the dropdown above to manage its assigned questions.</p>
         <?php endif; ?>
     </div> <!-- End Section 2 -->
 
 
     <!-- 3. Questions Assigned to [Site Name] -->
     <?php if ($selected_config_site_id !== null): // Only show assigned list if a site is selected ?>
-        <div class="content-section" style="margin-top: 30px;">
+        <div class="content-section" class="mt-5">
             <h4 class="form-section-title">Questions Assigned to <?php echo htmlspecialchars($site_name); ?></h4>
             <div class="table-container">
-                <table>
+                <table class="table table-striped table-hover">
                     <thead>
                         <tr>
-                            <th style="width: 80px;">Order</th>
+                            <th style="width: 5rem;">Order</th>
                             <th>Question Text</th>
-                            <th style="width: 100px;">Status</th>
-                            <th style="width: 150px;">Site Actions</th>
+                            <th style="width: 6.25rem;">Status</th>
+                            <th style="width: 9.375rem;">Site Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -528,7 +528,7 @@ if (isset($_SESSION['flash_message'])) {
                                     <td class="actions-cell">
                                         <!-- Reordering buttons -->
                                         <?php if (!$is_first): ?>
-                                            <form method="POST" action="configurations.php?tab=questions&amp;site_id=<?php echo $selected_config_site_id; ?>" style="display: inline-block;">
+                                            <form method="POST" action="configurations.php?tab=questions&amp;site_id=<?php echo $selected_config_site_id; ?>" class="d-inline-block">
                                                 <input type="hidden" name="action" value="reorder_site_question">
                                                 <input type="hidden" name="submitted_tab" value="questions"> <!-- Added -->
                                                 <input type="hidden" name="item_id" value="<?php echo $global_id; ?>"> <!-- Pass global_id -->
@@ -540,11 +540,11 @@ if (isset($_SESSION['flash_message'])) {
                                                 </button>
                                             </form>
                                         <?php else: ?>
-                                            <span style="display: inline-block; width: 30px;"></span> <!-- Placeholder for alignment -->
+                                            <span class="d-inline-block" style="width: 1.875rem;"></span> <!-- Placeholder for alignment -->
                                         <?php endif; ?>
 
                                         <?php if (!$is_last): ?>
-                                            <form method="POST" action="configurations.php?tab=questions&amp;site_id=<?php echo $selected_config_site_id; ?>" style="display: inline-block;">
+                                            <form method="POST" action="configurations.php?tab=questions&amp;site_id=<?php echo $selected_config_site_id; ?>" class="d-inline-block">
                                                 <input type="hidden" name="action" value="reorder_site_question">
                                                 <input type="hidden" name="submitted_tab" value="questions"> <!-- Added -->
                                                 <input type="hidden" name="item_id" value="<?php echo $global_id; ?>"> <!-- Pass global_id -->
@@ -556,7 +556,7 @@ if (isset($_SESSION['flash_message'])) {
                                                 </button>
                                             </form>
                                         <?php else: ?>
-                                             <span style="display: inline-block; width: 30px;"></span> <!-- Placeholder for alignment -->
+                                             <span class="d-inline-block" style="width: 1.875rem;"></span> <!-- Placeholder for alignment -->
                                         <?php endif; ?>
                                     </td>
                                     <td><?php echo htmlspecialchars($sq['question_text']); ?></td>
@@ -567,7 +567,7 @@ if (isset($_SESSION['flash_message'])) {
                                     </td>
                                     <td class="actions-cell">
                                         <!-- Toggle Active/Inactive -->
-                                        <form method="POST" action="configurations.php?tab=questions&amp;site_id=<?php echo $selected_config_site_id; ?>" style="display: inline-block;">
+                                        <form method="POST" action="configurations.php?tab=questions&amp;site_id=<?php echo $selected_config_site_id; ?>" class="d-inline-block">
                                             <input type="hidden" name="action" value="toggle_site_question">
                                             <input type="hidden" name="submitted_tab" value="questions"> <!-- Added -->
                                             <input type="hidden" name="item_id" value="<?php echo $global_id; ?>"> <!-- Pass global_id -->
@@ -579,7 +579,7 @@ if (isset($_SESSION['flash_message'])) {
                                         </form>
 
                                         <!-- Unassign from Site -->
-                                        <form method="POST" action="configurations.php?tab=questions&amp;site_id=<?php echo $selected_config_site_id; ?>" style="display: inline-block;" onsubmit="return confirm('Unassign this question from <?php echo htmlspecialchars($site_name); ?>?');">
+                                        <form method="POST" action="configurations.php?tab=questions&amp;site_id=<?php echo $selected_config_site_id; ?>" class="d-inline-block" onsubmit="return confirm('Unassign this question from <?php echo htmlspecialchars($site_name); ?>?');">
                                             <input type="hidden" name="action" value="remove_site_question">
                                             <input type="hidden" name="submitted_tab" value="questions"> <!-- Added -->
                                             <input type="hidden" name="item_id" value="<?php echo $global_id; ?>"> <!-- Pass global_id -->
@@ -593,7 +593,7 @@ if (isset($_SESSION['flash_message'])) {
                                 </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
-                            <tr><td colspan="4" style="text-align: center;">No questions assigned to this site yet.</td></tr>
+                            <tr><td colspan="4" class="text-center">No questions assigned to this site yet.</td></tr>
                         <?php endif; ?>
                     </tbody>
                 </table>

@@ -1942,3 +1942,34 @@ body.checkin-page {
 }
 
 /* ... other styles ... */
+/* Configuration Panel Specific Styles */
+.admin-ad-preview-img {
+  max-height: 60px; /* Default max height */
+  max-width: 150px; /* Default max width */
+  border: 1px solid #ccc;
+  margin-bottom: 5px;
+  vertical-align: middle;
+}
+
+.admin-ad-preview-img-small {
+  max-height: 40px;
+  max-width: 100px;
+}
+
+.admin-ad-preview-img-xsmall {
+  max-height: 30px;
+  max-width: 80px;
+}
+/* Table Action Cell Spacing */
+.actions-cell form,
+.actions-cell button,
+.actions-cell a {
+  margin-right: 5px;
+  display: inline-block;
+  vertical-align: middle;
+}
+.actions-cell form:last-child,
+.actions-cell button:last-child,
+.actions-cell a:last-child {
+  margin-right: 0;
+}

@@ -175,7 +175,7 @@ if ($selected_config_site_id !== null) {
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
             <div class="settings-form two-column">
                 <!-- Toggles using $selected_site_details, $site_allow_email, $site_allow_notifier -->
-                <div class="form-group">
+                <div class="mb-3">
                     <label class="form-label">Site Status</label>
                     <div class="toggle-switch">
                         <?php $site_active_flag = ($selected_site_details['is_active'] == 1); ?>
@@ -184,7 +184,7 @@ if ($selected_config_site_id !== null) {
                         <span class="toggle-text"><?php echo $site_active_flag ? 'Active' : 'Inactive'; ?></span>
                     </div>
                 </div>
-                <div class="form-group">
+                <div class="mb-3">
                     <label class="form-label">Allow Client Email Collection?</label>
                     <div class="toggle-switch">
                         <?php $email_enabled_flag = ($site_allow_email == 1); ?>
@@ -193,7 +193,7 @@ if ($selected_config_site_id !== null) {
                         <span class="toggle-text"><?php echo $email_enabled_flag ? 'Enabled' : 'Disabled'; ?></span>
                     </div>
                 </div>
-                <div class="form-group">
+                <div class="mb-3">
                     <label class="form-label">Allow Staff Notifier Selection?</label>
                     <div class="toggle-switch">
                         <?php $notifier_enabled_flag = ($site_allow_notifier == 1); ?>
@@ -202,14 +202,14 @@ if ($selected_config_site_id !== null) {
                         <span class="toggle-text"><?php echo $notifier_enabled_flag ? 'Enabled' : 'Disabled'; ?></span>
                     </div>
                 </div>
-                <div class="form-group full-width" id="email-desc-group" style="<?php echo !$email_enabled_flag ? 'display: none;' : ''; ?>">
+                <div class="mb-3 full-width" id="email-desc-group" <?php echo !$email_enabled_flag ? 'class="d-none"' : ''; ?>>
                     <label for="email_desc_site" class="form-label">Email Collection Description</label>
                     <textarea id="email_desc_site" name="email_collection_description_site" class="form-control" rows="2"><?php echo htmlspecialchars($selected_site_details['email_collection_desc'] ?? ''); ?></textarea>
                     <p class="form-description">Text displayed above the optional email input on the check-in form.</p>
                 </div>
 
                 <!-- AI Agent Email Toggle -->
-                <div class="form-group full-width">
+                <div class="mb-3 full-width">
                     <label class="form-label">AI Agent Email Notification</label>
                     <div class="toggle-switch">
                          <?php $ai_agent_enabled_flag = ($ai_agent_email_enabled == 1); ?>
@@ -221,13 +221,13 @@ if ($selected_config_site_id !== null) {
                 </div>
 
                 <!-- AI Agent Email Address -->
-                <div class="form-group full-width" id="ai-agent-email-group" style="<?php echo !$ai_agent_enabled_flag ? 'display: none;' : ''; ?>">
+                <div class="mb-3 full-width" id="ai-agent-email-group" <?php echo !$ai_agent_enabled_flag ? 'class="d-none"' : ''; ?>>
                     <label for="ai_agent_email_address" class="form-label">AI Agent Email Address:</label>
                     <input type="email" class="form-control" id="ai_agent_email_address" name="ai_agent_email_address" value="<?php echo htmlspecialchars($ai_agent_email_address ?? ''); ?>">
                 </div>
 
                 <!-- AI Agent Email Message -->
-                <div class="form-group full-width" id="ai-agent-message-group" style="<?php echo !$ai_agent_enabled_flag ? 'display: none;' : ''; ?>">
+                <div class="mb-3 full-width" id="ai-agent-message-group" <?php echo !$ai_agent_enabled_flag ? 'class="d-none"' : ''; ?>>
                     <label for="ai_agent_email_message" class="form-label">AI Agent Email Message Template:</label>
                     <textarea class="form-control" id="ai_agent_email_message" name="ai_agent_email_message" rows="5"><?php echo htmlspecialchars($ai_agent_email_message ?? ''); ?></textarea>
                     <p class="form-description">This message will be sent to the AI Agent. Client details (Name, Email) will be appended.</p>

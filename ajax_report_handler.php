@@ -269,7 +269,7 @@ if ($action === 'generate_custom_report') {
     // --- Format and Send Response ---
     if (empty($results)) {
          // Send back a 'no results' message suitable for the container
-         send_html_response('<p style="text-align: center; color: var(--color-gray);">No data found matching the selected criteria.</p>');
+         send_html_response('<p class="text-center text-muted">No data found matching the selected criteria.</p>');
     }
 
     // ** Output: Table **
@@ -379,7 +379,7 @@ if ($action === 'generate_custom_report') {
 
         // Prepare JSON Response for Chart
         $responseJson = [
-            'html' => '<canvas id="custom-report-chart" style="max-height: 400px; width: 100%;"></canvas>', // Canvas HTML
+            'html' => '<canvas id="custom-report-chart" class="w-100" style="max-height: 400px;"></canvas>', // Canvas HTML
             'chartType' => $output_type, // 'bar' or 'line'
             'chartData' => [
                 'labels' => $labels,

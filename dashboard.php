@@ -212,7 +212,7 @@ require_once 'includes/header.php'; // Provides sidebar, opening tags
             <!-- Main Dashboard Content Area -->
             <div id="dashboard-view">
                  <!-- Data Context Info -->
-                 <p class="data-context-info" style="text-align: right; font-size: 0.9em; color: var(--color-gray); margin-bottom: 1rem;">
+                 <p class="data-context-info" class="text-end small text-muted mb-3">
                      Displaying data for:
                      <strong>
                          <?php
@@ -259,7 +259,7 @@ require_once 'includes/header.php'; // Provides sidebar, opening tags
                             </a>
                         </div>
                     </div>
-                    <table>
+                    <table class="table table-striped table-hover">
                         <thead>
                             <tr>
                                 <th>Name</th>
@@ -298,7 +298,7 @@ require_once 'includes/header.php'; // Provides sidebar, opening tags
                                             <td><?php echo htmlspecialchars($checkin['site_name']); ?></td>
                                         <?php endif; ?>
                                         <td><?php echo date('h:i A', strtotime($checkin['check_in_time'])); ?></td>
-                                        <td style="font-size: 0.85em;"><?php echo htmlspecialchars($details_summary); ?></td>
+                                        <td class="small"><?php echo htmlspecialchars($details_summary); ?></td>
                                         <td><button class="btn btn-outline btn-sm" onclick="alert('View details TBD');"><i class="fas fa-eye"></i> View</button></td>
                                     </tr>
                                 <?php endforeach; // Correctly ends foreach ?>
@@ -309,7 +309,7 @@ require_once 'includes/header.php'; // Provides sidebar, opening tags
                                      $fixed_cols_dash = 4; // Name, Time, Summary, Actions
                                      if ($site_filter_id === 'all') $fixed_cols_dash++;
                                      ?>
-                                    <td colspan="<?php echo $fixed_cols_dash; ?>" style="text-align: center;">No recent check-ins found.</td>
+                                    <td colspan="<?php echo $fixed_cols_dash; ?>" class="text-center">No recent check-ins found.</td>
                                 </tr>
                             <?php endif; // Correctly ends if ?>
                         </tbody>
@@ -325,11 +325,11 @@ require_once 'includes/header.php'; // Provides sidebar, opening tags
                         </div>
                     </div>
                     <div class="chart-container">
-                        <div class="chart-header" style="display: flex; justify-content: space-between; align-items: center;">
-                            <h2 class="chart-title" style="margin-bottom: 0;">Question Responses</h2>
+                        <div class="chart-header" class="d-flex justify-content-between align-items-center">
+                            <h2 class="chart-title" class="mb-0">Question Responses</h2>
                             <div class="chart-timeframe-selector">
-                                <label for="responses-timeframe" style="font-size: 0.9em; margin-right: 5px;">Timeframe:</label>
-                                <select id="responses-timeframe" name="responses_timeframe" style="padding: 2px 5px; font-size: 0.9em;">
+                                <label for="responses-timeframe" class="small me-1">Timeframe:</label>
+                                <select id="responses-timeframe" name="responses_timeframe" class="form-select form-select-sm">
                                     <option value="today" selected>Today</option>
                                     <option value="last_7_days">Last 7 Days</option>
                                     <option value="last_30_days">Last 30 Days</option>

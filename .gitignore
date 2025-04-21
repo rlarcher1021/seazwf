@@ -23,7 +23,7 @@ error_log
 # OS-specific files
 .DS_Store
 Thumbs.db
-
+error_log
 # Backup files
 *.bak
 *.old

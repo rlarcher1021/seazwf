@@ -279,7 +279,7 @@ require_once 'includes/header.php';
                         ?>
                         <a href="export_report.php?<?php echo $export_params; ?>"
                            class="btn btn-outline" target="_blank"
-                           <?php if ($total_records === 0) echo 'style="pointer-events: none; opacity: 0.6;" title="No data to export"'; ?> >
+                           <?php if ($total_records === 0) echo 'class="disabled" aria-disabled="true" title="No data to export"'; ?> >
                             <i class="fas fa-download"></i> Export to CSV
                         </a>
                     </div>
@@ -340,7 +340,7 @@ require_once 'includes/header.php';
                         <button type="submit" id="generate-custom-report-btn" class="btn btn-primary">
                             <i class="fas fa-chart-bar"></i> Generate Report
                         </button>
-                        <span id="custom-report-loading" style="display: none; margin-left: 10px;">
+                        <span id="custom-report-loading" class="d-none ms-2">
                             <i class="fas fa-spinner fa-spin"></i> Generating...
                         </span>
                     </div>
@@ -349,7 +349,7 @@ require_once 'includes/header.php';
                 <!-- Area to display the generated report -->
                 <div id="custom-report-output-area" class="content-section" style="margin-top: 20px; min-height: 100px; border: 1px dashed var(--color-gray-light); padding: 15px;">
                     <!-- Report will be loaded here via AJAX -->
-                    <p style="text-align: center; color: var(--color-gray);">Select options above and click "Generate Report".</p>
+                    <p class="text-center text-muted">Select options above and click "Generate Report".</p>
                 </div>
             </div>
             <?php endif; ?>
@@ -363,7 +363,7 @@ require_once 'includes/header.php';
                  </h2>
 
                  <div class="table-container">
-                    <table>
+                    <table class="table table-striped table-hover">
                         <thead>
                             <tr>
                                 <th>ID</th>
@@ -393,7 +393,7 @@ require_once 'includes/header.php';
                                      if ($selected_site_id === 'all') $fixed_cols++;
                                      $total_cols = $fixed_cols + count($report_question_columns);
                                      ?>
-                                    <td colspan="<?php echo $total_cols; ?>" style="text-align: center;">No records found for the selected criteria.</td>
+                                    <td colspan="<?php echo $total_cols; ?>" class="text-center">No records found for the selected criteria.</td>
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($report_data as $row): ?>
@@ -631,7 +631,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Show loading indicator
             loadingIndicator.style.display = 'inline-block';
             generateBtn.disabled = true;
-            outputArea.innerHTML = '<p style="text-align: center; color: var(--color-gray);"><i class="fas fa-spinner fa-spin"></i> Loading report data...</p>'; // Clear previous results
+            outputArea.innerHTML = '<p class="text-center text-muted"><i class="fas fa-spinner fa-spin"></i> Loading report data...</p>'; // Clear previous results
 
             // --- Gather Filter Data ---
             const siteId = document.getElementById('filter_site_id')?.value || 'all';
@@ -645,7 +645,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const outputType = document.getElementById('custom_output_type')?.value || 'table';
 
             if (selectedMetrics.length === 0) {
-                 outputArea.innerHTML = '<p style="text-align: center; color: red;">Please select at least one metric.</p>';
+                 outputArea.innerHTML = '<p class="text-center text-danger">Please select at least one metric.</p>';
                  loadingIndicator.style.display = 'none';
                  generateBtn.disabled = false;
                  return;
@@ -719,20 +719,20 @@ document.addEventListener('DOMContentLoaded', function() {
                             });
                          } catch (chartError) {
                              console.error("Chart.js initialization error:", chartError);
-                             outputArea.innerHTML = `<p style="text-align: center; color: red;">Error rendering chart. Check console.</p>`;
+                             outputArea.innerHTML = `<p class="text-center text-danger">Error rendering chart. Check console.</p>`;
                          }
                     } else {
                         console.error('Canvas element #custom-report-chart not found in response HTML.');
-                        outputArea.innerHTML = '<p style="text-align: center; color: red;">Error: Chart canvas element missing in response.</p>';
+                        outputArea.innerHTML = '<p class="text-center text-danger">Error: Chart canvas element missing in response.</p>';
                     }
                 } else {
                      console.warn('Received unexpected data format:', data);
-                     outputArea.innerHTML = '<p style="text-align: center; color: orange;">Received unexpected data format from server.</p>';
+                     outputArea.innerHTML = '<p class="text-center text-warning">Received unexpected data format from server.</p>';
                 }
             })
             .catch(error => {
                 console.error('Error fetching/processing custom report:', error);
-                outputArea.innerHTML = `<p style="text-align: center; color: red;">Error generating report: ${error.message}. Please check console or server logs.</p>`;
+                outputArea.innerHTML = `<p class="text-center text-danger">Error generating report: ${error.message}. Please check console or server logs.</p>`;
             })
             .finally(() => {
                  loadingIndicator.style.display = 'none';

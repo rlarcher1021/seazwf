@@ -136,9 +136,9 @@ if ($departments === false) { // Check if the function returned an error indicat
             <input type="hidden" name="action" value="add_department">
             <input type="hidden" name="submitted_tab" value="departments"> <!-- Inform controller which tab processed -->
 
-            <div class="form-group">
+            <div class="mb-3">
                 <label for="department_name">Department Name:</label>
-                <input type="text" id="department_name" name="department_name" required maxlength="255">
+                <input type="text" id="department_name" name="department_name" class="form-control" required maxlength="255">
             </div>
 
             <div class="form-actions">
@@ -155,7 +155,7 @@ if ($departments === false) { // Check if the function returned an error indicat
         <?php if (empty($departments)): ?>
             <p>No departments found.</p>
         <?php else: ?>
-            <table>
+            <table class="table table-striped table-hover">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -184,7 +184,7 @@ if ($departments === false) { // Check if the function returned an error indicat
                                 </button>
 
                                 <!-- Delete Button (triggers modal - Bootstrap 4 attributes) -->
-                                <button type="button" class="btn btn-outline btn-sm delete-button"
+                                <button type="button" class="btn btn-danger btn-sm"
                                         data-toggle="modal" data-target="#deleteConfirmModal"
                                         data-dept-id="<?php echo htmlspecialchars($dept['id']); ?>"
                                         data-dept-name="<?php echo htmlspecialchars($dept['name']); ?>"
@@ -193,7 +193,7 @@ if ($departments === false) { // Check if the function returned an error indicat
                                 </button>
 
                                 <!-- Hidden Delete Form (submitted by modal JS) -->
-                                <form id="deleteForm-<?php echo htmlspecialchars($dept['id']); ?>" action="configurations.php?tab=departments" method="POST" style="display: none;">
+                                <form id="deleteForm-<?php echo htmlspecialchars($dept['id']); ?>" action="configurations.php?tab=departments" method="POST" class="d-none">
                                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                                     <input type="hidden" name="action" value="delete_department">
                                     <input type="hidden" name="submitted_tab" value="departments">

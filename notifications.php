@@ -117,7 +117,7 @@ require_once 'includes/header.php';
             <div class="header">
                 <!--<h1 class="page-title">
                     <?php echo htmlspecialchars($pageTitle); ?>
-                    <span style="font-weight: normal; font-size: 0.8em; color: var(--color-gray);">
+                    <span class="fw-normal small text-muted">
                         (Site: <?php echo htmlspecialchars($site_name); ?>)
                     </span>
                  </h1>-->
@@ -131,12 +131,12 @@ require_once 'includes/header.php';
             <!-- Notification History Table Section -->
             <div class="content-section">
                 <h2 class="section-title">Recent Staff Notifications</h2>
-                 <p class="info-message" style="text-align: left; margin-bottom: 1rem; padding: 0.5rem 1rem; font-size: 0.9em;">
+                 <p class="info-message" class="text-start mb-3 p-2 small">
                      <i class="fas fa-info-circle"></i> Displaying notifications from the last <?php echo NOTIFICATION_HISTORY_DAYS; ?> days.
                  </p>
 
                  <div class="table-container">
-                    <table>
+                    <table class="table table-striped table-hover">
                         <thead>
                             <tr>
                                 <th>Client Name</th>
@@ -155,7 +155,7 @@ require_once 'includes/header.php';
                                 <?php endforeach; ?>
                             <?php elseif (empty($notification_error)): ?>
                                 <tr>
-                                    <td colspan="3" style="text-align: center;">No notification history found for this site within the last <?php echo NOTIFICATION_HISTORY_DAYS; ?> days.</td>
+                                    <td colspan="3" class="text-center">No notification history found for this site within the last <?php echo NOTIFICATION_HISTORY_DAYS; ?> days.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -174,7 +174,7 @@ require_once 'includes/header.php';
                              </a>
 
                              <!-- Page Numbers (Simple Example) -->
-                             <span style="padding: 0 10px;">Page <?php echo $page; ?></span>
+                             <span class="px-2">Page <?php echo $page; ?></span>
 
                               <!-- Next Button -->
                               <a href="?page=<?php echo min($total_pages, $page + 1); ?>"
