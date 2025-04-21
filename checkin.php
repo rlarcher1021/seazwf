@@ -708,6 +708,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         ['mousemove', 'mousedown', 'keypress', 'keydown', 'scroll', 'touchstart', 'click'].forEach(event => {
             document.addEventListener(event, resetInactivityTimerCheckin, { passive: true });
         });
+        /*
+        // Function to dynamically center sticky sidebars (Removed as it caused initial misalignment)
         function centerStickySidebars() {
             const sidebars = document.querySelectorAll('.ad-sidebar');
             const viewportHeight = window.innerHeight;
@@ -731,7 +733,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     console.log(`Sidebar ${index} Setting sticky top: ${finalTop}px !important (Ideal: ${idealTop.toFixed(1)}px)`); // Now index is defined
 
                 } else {
-                    sidebar.style.top = '';
+                    sidebar.style.top = ''; // Reset if not sticky
                     console.log(`Sidebar ${index} Resetting top (not sticky)`); // index is defined here too
                 }
             });
@@ -750,14 +752,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             };
         }
 
-        // Run on initial load
-        document.addEventListener('DOMContentLoaded', centerStickySidebars);
+        // Run on initial load (Removed)
+        // document.addEventListener('DOMContentLoaded', centerStickySidebars);
 
-        // Re-run on window resize (debounced)
-        window.addEventListener('resize', debounce(centerStickySidebars));
+        // Re-run on window resize (debounced) (Removed)
+        // window.addEventListener('resize', debounce(centerStickySidebars));
+        */
 
-
-    <!-- ============ End JavaScript for Sticky Sidebar Centering ============ -->
+    <!-- ============ End JavaScript for Sticky Sidebar Centering (Removed) ============ -->
     </script>
 
 </body>

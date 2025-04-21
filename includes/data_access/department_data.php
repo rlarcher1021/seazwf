@@ -34,7 +34,7 @@ function generateSlug(string $name): string
  */
 function isSlugUnique(PDO $pdo, string $slug, ?int $excludeId = null): bool
 {
-    $sql = "SELECT 1 FROM departments WHERE slug = ?";
+    $sql = "SELECT 1 FROM departments WHERE slug = ? AND deleted_at IS NULL";
     $params = [$slug];
     if ($excludeId !== null) {
         $sql .= " AND id != ?";
@@ -99,7 +99,8 @@ function addDepartment(PDO $pdo, string $name): bool
  */
 function getAllDepartments(PDO $pdo): array
 {
-    $sql = "SELECT id, name, slug, created_at FROM departments ORDER BY name ASC"; // Added slug
+    // Select directly from departments table, filtering out soft-deleted ones
+    $sql = "SELECT id, name, slug, created_at FROM departments WHERE deleted_at IS NULL ORDER BY name ASC";
     try {
         $stmt = $pdo->query($sql);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -118,7 +119,8 @@ function getAllDepartments(PDO $pdo): array
  */
 function isDepartmentInUse(PDO $pdo, int $departmentId): bool
 {
-    $sql = "SELECT 1 FROM users WHERE department_id = ? LIMIT 1";
+    // Check against active users only
+    $sql = "SELECT 1 FROM users u WHERE u.department_id = ? AND u.deleted_at IS NULL LIMIT 1";
     try {
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$departmentId]);
@@ -144,7 +146,7 @@ function deleteDepartment(PDO $pdo, int $departmentId): bool
         return false; // Prevent deletion if in use
     }
 
-    $sql = "DELETE FROM departments WHERE id = ?";
+    $sql = "UPDATE departments SET deleted_at = NOW() WHERE id = ?";
     try {
         $stmt = $pdo->prepare($sql);
         return $stmt->execute([$departmentId]);
@@ -164,7 +166,7 @@ function deleteDepartment(PDO $pdo, int $departmentId): bool
  */
 function getDepartmentById(PDO $pdo, int $departmentId): array|false
 {
-    $sql = "SELECT id, name, slug, created_at FROM departments WHERE id = ?"; // Added slug
+    $sql = "SELECT id, name, slug, created_at FROM departments WHERE id = ? AND deleted_at IS NULL"; // Added slug and soft delete check
     try {
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$departmentId]);

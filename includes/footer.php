@@ -365,36 +365,37 @@ jQuery(document).ready(function($) { // Use jQuery wrapper
             sessionStorage.removeItem(sizeKey); // Clear corrupted data
         }
 
-        // 2. Load History
+        // 2. Load History & Initialize if needed
+        chatHistory = []; // Start with empty history
         try {
             const savedHistory = sessionStorage.getItem(historyKey);
             if (savedHistory) {
-                chatHistory = JSON.parse(savedHistory);
+                const parsedHistory = JSON.parse(savedHistory);
                 // Basic validation
-                if (!Array.isArray(chatHistory)) {
-                    chatHistory = []; // Reset if not an array
-                    throw new Error("Saved history is not an array.");
+                if (Array.isArray(parsedHistory)) {
+                    chatHistory = parsedHistory; // Load existing history
+                } else {
+                     console.warn("Saved chat history is not an array. Resetting.");
+                     sessionStorage.removeItem(historyKey); // Clear corrupted data
                 }
-                messagesContainer.empty(); // Clear default message
-                chatHistory.forEach(msg => addMessage(msg.text, msg.sender, false)); // Add messages without saving again
-                messagesContainer.scrollTop(messagesContainer[0].scrollHeight); // Scroll to bottom after loading
-            } else {
-                 // If no history, add default greeting and save it
-                 const defaultGreeting = { sender: 'ai', text: 'Hello! How can I assist you today?' };
-                 chatHistory = [defaultGreeting];
-                 messagesContainer.empty(); // Clear potential static message in HTML
-                 addMessage(defaultGreeting.text, defaultGreeting.sender, true); // Save this initial state
             }
         } catch (e) {
             console.error("Error parsing saved chat history:", e);
             sessionStorage.removeItem(historyKey); // Clear corrupted data
-            chatHistory = []; // Reset history
-            messagesContainer.empty(); // Clear potentially corrupted display
-             // Add and save default greeting after error
-            const defaultGreeting = { sender: 'ai', text: 'Hello! How can I assist you today?' };
-            chatHistory = [defaultGreeting];
-            addMessage(defaultGreeting.text, defaultGreeting.sender, true);
         }
+
+        // If history is empty after attempting load, add default greeting and save
+        if (chatHistory.length === 0) {
+            const defaultGreeting = { sender: 'ai', text: 'Hello! How can I assist you today?' };
+            chatHistory.push(defaultGreeting);
+            saveHistory(); // Save the initial state with the greeting
+        }
+
+        // Render the final chat history (either loaded or default)
+        messagesContainer.empty(); // Clear display first
+        chatHistory.forEach(msg => addMessage(msg.text, msg.sender, false)); // Render messages without saving again
+        messagesContainer.scrollTop(messagesContainer[0].scrollHeight); // Scroll to bottom after loading
+
 
         // 3. Load Open/Closed State
         const savedState = sessionStorage.getItem(stateKey);

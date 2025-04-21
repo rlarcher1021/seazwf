@@ -84,7 +84,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $sql = "SELECT u.id, u.username, u.password_hash, u.role, u.site_id, u.department_id, u.full_name, d.slug AS department_slug
                     FROM users u
                     LEFT JOIN departments d ON u.department_id = d.id
-                    WHERE u.username = :username AND u.is_active = TRUE";
+                    WHERE u.username = :username AND u.is_active = TRUE AND u.deleted_at IS NULL";
             $stmt = $pdo->prepare($sql);
 
             // Bind parameters

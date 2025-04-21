@@ -11,7 +11,7 @@
 function isUsernameTaken(PDO $pdo, string $username): bool
 {
     try {
-        $stmt = $pdo->prepare("SELECT 1 FROM users WHERE username = :username LIMIT 1");
+        $stmt = $pdo->prepare("SELECT 1 FROM users WHERE username = :username AND deleted_at IS NULL LIMIT 1");
         if (!$stmt) {
             error_log("ERROR isUsernameTaken: Prepare failed for username '{$username}'. PDO Error: " . implode(" | ", $pdo->errorInfo()));
             return false; // Indicate error or uncertainty
@@ -121,7 +121,7 @@ function updateUser(PDO $pdo, int $userId, array $userData): bool
 function getUserActiveStatus(PDO $pdo, int $userId): int|false
 {
      try {
-        $stmt = $pdo->prepare("SELECT is_active FROM users WHERE id = :user_id");
+        $stmt = $pdo->prepare("SELECT is_active FROM users WHERE id = :user_id AND deleted_at IS NULL");
          if (!$stmt) {
             error_log("ERROR getUserActiveStatus: Prepare failed for user ID {$userId}. PDO Error: " . implode(" | ", $pdo->errorInfo()));
             return false;
@@ -211,7 +211,7 @@ function resetUserPassword(PDO $pdo, int $userId, string $newPasswordHash): bool
  */
 function deleteUser(PDO $pdo, int $userId): bool
 {
-    $sql = "DELETE FROM users WHERE id = :user_id";
+    $sql = "UPDATE users SET deleted_at = NOW() WHERE id = :user_id";
     try {
         $stmt = $pdo->prepare($sql);
          if (!$stmt) {
@@ -245,6 +245,7 @@ function getAllUsersWithSiteNames(PDO $pdo): array
             FROM users u
             LEFT JOIN sites s ON u.site_id = s.id
             LEFT JOIN departments d ON u.department_id = d.id
+            WHERE u.deleted_at IS NULL
             ORDER BY u.username ASC";
     try {
         $stmt = $pdo->query($sql);
@@ -279,7 +280,7 @@ function getUserById(PDO $pdo, int $userId): ?array
 {
     try {
         // Select specific columns including job_title and department_id
-        $stmt = $pdo->prepare("SELECT id, username, full_name, email, job_title, role, site_id, department_id, password_hash, last_login, created_at, is_active FROM users WHERE id = :user_id");
+        $stmt = $pdo->prepare("SELECT id, username, full_name, email, job_title, role, site_id, department_id, password_hash, last_login, created_at, is_active FROM users WHERE id = :user_id AND deleted_at IS NULL");
          if (!$stmt) {
             error_log("ERROR getUserById: Prepare failed for user ID {$userId}. PDO Error: " . implode(" | ", $pdo->errorInfo()));
             return null;
@@ -308,7 +309,7 @@ function getUserById(PDO $pdo, int $userId): ?array
 function getUserDetailsForReset(PDO $pdo, int $userId): ?array
 {
      try {
-        $stmt = $pdo->prepare("SELECT username, full_name FROM users WHERE id = :user_id");
+        $stmt = $pdo->prepare("SELECT username, full_name FROM users WHERE id = :user_id AND deleted_at IS NULL");
          if (!$stmt) {
             error_log("ERROR getUserDetailsForReset: Prepare failed for user ID {$userId}. PDO Error: " . implode(" | ", $pdo->errorInfo()));
             return null;
@@ -335,7 +336,7 @@ function getUserDetailsForReset(PDO $pdo, int $userId): ?array
 function verifyUserPassword(PDO $pdo, int $userId, string $currentPassword): bool
 {
     try {
-        $stmt = $pdo->prepare("SELECT password_hash FROM users WHERE id = :user_id");
+        $stmt = $pdo->prepare("SELECT password_hash FROM users WHERE id = :user_id AND deleted_at IS NULL");
         if (!$stmt) {
             error_log("ERROR verifyUserPassword: Prepare failed for user ID {$userId}. PDO Error: " . implode(" | ", $pdo->errorInfo()));
             return false;
