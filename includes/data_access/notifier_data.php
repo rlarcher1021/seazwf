@@ -13,10 +13,20 @@
  */
 function getActiveStaffNotifiersForSite(PDO $pdo, int $site_id): array
 {
-    $sql = "SELECT id, staff_name, staff_email
-            FROM staff_notifications
-            WHERE site_id = :site_id AND is_active = TRUE
-            ORDER BY staff_name ASC";
+    // Join with users table to get the actual user ID and ensure user is active
+    // Assumes users table has id, email, name, is_active columns
+    // Assumes staff_notifications.staff_email links to users.email
+    // Join with users table to get the actual user ID and ensure user is active and not deleted
+    // Assumes users table has id, email, full_name, is_active, deleted_at columns
+    // Assumes staff_notifications.staff_email links to users.email
+    $sql = "SELECT u.id, u.full_name as staff_name, u.email as staff_email
+            FROM staff_notifications sn
+            JOIN users u ON sn.staff_email = u.email
+            WHERE sn.site_id = :site_id
+              AND sn.is_active = TRUE
+              AND u.is_active = TRUE      -- Ensure the linked user is active
+              AND u.deleted_at IS NULL  -- Ensure the linked user is not soft-deleted
+            ORDER BY u.full_name ASC";   // Removed trailing comment
 
     try {
         $stmt = $pdo->prepare($sql);
@@ -31,8 +41,16 @@ function getActiveStaffNotifiersForSite(PDO $pdo, int $site_id): array
             return [];
         }
 
-        // Fetch unique by ID (staff ID becomes the key)
-        return $stmt->fetchAll(PDO::FETCH_ASSOC | PDO::FETCH_UNIQUE) ?: [];
+        // Fetch as associative array and manually key by user ID
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $keyed_results = [];
+        foreach ($results as $row) {
+            // Use the user's ID (aliased as 'id' in the SELECT) as the key
+            if (isset($row['id'])) {
+                 $keyed_results[$row['id']] = $row;
+            }
+        }
+        return $keyed_results;
 
     } catch (PDOException $e) {
         error_log("EXCEPTION in getActiveStaffNotifiersForSite for site ID {$site_id}: " . $e->getMessage());
