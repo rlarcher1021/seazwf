@@ -15,7 +15,13 @@ $configPath = dirname(__DIR__, 2) . '/config/config.ini';
 
 if (!file_exists($configPath)) {
     error_log("CRITICAL ERROR: Configuration file not found at expected location: " . $configPath);
-    die("A critical configuration error occurred. Please contact the system administrator.");
+    http_response_code(500); // Internal Server Error
+    // Ensure JSON header even on early exit, might be needed if called by AJAX handler
+    if (!headers_sent()) {
+        header('Content-Type: application/json');
+    }
+    echo json_encode(['success' => false, 'message' => 'Server configuration error. Please contact administrator.']);
+    exit;
 }
 
 // Parse the INI file
@@ -23,7 +29,12 @@ $config = parse_ini_file($configPath, true);
 
 if ($config === false || !isset($config['database'])) {
     error_log("CRITICAL ERROR: Failed to parse configuration file or missing [database] section.");
-    die("A critical configuration error occurred while reading settings. Please contact the system administrator.");
+    http_response_code(500); // Internal Server Error
+    if (!headers_sent()) {
+        header('Content-Type: application/json');
+    }
+    echo json_encode(['success' => false, 'message' => 'Server configuration reading error. Please contact administrator.']);
+    exit;
 }
 
 // Database credentials from config file
@@ -50,7 +61,12 @@ try {
     $pdo = new PDO($dsn, $db_user, $db_pass, $options);
 } catch (\PDOException $e) {
     error_log("Database Connection Error: " . $e->getMessage());
-    die("Database connection failed. Please notify the administrator.");
+    http_response_code(500); // Internal Server Error
+    if (!headers_sent()) {
+        header('Content-Type: application/json');
+    }
+    echo json_encode(['success' => false, 'message' => 'Database connection failed. Please contact administrator.']);
+    exit;
 }
 
 

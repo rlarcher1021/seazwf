@@ -64,7 +64,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // --- CSRF Token Verification ---
     if (!isset($_POST['csrf_token']) || !isset($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
         $error_message = 'Security token validation failed. Please try logging in again.';
-        error_log("CSRF token validation failed for login (index.php) from IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'Unknown'));
+        $user_agent_debug = $_SERVER['HTTP_USER_AGENT'] ?? 'USER AGENT UNKNOWN'; // Keep UserAgent for failure log
+        error_log("CSRF token validation failed for login (index.php) from IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'Unknown') . " | UserAgent: {$user_agent_debug}");
         // Redirect back to login page with a generic error
         header('Location: index.php?error=csrf_fail');
         exit; // Stop processing immediately
@@ -73,7 +74,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 
     $username = trim($_POST['username'] ?? '');
-    $password = $_POST['password'] ?? '';
+    $password = trim($_POST['password'] ?? ''); // Trim password input
 
     // Basic validation
     if (empty($username) || empty($password)) {
@@ -84,70 +85,81 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $sql = "SELECT u.id, u.username, u.password_hash, u.role, u.site_id, u.department_id, u.full_name, d.slug AS department_slug
                     FROM users u
                     LEFT JOIN departments d ON u.department_id = d.id
-                    WHERE u.username = :username AND u.is_active = TRUE AND u.deleted_at IS NULL";
+                    WHERE LOWER(u.username) = LOWER(:username) AND u.is_active = TRUE AND u.deleted_at IS NULL";
             $stmt = $pdo->prepare($sql);
-
-            // Bind parameters
-            $stmt->bindParam(':username', $username, PDO::PARAM_STR);
-
-            // Execute the statement
-            $stmt->execute();
-
-            // Fetch the user record
-            $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            // Verify user exists and password is correct
-            if ($user && password_verify($password, $user['password_hash'])) {
-                // Password is correct!
-
-                // Regenerate session ID for security (prevents session fixation)
-                session_regenerate_id(true);
-
-                // --- Store user data in session variables ---
-                $_SESSION['user_id'] = $user['id'];
-                $_SESSION['username'] = $user['username'];
-                $_SESSION['full_name'] = $user['full_name']; // Use full_name from DB
-
-                // Store the user's REAL role and site_id from the database
-                $_SESSION['real_role'] = $user['role'];
-                $_SESSION['real_site_id'] = $user['site_id']; // Will be NULL for Admin/Director
-
-                // Initialize the ACTIVE role and site_id (starts same as real)
-                $_SESSION['active_role'] = $user['role'];
-                $_SESSION['active_site_id'] = $user['site_id'] ?? null; // active_site_id can be null (All Sites) or an int
-
-                // Store department ID and the newly fetched department SLUG
-                $_SESSION['department_id'] = isset($user['department_id']) && $user['department_id'] !== null ? (int)$user['department_id'] : null;
-                $_SESSION['department_slug'] = $user['department_slug'] ?? null; // Store the slug, will be null if no department or no slug
-
-                $_SESSION['last_login'] = time(); // Store login time
-
-                // Update last_login timestamp in the database
-                try {
-                    $updateSql = "UPDATE users SET last_login = NOW() WHERE id = :user_id";
-                    $updateStmt = $pdo->prepare($updateSql);
-                    $updateStmt->bindParam(':user_id', $user['id'], PDO::PARAM_INT);
-                    $updateStmt->execute();
-                } catch (PDOException $e) {
-                    // Log this error, but don't necessarily stop the login
-                    error_log("Error updating last_login for user ID {$user['id']}: " . $e->getMessage());
-                }
-
-                // Redirect based on the user's REAL role for the initial destination
-                if ($_SESSION['real_role'] === 'kiosk') {
-                    header('Location: checkin.php');
-                } else {
-                    // Site Supervisor, Director, Administrator go to dashboard
-                    header('Location: dashboard.php');
-                }
-                exit; // Stop script execution after redirect
-
+            if (!$stmt) {
+                error_log("Login Attempt: PDO::prepare failed for username='{$username}'. PDO Error: " . implode(" | ", $pdo->errorInfo()));
+                $error_message = 'Login query preparation failed. Please contact support.';
             } else {
-                // Invalid username or password
-                $error_message = 'Invalid username or password.';
-                // Optional: Log failed login attempt here for security monitoring
-                // error_log("Failed login attempt for username: " . $username);
-            }
+
+            // Check if prepare failed
+            if (!$stmt) {
+                 error_log("Login Attempt: PDO::prepare failed for username='{$username}'. PDO Error: " . implode(" | ", $pdo->errorInfo()));
+                 $error_message = 'Login query preparation failed. Please contact support.';
+            } else {
+                // Bind parameters
+                $stmt->bindParam(':username', $username, PDO::PARAM_STR);
+
+                // Execute the statement
+                $stmt->execute();
+
+                // Fetch the user record
+                $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                // Verify user exists and password is correct
+                if ($user && password_verify($password, $user['password_hash'])) {
+                    // Password is correct!
+
+                    // Regenerate session ID for security (prevents session fixation)
+                    session_regenerate_id(true);
+
+                    // --- Store user data in session variables ---
+                    $_SESSION['user_id'] = $user['id'];
+                    $_SESSION['username'] = $user['username'];
+                    $_SESSION['full_name'] = $user['full_name']; // Use full_name from DB
+
+                    // Store the user's REAL role and site_id from the database
+                    $_SESSION['real_role'] = $user['role'];
+                    $_SESSION['real_site_id'] = $user['site_id']; // Will be NULL for Admin/Director
+
+                    // Initialize the ACTIVE role and site_id (starts same as real)
+                    $_SESSION['active_role'] = $user['role'];
+                    $_SESSION['active_site_id'] = $user['site_id'] ?? null; // active_site_id can be null (All Sites) or an int
+
+                    // Store department ID and the newly fetched department SLUG
+                    $_SESSION['department_id'] = isset($user['department_id']) && $user['department_id'] !== null ? (int)$user['department_id'] : null;
+                    $_SESSION['department_slug'] = $user['department_slug'] ?? null; // Store the slug, will be null if no department or no slug
+
+                    $_SESSION['last_login'] = time(); // Store login time
+
+                    // Update last_login timestamp in the database
+                    try {
+                        $updateSql = "UPDATE users SET last_login = NOW() WHERE id = :user_id";
+                        $updateStmt = $pdo->prepare($updateSql);
+                        $updateStmt->bindParam(':user_id', $user['id'], PDO::PARAM_INT);
+                        $updateStmt->execute();
+                    } catch (PDOException $e) {
+                        // Log this error, but don't necessarily stop the login
+                        error_log("Error updating last_login for user ID {$user['id']}: " . $e->getMessage());
+                    }
+
+                    // Redirect based on the user's REAL role for the initial destination
+                    if ($_SESSION['real_role'] === 'kiosk') {
+                        header('Location: checkin.php');
+                    } else {
+                        // Site Supervisor, Director, Administrator go to dashboard
+                        header('Location: dashboard.php');
+                    }
+                    exit; // Stop script execution after redirect
+
+                } else {
+                    // Invalid username or password
+                    $error_message = 'Invalid username or password.';
+                    // Optional: Log failed login attempt here for security monitoring
+                    // error_log("Failed login attempt for username: " . $username);
+                }
+            } // End of the 'else' block for successful prepare
+            } // End of the 'else' block for successful prepare
 
         } catch (PDOException $e) {
             // Database error during login process

@@ -1,6 +1,7 @@
  Example .gitignore entries
 .well-known
 .roo
+Database_Schema_checkin_system
 # Configuration files with sensitive data (create examples like wp-config-sample.php)
 wp-config.php
 .env

@@ -1973,3 +1973,29 @@ body.checkin-page {
 .actions-cell a:last-child {
   margin-right: 0;
 }
+/* Styles for Voided Budget Allocations */
+.allocation-void {
+    text-decoration: line-through;
+    color: #6c757d; /* Bootstrap secondary color */
+    background-color: #f8f9fa !important; /* Light grey background, !important might be needed */
+}
+.allocation-void td {
+     color: #6c757d !important; /* Ensure text color overrides other styles */
+}
+/* Make void badge distinct */
+.allocation-void .badge.bg-secondary { /* Target the specific void badge */
+    background-color: #6c757d !important; /* Grey badge for void */
+    color: white !important;
+    opacity: 0.7; /* Slightly faded */
+}
+/* Ensure buttons inside void rows are less prominent or disabled visually */
+.allocation-void .btn {
+    opacity: 0.5;
+    pointer-events: none; /* Disable clicks on buttons in void rows */
+}
+/* Style for visually indicating disabled fields in modals */
+.field-disabled {
+    background-color: #e9ecef; /* Bootstrap's default disabled background color */
+    opacity: 0.8; /* Slightly faded */
+    cursor: not-allowed; /* Indicate non-interactive */
+}

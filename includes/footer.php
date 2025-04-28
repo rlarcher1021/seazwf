@@ -215,6 +215,17 @@ $current_page_basename = basename($_SERVER['PHP_SELF']);
     font-size: 0.9em;
 }
 
+
+    /* Fix for list bullets being cut off */
+    .chat-message ul,
+    .chat-message ol {
+        margin-left: 20px; /* Provides space for bullets */
+        padding-left: 0;   /* Resets default padding */
+        margin-top: 0.5em; /* Adds space above list */
+        margin-bottom: 0.5em; /* Adds space below list */
+    }
+
+
 .chat-input-area {
     border-top: 1px solid #dee2e6;
     padding: 10px;
@@ -289,6 +300,9 @@ if (isset($_SESSION['user_id']) && (!isset($_SESSION['role']) || $_SESSION['role
 <!-- END: AI Chat Widget HTML -->
 
 <!-- JavaScript Includes -->
+<!-- 1. jQuery (MUST be first) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+
 <!-- Google Translate Script (Keep if needed) -->
 <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
@@ -303,15 +317,14 @@ if (isset($_SESSION['user_id']) && (!isset($_SESSION['role']) || $_SESSION['role
 
 <!-- Bootstrap JS Dependencies - IMPORTANT: Keep this order -->
 
-<!-- 1. jQuery (Full version needed for jQuery UI) -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+<!-- jQuery loaded above -->
 
 <!-- 2. jQuery UI (Core, Widget, Mouse, Resizable) -->
 <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
 <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js" integrity="sha256-lSjKY0/srUM9BE3dPm+c4fBo1dky2v27Gdjm2uoZaL0=" crossorigin="anonymous"></script>
 
-<!-- 3. Bootstrap Bundle JS (Includes Popper.js) -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-LtrjvnR4Twt/qOuYxE721u19sVFLVSA4hf/rRt6PrZTmiPltdZcI7q7PXQBYTKyf" crossorigin="anonymous"></script>
+<!-- 3. Bootstrap Bundle JS (Includes Popper.js for v5) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-Fy6S3B9q64WdZWQUiU+q4/2Lc9npb8tCaSX9FK7E8HnRr0Jz8D6OP9dO5Vg3Q9ct" crossorigin="anonymous"></script>
 
 <!-- Output Page-Specific JavaScript -->
 <?php
@@ -319,6 +332,124 @@ if (!empty($GLOBALS['footer_scripts'])) {
     echo $GLOBALS['footer_scripts']; // Output the collected JS
 }
 ?>
+
+<!-- 4. Select2 JS (Add after jQuery and Bootstrap Bundle) -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<!-- 5. Markdown-it (Markdown Parser) -->
+<script src="https://cdn.jsdelivr.net/npm/markdown-it/dist/markdown-it.min.js"></script>
+
+
+<!-- Pass PHP Session/User Data to JavaScript -->
+<script>
+    window.APP_DATA = {
+        currentUserRole: <?= isset($_SESSION['active_role']) ? json_encode(strtolower($_SESSION['active_role'])) : 'null' ?>,
+        currentUserId: <?= isset($_SESSION['user_id']) ? json_encode($_SESSION['user_id']) : 'null' ?>,
+        currentUserDeptId: <?= isset($_SESSION['department_id']) ? json_encode($_SESSION['department_id']) : 'null' ?>,
+        currentUserDeptSlug: null // Initialize as null, fetch below if needed
+    };
+
+    <?php
+    // Fetch department slug if department ID is set in session
+    // This ensures the slug is available even if not explicitly fetched on every page
+    if (isset($_SESSION['department_id'])) {
+        try {
+            // Ensure db_connect.php was included and $pdo is available
+            if (isset($pdo) && $pdo instanceof PDO) {
+                $stmtDept = $pdo->prepare("SELECT slug FROM departments WHERE id = ? AND deleted_at IS NULL");
+                $stmtDept->execute([$_SESSION['department_id']]);
+                $deptResult = $stmtDept->fetch(PDO::FETCH_ASSOC);
+                if ($deptResult && isset($deptResult['slug'])) {
+                    // Assign the fetched slug to the JS object
+                    echo 'window.APP_DATA.currentUserDeptSlug = ' . json_encode(strtolower($deptResult['slug'])) . ';';
+                }
+            }
+        } catch (Exception $e) {
+            error_log("Error fetching department slug in footer: " . $e->getMessage());
+            // Keep slug as null in JS if error occurs
+        }
+    }
+    ?>
+    console.log('APP_DATA initialized:', window.APP_DATA); // Debugging line
+</script>
+
+
+<?php // Conditionally include budgets.js only on budgets.php
+if ($current_page_basename === 'budgets.php'):
+    // Construct the path relative to the document root or use a consistent base path if available
+    $budgets_js_path = __DIR__ . '/../assets/js/budgets.js'; // Path relative to /includes/
+    if (file_exists($budgets_js_path)) {
+        $version = filemtime($budgets_js_path);
+        echo '<script src="assets/js/budgets.js?v=' . $version . '"></script>' . "\n";
+    } else {
+        error_log("Error: budgets.js not found at " . $budgets_js_path);
+        // Optionally echo a comment in HTML for debugging
+        // echo "<!-- budgets.js not found -->\n";
+    }
+endif;
+?>
+
+<!-- START: Grants Panel Modal JS -->
+<script>
+// Wrap all jQuery dependent code in a ready handler
+jQuery(function($) {
+    // --- Edit Grant Modal Population ---
+    const editGrantModalPanel = document.getElementById('editGrantModalPanel');
+
+    if (editGrantModalPanel) {
+        // Attach click listener directly to the edit buttons using delegation
+        $(document).on('click', '.edit-grant-btn-panel', function (event) {
+            const button = this; // 'this' is the clicked button element
+            const $button = $(button); // jQuery object for the button
+            const $modal = $('#editGrantModalPanel'); // Get modal jQuery object
+
+            // Check if button is valid
+            if (!button) {
+                 // Optionally log error or display user message
+                 return; // Stop if button not found
+            }
+
+            // Extract info using jQuery's .data() method
+            // Using kebab-case keys matching the data-* attributes
+            const grantId = $button.data('grant-id');
+            const grantName = $button.data('grant-name');
+            const grantCode = $button.data('grant-code');
+            const grantDescription = $button.data('grant-description');
+            const grantStart = $button.data('grant-start');
+            const grantEnd = $button.data('grant-end');
+
+            // Update the modal's content.
+            $modal.find('.modal-title').text('Edit Grant: ' + grantName);
+            $modal.find('#edit_grant_id_panel').val(grantId);
+            $modal.find('#edit_grant_name_panel').val(grantName);
+            $modal.find('#edit_grant_code_panel').val(grantCode);
+            $modal.find('#edit_grant_description_panel').val(grantDescription);
+            $modal.find('#edit_grant_start_date_panel').val(grantStart);
+            $modal.find('#edit_grant_end_date_panel').val(grantEnd);
+            $modal.find('#editGrantErrorPanel').text('').hide(); // Clear previous errors
+
+            // Manually show the modal AFTER populating fields
+            $modal.modal('show');
+
+        }); // End delegated 'click' listener
+    }
+
+
+    // --- Add Grant Modal Reset ---
+    const addGrantModalPanel = document.getElementById('addGrantModalPanel');
+    if (addGrantModalPanel) {
+         // Use shown.modal event to reset the form after it appears
+         $(addGrantModalPanel).on('shown.modal', function(event) {
+             const $addModal = $(this); // Renamed variable to avoid conflict
+             $addModal.find('#addGrantFormPanel')[0].reset(); // Reset form
+             $addModal.find('#addGrantErrorPanel').text('').hide(); // Clear errors
+         });
+    }
+
+}); // End jQuery ready handler
+</script>
+<!-- END: Grants Panel Modal JS -->
+
 
 <!-- START: AI Chat Widget JavaScript -->
 <script>
@@ -434,131 +565,240 @@ jQuery(document).ready(function($) { // Use jQuery wrapper
         }
     };
 
-    // --- Add Message Helper (Modified) ---
-    // Added 'sender' parameter, renamed 'type' to 'sender' for clarity
-    // Added 'save' parameter to control saving (avoid double saving on load)
+    // --- Add Message to UI ---
     const addMessage = (text, sender, save = true) => {
-        const messageDiv = $('<div></div>') // Use jQuery to create element
-            .addClass('chat-message')
-            .addClass(sender) // sender = 'user', 'ai', 'error', 'loading', 'system'
-            .text(text); // Use .text() for security against XSS
+        const messageClass = `chat-message ${sender}`; // e.g., 'chat-message user' or 'chat-message ai'
+        // Parse markdown to HTML using Markdown-it (ensure library is loaded)
+        const md = window.markdownit ? window.markdownit() : null; // Get instance if available
+        const htmlContent = md ? md.render(text) : text; // Render if instance exists, else fallback to raw text
 
-        messagesContainer.append(messageDiv);
+        const messageElement = $('<div></div>').addClass(messageClass).html(htmlContent); // Use .html() with parsed content
+        messagesContainer.append(messageElement);
+        messagesContainer.scrollTop(messagesContainer[0].scrollHeight); // Scroll to bottom
 
-        // Add to history array (only for user, ai, error, system messages, not loading)
-        if (sender !== 'loading' && save) {
+        if (save) {
             chatHistory.push({ sender: sender, text: text });
-            saveHistory(); // Save history after adding a message
+            saveHistory(); // Save history after adding a new message
         }
-
-        // Scroll to bottom
-        messagesContainer.scrollTop(messagesContainer[0].scrollHeight);
-        return messageDiv; // Return the jQuery element
     };
 
-
-    // --- Toggle Chat Widget ---
-    chatToggleButton.on('click', () => {
+     // --- Toggle Chat Widget ---
+    chatToggleButton.on('click', function() {
         chatWidget.toggleClass('open');
-        const isOpen = chatWidget.hasClass('open');
-        saveState(isOpen ? 'open' : 'closed');
-        if (isOpen) {
-            inputField.focus();
-            messagesContainer.scrollTop(messagesContainer[0].scrollHeight); // Ensure scrolled down when opening
+        if (chatWidget.hasClass('open')) {
+            inputField.focus(); // Focus input when opened
+            saveState('open');
+        } else {
+            saveState('closed');
         }
     });
 
-    closeChatButton.on('click', () => {
+    closeChatButton.on('click', function() {
         chatWidget.removeClass('open');
         saveState('closed');
     });
 
-    // --- Send Message ---
+
+    // --- Send Message Functionality ---
     const sendMessage = () => {
-        const messageText = inputField.val().trim();
-        if (messageText === '') return;
+        const userMessage = inputField.val().trim();
+        if (userMessage === '') return; // Don't send empty messages
 
-        // 1. Display user message & save
-        addMessage(messageText, 'user'); // Will also save history
-        inputField.val(''); // Clear input
-        inputField.focus();
+        addMessage(userMessage, 'user'); // Display user message immediately
+        inputField.val(''); // Clear input field
 
-        // 2. Show loading indicator (don't save loading message to history)
-        const loadingIndicator = addMessage('...', 'loading', false);
+        // Add loading indicator
+        const loadingIndicator = $('<div></div>').addClass('chat-message loading').text('AI is thinking...');
+        messagesContainer.append(loadingIndicator);
+        messagesContainer.scrollTop(messagesContainer[0].scrollHeight);
 
-        // 3. Send AJAX request (Using jQuery AJAX for consistency)
+        // Send message to backend via AJAX
         $.ajax({
-            url: 'ajax_chat_handler.php',
-            method: 'POST',
-            data: {
-                message: messageText,
-                csrf_token: csrfToken
+            url: 'ajax_chat_handler.php', // Your backend endpoint
+            type: 'POST',
+            contentType: 'application/json', // Send as JSON
+            data: JSON.stringify({
+                message: userMessage,
+                history: chatHistory.slice(-10) // Send recent history for context (adjust count as needed)
+            }),
+            headers: {
+                'X-CSRF-Token': csrfToken // Include CSRF token
             },
-            dataType: 'json', // Expect JSON response
-            beforeSend: function(xhr) {
-                xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-            },
-            success: function(data) {
-                loadingIndicator.remove();
-                if (data.success && data.reply) {
-                    addMessage(data.reply, 'ai'); // Will save history
+            success: function(response) {
+                loadingIndicator.remove(); // Remove loading indicator
+                // jQuery likely already parsed the JSON response because of the Content-Type header
+                // The 'response' argument should be the data object directly.
+                const data = response; // Use the response directly
+
+                if (data && data.success && data.response) { // Check for success flag and response key
+                    addMessage(data.response, 'ai');
+                } else if (data && data.error) { // Check for error key
+                     addMessage(`Error: ${data.error}`, 'error');
+                     console.error("AI Chat Error (from backend):", data.error);
                 } else {
-                    const errorMessage = data.error || 'An unknown error occurred.';
-                    addMessage(errorMessage, 'error'); // Will save history
+                     // Handle cases where response might not be the expected object or lacks keys
+                     addMessage('Error: Received an unexpected response format from the AI assistant.', 'error');
+                     console.error("AI Chat Error: Unexpected response format", response);
                 }
+                // Removed the try...catch block as JSON.parse is no longer used here.
+                // Error handling for network issues is in the main ajax 'error' callback.
             },
             error: function(jqXHR, textStatus, errorThrown) {
-                console.error('Chat AJAX Error:', textStatus, errorThrown, jqXHR.responseText);
-                loadingIndicator.remove();
-                let errorMessage = 'Could not connect to the assistant.';
-                 // Try to parse response text if available
-                 try {
-                    const errorData = JSON.parse(jqXHR.responseText);
-                    if (errorData && errorData.error) {
-                        errorMessage = `Error: ${errorData.error}`;
-                    } else {
-                         errorMessage = `Error: ${errorThrown || textStatus}`;
-                    }
-                 } catch(e) {
-                    // Stick with the generic error if parsing fails
-                    errorMessage = `Error: ${errorThrown || textStatus}`;
-                 }
-                addMessage(errorMessage, 'error'); // Will save history
+                loadingIndicator.remove(); // Remove loading indicator
+                console.error("Chat AJAX Error:", textStatus, errorThrown, jqXHR.responseText);
+                addMessage(`Error: Could not reach the AI assistant (${textStatus}). Please try again later.`, 'error');
             }
         });
     };
 
     // --- Event Listeners for Sending ---
     sendButton.on('click', sendMessage);
-
-    inputField.on('keypress', (event) => {
-        if (event.key === 'Enter') {
-            event.preventDefault();
+    inputField.on('keypress', function(e) {
+        if (e.key === 'Enter' || e.keyCode === 13) { // Handle Enter key
+            e.preventDefault(); // Prevent default form submission/newline
             sendMessage();
         }
     });
 
-    // --- Initialize Resizable ---
-    chatWidget.resizable({
-        handles: "n, e, s, w, ne, se, sw, nw", // Allow resizing from all sides/corners
-        minHeight: 300,
-        minWidth: 250,
-        stop: function(event, ui) {
-            // Save the size when resizing stops
-            saveSize(ui.size.width + 'px', ui.size.height + 'px');
-        },
-        // Optional: Containment if needed, e.g., containment: "document"
-        // Optional: Ghost or helper for visual feedback during resize
-        // ghost: true
-    });
+    // --- Make Widget Resizable (using jQuery UI) ---
+    if ($.ui && $.ui.resizable) { // Check if jQuery UI resizable is loaded
+        chatWidget.resizable({
+            handles: "n, e, s, w, ne, nw, se, sw", // Allow resizing from all directions/corners
+            minHeight: 200,
+            minWidth: 250,
+            maxHeight: $(window).height() * 0.8, // Limit max height
+            maxWidth: $(window).width() * 0.8,  // Limit max width
+            stop: function(event, ui) {
+                // Save the new size when resizing stops
+                saveSize(ui.size.width + 'px', ui.size.height + 'px'); // Save with 'px' unit
+            }
+        });
+    } else {
+        console.warn("jQuery UI Resizable not loaded. Chat widget will not be resizable.");
+    }
+
 
     // --- Initial Load ---
-    loadState(); // Load history, state, and size on page load
+    loadState();
 
 });
 </script>
 <!-- END: AI Chat Widget JavaScript -->
 
 
+<!-- START: Activate Tab from URL Hash & Update Hash on Tab Change -->
+<script>
+jQuery(document).ready(function($) {
+    // This script now ONLY updates the hash and cookie when a tab is clicked.
+    // The initial active tab is set by the server-side PHP in budget_settings.php reading the cookie.
+
+    // Update hash and cookie when a tab is shown (without causing page jump)
+    // Using Bootstrap 4's 'shown.bs.tab' event
+    $('#budgetSettingsTabs button[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+        var newTabId = $(e.target).attr('id'); // Get the ID of the activated tab button (e.g., 'vendors-tab')
+        console.log("Tab shown, new target ID:", newTabId); // Debug log
+
+        // Set cookie (expires when browser closes, path=/ for site-wide access)
+        // Use SameSite=Lax for modern browser compatibility
+        document.cookie = "activeBudgetSettingsTab=" + newTabId + "; path=/; SameSite=Lax";
+        console.log("Cookie set: activeBudgetSettingsTab=" + newTabId); // Debug log
+
+        // Update hash (keep this for bookmarking/linking, though server uses cookie now)
+        var newHash = '#' + newTabId;
+        if (history.pushState) {
+            // Update the hash in the URL without reloading the page
+            history.pushState(null, null, newHash);
+             console.log("Hash updated via pushState to:", newHash); // Debug log
+        } else {
+            // Fallback for older browsers (might cause page jump)
+            window.location.hash = newHash;
+             console.log("Hash updated via fallback to:", newHash); // Debug log
+        }
+    });
+
+});
+</script>
+<!-- END: Activate Tab from URL Hash & Update Hash on Tab Change -->
+
+
+</body>
+</html>
+
+<!-- START: Budget Panel Modal JS (Moved from budgets_panel.php) -->
+<script>
+// --- Edit Budget Modal Population ---
+const editBudgetModalPanel = document.getElementById('editBudgetModalPanel');
+if (editBudgetModalPanel) {
+    // Use jQuery to attach the event listener (since libraries are loaded now)
+    $(editBudgetModalPanel).on('show.bs.modal', function (event) {
+        const button = event.relatedTarget; // Button that triggered the modal
+        if (!button) return; // Exit if no related target
+
+        // Extract info from data-* attributes
+        const budgetId = button.getAttribute('data-budget-id');
+        const budgetName = button.getAttribute('data-budget-name');
+        const userId = button.getAttribute('data-user-id');
+        const grantId = button.getAttribute('data-grant-id');
+        const departmentId = button.getAttribute('data-department-id');
+        const fyStart = button.getAttribute('data-fy-start');
+        const fyEnd = button.getAttribute('data-fy-end');
+        const budgetType = button.getAttribute('data-budget-type');
+        const budgetNotes = button.getAttribute('data-budget-notes');
+
+        // Update the modal's content.
+        const modalTitle = editBudgetModalPanel.querySelector('.modal-title');
+        const inputBudgetId = editBudgetModalPanel.querySelector('#edit_budget_id_panel');
+        const inputName = editBudgetModalPanel.querySelector('#edit_budget_name_panel');
+        const selectUser = editBudgetModalPanel.querySelector('#edit_budget_user_id_panel');
+        const selectGrant = editBudgetModalPanel.querySelector('#edit_budget_grant_id_panel');
+        const selectDept = editBudgetModalPanel.querySelector('#edit_budget_department_id_panel');
+        const inputFyStart = editBudgetModalPanel.querySelector('#edit_budget_fiscal_year_start_panel');
+        const inputFyEnd = editBudgetModalPanel.querySelector('#edit_budget_fiscal_year_end_panel');
+        const selectBudgetType = editBudgetModalPanel.querySelector('#edit_budget_type_panel');
+        const textareaNotes = editBudgetModalPanel.querySelector('#edit_budget_notes_panel');
+        const errorDiv = editBudgetModalPanel.querySelector('#editBudgetErrorPanel');
+
+        // Check if elements exist before setting values
+        if (modalTitle) modalTitle.textContent = 'Edit Budget: ' + (budgetName || '');
+        if (inputBudgetId) inputBudgetId.value = budgetId || '';
+        if (inputName) inputName.value = budgetName || '';
+        if (selectUser) selectUser.value = userId || '';
+        if (selectGrant) selectGrant.value = grantId || '';
+        if (selectDept) selectDept.value = departmentId || '';
+        if (inputFyStart) inputFyStart.value = fyStart || '';
+        if (inputFyEnd) inputFyEnd.value = fyEnd || '';
+        if (selectBudgetType) selectBudgetType.value = budgetType || '';
+        if (textareaNotes) textareaNotes.value = budgetNotes || '';
+        if (errorDiv) {
+            errorDiv.style.display = 'none'; // Clear previous errors
+            errorDiv.textContent = '';
+        }
+    });
+}
+
+// --- Add Budget Modal Reset ---
+const addBudgetModalPanel = document.getElementById('addBudgetModalPanel');
+if (addBudgetModalPanel) {
+    // Use vanilla JS listener as it was before
+    addBudgetModalPanel.addEventListener('show.bs.modal', function(event) {
+        const form = addBudgetModalPanel.querySelector('#addBudgetFormPanel');
+        const errorDiv = addBudgetModalPanel.querySelector('#addBudgetErrorPanel');
+        if (form) form.reset();
+        // Pre-select Arizona@Work department if possible
+        const deptSelect = form.querySelector('#add_budget_department_id_panel');
+        // Use PHP variable directly if available in the scope where footer is included
+        <?php if (isset($azWorkDeptId) && $azWorkDeptId): ?>
+        if (deptSelect) {
+            deptSelect.value = '<?php echo $azWorkDeptId; ?>';
+        }
+        <?php endif; ?>
+        if (errorDiv) {
+            errorDiv.style.display = 'none';
+            errorDiv.textContent = '';
+        }
+    });
+}
+</script>
+<!-- END: Budget Panel Modal JS -->
 </body>
 </html>

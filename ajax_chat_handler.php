@@ -3,7 +3,7 @@
 
 // --- Configuration ---
 // IMPORTANT: Assumes config file is one level ABOVE the web root (public_html)
-$configFilePath = __DIR__ . '/../config/ai_chat_setting.ini'; 
+$configFilePath = __DIR__ . '/../config/ai_chat_setting.ini';
 define('CONFIG_FILE_PATH', $configFilePath);
 
 // --- Session & Security ---
@@ -33,23 +33,44 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// 4. CSRF Token Validation
-if (!isset($_POST['csrf_token']) || !isset($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+// 4. CSRF Token Validation (Check Header)
+$headers = getallheaders();
+$token_from_header = null;
+// Check common header names case-insensitively
+foreach ($headers as $key => $value) {
+    if (strtolower($key) === 'x-csrf-token') {
+        $token_from_header = $value;
+        break;
+    }
+}
+
+// Check if token exists in session and header, and if they match
+if (!isset($_SESSION['csrf_token']) || $token_from_header === null || !hash_equals($_SESSION['csrf_token'], $token_from_header)) {
     http_response_code(403);
     header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'error' => 'Invalid request: CSRF token mismatch.']);
+    // Log the failure reason for debugging (kept minimal non-debug log)
+    $log_reason = !isset($_SESSION['csrf_token']) ? 'Session token missing' : ($token_from_header === null ? 'Header token missing' : 'Token mismatch');
+    error_log("AI Chat CSRF check failed - Reason: " . $log_reason); // Keep this non-debug log
+    echo json_encode(['success' => false, 'error' => 'Invalid request: CSRF token validation failed.']);
     exit; // Stop execution if CSRF token is invalid
 }
 
-// 5. Check if message is provided
-if (!isset($_POST['message']) || trim($_POST['message']) === '') {
+// Read raw JSON input
+$jsonInput = file_get_contents('php://input');
+$inputData = json_decode($jsonInput); // Decode JSON into an object
+
+// Check if JSON decoding was successful and if message exists and is not empty
+if ($inputData === null || !isset($inputData->message) || trim($inputData->message) === '') {
     http_response_code(400); // Bad Request
     header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'error' => 'Message cannot be empty.']);
+    $log_json_error = $inputData === null ? 'Invalid JSON received' : 'Message missing or empty in JSON';
+    error_log("AI Chat Message check failed - Reason: " . $log_json_error . ". Raw input: " . $jsonInput); // Keep this non-debug log
+    echo json_encode(['success' => false, 'error' => 'Message cannot be empty or request format is invalid.']);
     exit;
 }
 
-$userMessage = trim($_POST['message']);
+$userMessage = trim($inputData->message);
+// Optionally access history if needed later: $chatHistory = $inputData->history ?? [];
 
 // --- Database Connection ---
 // Required for fetching site name
@@ -164,12 +185,15 @@ if ($curlError) {
 
 if ($httpStatusCode === 200) {
     $responseData = json_decode($responseBody, true);
-    if (json_last_error() === JSON_ERROR_NONE && isset($responseData['message'])) {
-        // Success case
-        echo json_encode(['success' => true, 'reply' => $responseData['message']]);
+    // Check if JSON is valid and contains the 'response' key (as expected by frontend JS)
+    if (json_last_error() === JSON_ERROR_NONE && isset($responseData['response'])) {
+        // Success case - Send back JSON with the 'response' key
+        echo json_encode(['success' => true, 'response' => $responseData['response']]);
+        exit; // Stop script after successful output
     } else {
-        // Valid HTTP status, but invalid JSON or missing 'message' key
-        error_log("AI Chat Error: Received 200 OK but invalid JSON or missing 'message' key from n8n. Response: " . $responseBody);
+        // Valid HTTP status, but invalid JSON or missing 'response' key
+        $error_reason = (json_last_error() !== JSON_ERROR_NONE) ? 'Invalid JSON' : "Missing 'response' key";
+        error_log("AI Chat Error: Received 200 OK but {$error_reason} from n8n. Response: " . $responseBody);
         echo json_encode(['success' => false, 'error' => 'Received an invalid response from the AI assistant.']);
     }
 } else {

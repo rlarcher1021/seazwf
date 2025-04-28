@@ -208,6 +208,11 @@ if (isset($_SESSION['active_role'])) {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Main Stylesheet -->
     <link rel="stylesheet" href="assets/css/main.css?v=<?php echo filemtime(__DIR__ . '/../assets/css/main.css'); // Cache busting ?>">
+    <!-- Select2 CSS (Add after Bootstrap CSS) -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <!-- Select2 Bootstrap 5 Theme (Optional, but recommended) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
+
 
     <!-- CSRF Token for AJAX requests -->
     <meta name="csrf-token" content="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
@@ -271,6 +276,28 @@ if (isset($_SESSION['active_role'])) {
                     ?>
                         <li><a href="forum_index.php" <?php echo $is_forum_page ? 'class="active"' : ''; ?>><i class="fas fa-comments"></i> Forum</a></li>
                     <?php endif; ?>
+
+                    <?php // --- START: Budget Feature Links --- ?>
+                    <?php
+                        // Make role check case-insensitive
+                        $currentActiveRoleLower = isset($_SESSION['active_role']) ? strtolower($_SESSION['active_role']) : null;
+                        $allowedBudgetRoles = ['director', 'azwk_staff', 'finance']; // Corrected role name
+                    ?>
+                    <?php if ($currentActiveRoleLower && in_array($currentActiveRoleLower, $allowedBudgetRoles)):
+                        $is_budget_page = in_array($current_page_basename, ['budgets.php', 'budget_setup.php', 'grant_management.php']);
+                        // Determine active class more broadly for the budget section
+                        $budget_section_active = $is_budget_page ? 'active' : '';
+                    ?>
+                        <?php // Budget Allocations (Main Page) - Staff, Director, Finance ?>
+                        <li><a href="budgets.php" <?php echo $current_page_basename === 'budgets.php' ? 'class="active"' : ''; ?>><i class="fas fa-money-bill-wave"></i> Budget Allocations</a></li>
+
+                        <?php // Budget Settings (Consolidated) - Director Only ?>
+                        <?php if ($currentActiveRoleLower === 'director'): // Compare with lowercase ?>
+                            <li><a href="budget_settings.php" <?php echo $current_page_basename === 'budget_settings.php' ? 'class="active"' : ''; ?>><i class="fas fa-cogs"></i> Budget Settings</a></li>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                    <?php // --- END: Budget Feature Links --- ?>
+
 
                       <?php // --- START: Notifications (Supervisor ONLY) --- ?>
                     <?php if (isset($_SESSION['active_role']) && in_array($_SESSION['active_role'], ['azwk_staff', 'outside_staff'])): ?>

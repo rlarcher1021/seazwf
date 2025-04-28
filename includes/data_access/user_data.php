@@ -426,4 +426,34 @@ function updateUserProfile(PDO $pdo, int $userId, string $fullName, ?string $job
     }
 }
 
-?>
+// Removed closing PHP tag here to include the function below
+
+/**
+ * Fetches active users belonging to a specific department.
+ * Used for populating dropdowns, e.g., in budget setup.
+ *
+ * @param PDO $pdo The PDO database connection object.
+ * @param int $departmentId The ID of the department to filter users by.
+ * @return array An array of associative arrays (id, full_name) for users in the department. Empty array if none found or error.
+ */
+function getActiveUsersByDepartment(PDO $pdo, int $departmentId): array
+{
+    $sql = "SELECT id, full_name
+            FROM users
+            WHERE department_id = :department_id
+              AND deleted_at IS NULL
+              AND is_active = 1
+            ORDER BY full_name ASC";
+    try {
+        $stmt = $pdo->prepare($sql);
+        if (!$stmt) {
+            error_log("ERROR getActiveUsersByDepartment: Prepare failed for department ID {$departmentId}. PDO Error: " . implode(" | ", $pdo->errorInfo()));
+            return [];
+        }
+        $stmt->execute([':department_id' => $departmentId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        error_log("EXCEPTION in getActiveUsersByDepartment for department ID {$departmentId}: " . $e->getMessage());
+        return [];
+    }
+}

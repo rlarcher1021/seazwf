@@ -41,6 +41,15 @@ if (!in_array($currentPage, $allowedUnauthenticated)) {
         'ajax_report_handler.php' => ['azwk_staff', 'outside_staff', 'director', 'administrator'], // AJAX endpoint for reports/dashboard charts
         'account.php' => ['azwk_staff', 'outside_staff', 'director', 'administrator'], // User account self-management (exclude kiosk)
         // Add other specific pages here if needed
+        // Budget Feature Pages (Consolidated under budget_settings.php now)
+        // 'grant_management.php' => ['director', 'administrator'], // Removed
+        // 'budget_setup.php' => ['director', 'administrator'], // Removed
+        'budget_settings.php' => ['director', 'administrator'], // NEW Consolidated Settings Page
+        'budgets.php' => ['director', 'azwk_staff', 'finance', 'administrator'], // Budget Allocation Management
+        'ajax_get_budgets.php' => ['director', 'azwk_staff', 'finance', 'administrator'], // AJAX for budgets page
+        'ajax_allocation_handler.php' => ['director', 'azwk_staff', 'finance', 'administrator'], // AJAX for budgets page
+        'vendor_handler.php' => ['director', 'administrator'], // AJAX for vendor CRUD (Key changed to basename)
+        // Add AJAX handler for vendor CRUD if needed later
     ];
 
     // Check if the current page has a rule defined
@@ -69,17 +78,51 @@ if (!in_array($currentPage, $allowedUnauthenticated)) {
         error_log("Access Denied: User '{$_SESSION['username']}' (Active Role: {$role}) attempted to access {$currentPage}");
         // Redirect logic (keep existing)
         $redirectTarget = 'index.php?reason=access_denied';
-        if (in_array($role, ['azwk_staff', 'outside_staff', 'director', 'administrator'])) {
+        if (in_array($role, ['azwk_staff', 'outside_staff', 'director', 'administrator', 'finance'])) { // Added finance here
              $redirectTarget = 'dashboard.php?reason=access_denied';
         }
         // Avoid setting session message if maybe redirecting to login? Check target.
         if (strpos($redirectTarget, 'dashboard.php') !== false) {
-            $_SESSION['flash_message'] = "Access Denied: Your current role ({$role}) does not permit access to {$currentPage}.";
-            $_SESSION['flash_type'] = 'error';
+            // Use the flash message system from utils.php if available
+            if (function_exists('set_flash_message')) {
+                 set_flash_message('auth_error', "Access Denied: Your current role ({$role}) does not permit access to {$currentPage}.", 'error');
+            } else {
+                // Fallback if utils isn't included before auth (should be)
+                $_SESSION['flash_message'] = "Access Denied: Your current role ({$role}) does not permit access to {$currentPage}.";
+                $_SESSION['flash_type'] = 'error';
+            }
         }
         header("Location: " . $redirectTarget);
         exit;
     }
 
 } // End check for authenticated pages
+
+
+/**
+ * Checks if the current user's active role has permission based on an allowed list.
+ * Ensures session is started and active_role is set.
+ *
+ * @param array $allowedRoles An array of role strings that are allowed. Case-insensitive comparison.
+ * @return bool True if the user's role is in the allowed list, false otherwise.
+ */
+function check_permission(array $allowedRoles): bool
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+
+    if (!isset($_SESSION['active_role'])) {
+        // If no role is set in session, they don't have permission.
+        return false;
+    }
+
+    $userRole = strtolower($_SESSION['active_role']); // Ensure case-insensitive comparison
+
+    // Convert allowed roles to lowercase for comparison
+    $allowedRolesLower = array_map('strtolower', $allowedRoles);
+
+    return in_array($userRole, $allowedRolesLower);
+}
+
 ?>

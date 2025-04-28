@@ -836,9 +836,9 @@ require_once 'includes/header.php';
             const group = document.getElementById(targetGroupId);
             if (group) {
                 if (role === 'kiosk' || role === 'azwk_staff' || role === 'outside_staff') {
-                    group.style.display = 'block';
+                    group.classList.remove('d-none'); // Use Bootstrap class
                 } else {
-                    group.style.display = 'none';
+                    group.classList.add('d-none'); // Use Bootstrap class
                     // Optionally clear the site selection when role doesn't need it
                     const selectElement = group.querySelector('select');
                     if (selectElement) {

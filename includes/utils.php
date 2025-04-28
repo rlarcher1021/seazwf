@@ -291,3 +291,20 @@ function display_flash_messages(string $key, string $default_type = 'info'): voi
         unset($_SESSION['flash_messages'][$key]);
     }
 }
+
+/**
+ * Checks if the current user's active role is 'Director' (case-insensitive).
+ * Uses active_role to respect impersonation.
+ *
+ * @return bool True if the active role is Director, false otherwise.
+ */
+function isDirector(): bool
+{
+    if (session_status() == PHP_SESSION_NONE) {
+        session_start(); // Ensure session is started just in case
+    }
+    // Use active_role and case-insensitive comparison
+    return isset($_SESSION['active_role']) && strtolower($_SESSION['active_role']) === 'director';
+}
+
+// Add similar functions for other roles if needed, e.g., isStaff(), isFinance()
