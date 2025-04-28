@@ -6,6 +6,7 @@ Database_Schema_checkin_system
 wp-config.php
 .env
 config.ini
+error_log
 *.log
 Checkin/
 # Cache folders

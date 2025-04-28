@@ -1887,3 +1887,15 @@
 [28-Apr-2025 15:23:10 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
 [28-Apr-2025 15:23:10 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
 [28-Apr-2025 15:23:10 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
+[28-Apr-2025 15:24:41 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[28-Apr-2025 15:24:41 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[28-Apr-2025 15:24:41 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
+[28-Apr-2025 15:26:12 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[28-Apr-2025 15:26:12 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[28-Apr-2025 15:26:12 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
+[28-Apr-2025 15:27:43 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[28-Apr-2025 15:27:43 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[28-Apr-2025 15:27:43 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
+[28-Apr-2025 15:29:14 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[28-Apr-2025 15:29:14 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[28-Apr-2025 15:29:14 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
