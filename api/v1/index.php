@@ -7,7 +7,7 @@ date_default_timezone_set('America/Phoenix'); // Or your preferred timezone
 
 // Include necessary files
 // Assuming db_connect.php is in the root 'includes' directory
-require_once __DIR__ . '/../../../includes/db_connect.php'; // Provides $conn
+require_once __DIR__ . '/../../includes/db_connect.php'; // Provides $conn
 require_once __DIR__ . '/includes/error_handler.php';
 require_once __DIR__ . '/includes/auth_functions.php';
 require_once __DIR__ . '/data_access/allocation_data_api.php'; // Added for allocation endpoint
