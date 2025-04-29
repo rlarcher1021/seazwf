@@ -33,9 +33,19 @@ $basePath = '/api/v1'; // Define the base path for this API version
 
 // Remove base path and query string to get the route path
 $routePath = parse_url($requestUri, PHP_URL_PATH);
-if (strpos($routePath, $basePath) === 0) {
-    $routePath = substr($routePath, strlen($basePath));
+
+// Find the position of the base path
+$basePathPos = strpos($routePath, $basePath);
+if ($basePathPos !== false) {
+    // If found, take the part after the base path
+    $routePath = substr($routePath, $basePathPos + strlen($basePath));
+    // ADDED: Explicitly remove potential /index.php prefix if present right after base path
+    if (strpos($routePath, '/index.php') === 0) {
+         $routePath = substr($routePath, strlen('/index.php'));
+    }
 }
+// If basePath wasn't found, $routePath remains unchanged here.
+
 // Ensure leading slash and remove trailing slash for consistency
 $routePath = '/' . trim($routePath, '/');
 
@@ -458,7 +468,9 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
 
          default:
              // Route not found (neither parameterized nor specific case matched)
-             sendJsonError(404, "Not Found. The requested endpoint '{$routePath}' does not exist or method '{$requestMethod}' is not supported for this endpoint.", "NOT_FOUND");
+             // Ensure we use the most current request method value in the error message
+             $currentRequestMethod = $_SERVER['REQUEST_METHOD'] ?? 'UNKNOWN'; // Re-fetch or default
+             sendJsonError(404, "Not Found. The requested endpoint '{$routePath}' does not exist or method '{$currentRequestMethod}' is not supported for this endpoint.", "NOT_FOUND");
              break;
      }
 }
