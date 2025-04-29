@@ -13,10 +13,16 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// --- Authentication Check ---
+// This MUST happen before database connection or CSRF generation if CSRF depends on user data.
+// Assuming auth.php handles session start and redirects if not logged in.
+require_once 'includes/auth.php';       // Ensures user is logged in and redirects if not.
+
 // --- CSRF Token Generation ---
 // Generate a CSRF token if one doesn't exist for the session
 // Moved here from auth.php to ensure token exists before panel POST processing
-if (session_status() === PHP_SESSION_ACTIVE && empty($_SESSION['csrf_token'])) {
+// Now placed *after* auth check.
+if (session_status() === PHP_SESSION_ACTIVE && empty($_SESSION['csrf_token'])) { // Session is guaranteed active by auth.php
     try {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     } catch (Exception $e) {
@@ -27,8 +33,8 @@ if (session_status() === PHP_SESSION_ACTIVE && empty($_SESSION['csrf_token'])) {
 }
 // --- End CSRF Token Generation ---
 
+// --- Database Connection and Further Includes (Only if authenticated) ---
 require_once 'includes/db_connect.php'; // Provides $pdo
-require_once 'includes/auth.php';       // Ensures user is logged in
 require_once 'includes/utils.php';      // Utility functions like sanitizers
 // Include data access files needed by panels (panels will use $pdo passed from here)
 require_once 'includes/data_access/site_data.php';

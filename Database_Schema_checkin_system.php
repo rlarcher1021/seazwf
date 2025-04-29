@@ -1,460 +1,90 @@
-Database Schema: checkin_system
-Generated Date: 2025-04-22 (approx)
-
--------------------------------------
+7. Database Schema (MySQL):
+(Structure based on user-provided schema dump dated approx 2025-04-22 and planned API additions. Note: AUTO_INCREMENT details omitted for brevity, standard indexes like PRIMARY assumed unless noted. Foreign key relationships described below individual table definitions where applicable).
 -- Table: ai_resume
--------------------------------------
-Columns:
-  id (Primary): bigint(20), No Null
-  client_name: varchar(255), Yes Null
-  email: varchar(255), Yes Null
-  user_id: int(11), Yes Null
-  job_applied: varchar(255), Yes Null
-  threadsID: varchar(255), Yes Null, Comment: Identifier from the AI interaction/thread
-  request: text, Yes Null, Comment: Details of the request made
-  status: varchar(10), No Null, Comment: e.g., Success, Fail, Pending
-  request_status: enum('queued', 'running', 'done', 'error'), No Null, Default: 'queued'
-  created_at: datetime, No Null, Default: current_timestamp(), Comment: Date and time the record was created
-
-Indexes:
-  PRIMARY: id (Unique)
-  idx_threadsID: threadsID
-  idx_email: email
-  idx_created_at: created_at
-  idx_airesume_user: user_id
-
--------------------------------------
+Columns: id (Primary), client_name, email, user_id (FK -> users), job_applied, threadsID, request, status, request_status (ENUM), created_at.
+Indexes: PRIMARY, idx_threadsID, idx_email, idx_created_at, idx_airesume_user (user_id).
 -- Table: ai_resume_logs
--------------------------------------
-Columns:
-  id (Primary): bigint(20), No Null
-  resume_id: bigint(20), No Null
-  event: varchar(50), No Null
-  details: text, Yes Null
-  created_at: timestamp, No Null, Default: current_timestamp()
-
-Indexes:
-  PRIMARY: id (Unique)
-  fk_ai_logs_resume: resume_id
-
--------------------------------------
+Columns: id (Primary), resume_id (FK -> ai_resume), event, details, created_at.
+Indexes: PRIMARY, fk_ai_logs_resume (resume_id).
 -- Table: ai_resume_val
--------------------------------------
-Columns:
-  id (Primary): bigint(20), No Null
-  name: varchar(255), Yes Null
-  email: varchar(255), No Null
-  user_id: int(11), Yes Null
-  site: varchar(100), Yes Null, Comment: Identifier for the site/location of signup
-  signup_time: datetime, No Null, Default: current_timestamp(), Comment: Timestamp when the user was added/validated
-  created_at: timestamp, No Null, Default: current_timestamp()
-
-Indexes:
-  PRIMARY: id (Unique)
-  idx_unique_email: email (Unique)
-  idx_site: site
-  fk_ai_resumeval_user: user_id
-
--------------------------------------
+Columns: id (Primary), name, email (Unique), user_id (FK -> users), site, signup_time, created_at.
+Indexes: PRIMARY, idx_unique_email, idx_site, fk_ai_resumeval_user (user_id).
+-- Table: api_keys (NEW - Requires SQL CREATE)
+Comments: Stores API keys for external system access.
+Columns: id (Primary), key_hash (Unique, Comment: Secure hash of API key), description, associated_permissions (TEXT, Comment: JSON/list of permissions), created_at, last_used_at (Timestamp, Null), is_active (TINYINT, Default: 1).
+Indexes: PRIMARY, idx_key_hash_unique, idx_api_keys_active (is_active).
 -- Table: budgets
--------------------------------------
-Columns:
-  id (Primary): int(11), No Null
-  name: varchar(255), No Null
-  user_id: int(11), No Null, Comment: Assigned staff member (for Staff type) or potentially Director/Admin user (for Admin type)
-  grant_id: int(11), No Null
-  department_id: int(11), No Null, Comment: Department responsible for this budget (e.g., Arizona@Work)
-  fiscal_year_start: date, No Null
-  fiscal_year_end: date, No Null
-  budget_type: enum('Staff', 'Admin'), No Null, Default: 'Staff'
-  notes: text, Yes Null
-  created_at: timestamp, Yes Null, Default: current_timestamp()
-  updated_at: timestamp, Yes Null, Default: current_timestamp() (Note: Should likely be ON UPDATE CURRENT_TIMESTAMP)
-  deleted_at: datetime, Yes Null
-
-Indexes:
-  PRIMARY: id (Unique)
-  fk_budget_user_idx: user_id
-  fk_budget_grant_idx: grant_id
-  fk_budget_department_idx: department_id
-  idx_budgets_fiscal_year_start: fiscal_year_start
-  idx_budgets_deleted_at: deleted_at
-
--------------------------------------
+Columns: id (Primary), name, user_id (FK -> users, Allows Null), grant_id (FK -> grants), department_id (FK -> departments), fiscal_year_start, fiscal_year_end, budget_type (ENUM 'Staff', 'Admin'), notes, created_at, updated_at, deleted_at (DATETIME, Null).
+Indexes: PRIMARY, fk_budget_user_idx, fk_budget_grant_idx, fk_budget_department_idx, idx_budgets_fiscal_year_start, idx_budgets_deleted_at.
+Foreign Keys: user_id -> users(id), grant_id -> grants(id), department_id -> departments(id). (Note: user_id FK needs review due to NULL allowance).
 -- Table: budget_allocations
--------------------------------------
-Columns:
-  id (Primary): int(11), No Null
-  budget_id: int(11), No Null, Comment: FK to budgets table
-  transaction_date: date, No Null
-  payee_vendor: varchar(255), No Null
-  voucher_number: varchar(100), Yes Null
-  enrollment_date: date, Yes Null
-  class_start_date: date, Yes Null
-  purchase_date: date, Yes Null
-  payment_status: enum('P', 'U'), No Null, Default: 'U'
-  program_explanation: text, Yes Null
-  funding_dw: decimal(10,2), Yes Null, Default: 0.00
-  funding_dw_admin: decimal(10,2), Yes Null, Default: 0.00
-  funding_dw_sus: decimal(10,2), Yes Null, Default: 0.00
-  funding_adult: decimal(10,2), Yes Null, Default: 0.00
-  funding_adult_admin: decimal(10,2), Yes Null, Default: 0.00
-  funding_adult_sus: decimal(10,2), Yes Null, Default: 0.00
-  funding_rr: decimal(10,2), Yes Null, Default: 0.00
-  funding_h1b: decimal(10,2), Yes Null, Default: 0.00
-  funding_youth_is: decimal(10,2), Yes Null, Default: 0.00
-  funding_youth_os: decimal(10,2), Yes Null, Default: 0.00
-  funding_youth_admin: decimal(10,2), Yes Null, Default: 0.00
-  fin_voucher_received: varchar(10), Yes Null
-  fin_accrual_date: date, Yes Null
-  fin_obligated_date: date, Yes Null
-  fin_comments: text, Yes Null
-  fin_expense_code: varchar(50), Yes Null
-  fin_processed_by_user_id: int(11), Yes Null, Comment: FK to users.id (Finance user who processed)
-  fin_processed_at: datetime, Yes Null
-  created_by_user_id: int(11), No Null, Comment: FK to users.id (Who created the row)
-  updated_by_user_id: int(11), Yes Null, Comment: FK to users.id (Who last updated the row)
-  created_at: timestamp, Yes Null, Default: current_timestamp()
-  updated_at: timestamp, Yes Null, Default: current_timestamp() (Note: Should likely be ON UPDATE CURRENT_TIMESTAMP)
-  deleted_at: datetime, Yes Null
-
-Indexes:
-  PRIMARY: id (Unique)
-  idx_alloc_budget_id: budget_id
-  idx_alloc_transaction_date: transaction_date
-  idx_alloc_deleted_at: deleted_at
-  fk_alloc_fin_processed_user_idx: fin_processed_by_user_id
-  fk_alloc_created_user_idx: created_by_user_id
-  fk_alloc_updated_user_idx: updated_by_user_id
-
--------------------------------------
+Columns: id (Primary), budget_id (FK -> budgets), transaction_date, vendor_id (FK -> vendors, Null), client_name (VARCHAR, Null), voucher_number, enrollment_date, class_start_date, purchase_date, payment_status (ENUM 'P', 'U', 'Void'), program_explanation, funding_* (DECIMAL fields), fin_* (VARCHAR/DATE/TEXT fields), fin_processed_by_user_id (FK -> users, Null), fin_processed_at (DATETIME, Null), created_by_user_id (FK -> users), updated_by_user_id (FK -> users, Null), created_at, updated_at, deleted_at (DATETIME, Null).
+Indexes: PRIMARY, idx_alloc_budget_id, idx_alloc_transaction_date, idx_alloc_deleted_at, fk_alloc_fin_processed_user_idx, fk_alloc_created_user_idx, fk_alloc_updated_user_idx, fk_alloc_vendor (vendor_id).
+Foreign Keys: budget_id -> budgets(id), vendor_id -> vendors(id), fin_processed_by_user_id -> users(id), created_by_user_id -> users(id), updated_by_user_id -> users(id).
 -- Table: check_ins
--------------------------------------
-Columns:
-  id (Primary): int(11), No Null
-  site_id: int(11), No Null
-  first_name: varchar(100), No Null
-  last_name: varchar(100), No Null
-  check_in_time: timestamp, Yes Null, Default: current_timestamp()
-  notified_staff_id: int(11), Yes Null
-  client_email: varchar(100), Yes Null
-  q_veteran: enum('YES', 'NO'), Yes Null
-  q_age: enum('YES', 'NO'), Yes Null
-  q_interviewing: enum('YES', 'NO'), Yes Null
-
-Indexes:
-  PRIMARY: id (Unique)
-  check_ins_site_id_fk: site_id
-  check_ins_notified_staff_id_fk: notified_staff_id
-  idx_checkins_site_time: (site_id, check_in_time)
-
--------------------------------------
+Columns: id (Primary), site_id (FK -> sites), first_name, last_name, check_in_time, notified_staff_id (FK -> users, Null), client_email, q_veteran (ENUM), q_age (ENUM), q_interviewing (ENUM).
+Indexes: PRIMARY, check_ins_site_id_fk, check_ins_notified_staff_id_fk, idx_checkins_site_time (site_id, check_in_time).
+Foreign Keys: site_id -> sites(id), notified_staff_id -> users(id).
+-- Table: checkin_notes (NEW - Requires SQL CREATE)
+Comments: Stores notes associated with specific check-in records.
+Columns: id (Primary), check_in_id (FK -> check_ins), note_text (TEXT), created_by_user_id (FK -> users, Null), created_by_api_key_id (FK -> api_keys, Null), created_at, deleted_at (DATETIME, Null).
+Indexes: PRIMARY, idx_checkin_notes_checkin_id, idx_checkin_notes_deleted_at, fk_checkin_note_user_creator_idx, fk_checkin_note_api_creator_idx.
+Foreign Keys: check_in_id -> check_ins(id), created_by_user_id -> users(id), created_by_api_key_id -> api_keys(id).
 -- Table: departments
--------------------------------------
 Comments: Stores global department names
-Columns:
-  id (Primary): int(11), No Null
-  name: varchar(150), No Null
-  slug: varchar(160), Yes Null
-  created_at: timestamp, Yes Null, Default: current_timestamp()
-  deleted_at: datetime, Yes Null
-
-Indexes:
-  PRIMARY: id (Unique)
-  name_UNIQUE: name (Unique)
-  slug_UNIQUE: slug (Unique)
-
--------------------------------------
+Columns: id (Primary), name (Unique), slug (Unique), created_at, deleted_at (DATETIME, Null).
+Indexes: PRIMARY, name_UNIQUE, slug_UNIQUE.
 -- Table: finance_department_access
--------------------------------------
-Columns:
-  id (Primary): int(11), No Null
-  finance_user_id: int(11), No Null, Comment: FK to users.id where department is Finance
-  accessible_department_id: int(11), No Null, Comment: FK to departments.id that the Finance user can access
-  created_at: timestamp, Yes Null, Default: current_timestamp()
-
-Indexes:
-  PRIMARY: id (Unique)
-  idx_user_dept_unique: (finance_user_id, accessible_department_id) (Unique), Comment: Prevent duplicate access entries
-  fk_fin_access_user_idx: finance_user_id
-  fk_fin_access_dept_idx: accessible_department_id
-
--------------------------------------
+Comments: Not used for budget control (v1.30+). Maps specific users (historically finance) to departments they can access (potentially for other modules).
+Columns: id (Primary), finance_user_id (FK -> users), accessible_department_id (FK -> departments), created_at.
+Indexes: PRIMARY, idx_user_dept_unique (finance_user_id, accessible_department_id), fk_fin_access_user_idx, fk_fin_access_dept_idx.
+Foreign Keys: finance_user_id -> users(id), accessible_department_id -> departments(id).
 -- Table: forum_categories
--------------------------------------
 Comments: Forum categories/sections
-Columns:
-  id (Primary): int(10), No Null
-  name: varchar(100), No Null, Comment: Name of the category
-  description: text, Yes Null, Comment: Optional description
-  view_role: enum('azwk_staff', 'outside_staff', 'director', 'administrator'), No Null, Default: 'azwk_staff', Comment: Minimum role required to view
-  post_role: enum('azwk_staff', 'outside_staff', 'director', 'administrator'), No Null, Default: 'azwk_staff', Comment: Minimum role required to create topics
-  reply_role: enum('azwk_staff', 'outside_staff', 'director', 'administrator'), No Null, Default: 'azwk_staff', Comment: Minimum role required to reply
-  display_order: int(11), No Null, Default: 0, Comment: Display order
-  created_at: timestamp, No Null, Default: current_timestamp()
-
-Indexes:
-  PRIMARY: id (Unique)
-
--------------------------------------
+Columns: id (Primary), name, description, view_role (ENUM), post_role (ENUM), reply_role (ENUM), display_order, created_at.
+Indexes: PRIMARY.
 -- Table: forum_posts
--------------------------------------
 Comments: Individual forum posts/messages
-Columns:
-  id (Primary): int(10), No Null
-  topic_id: int(10), No Null, Comment: FK pointing to forum_topics
-  user_id: int(11), Yes Null, Comment: FK pointing to user who wrote post
-  content: text, No Null, Comment: Post content
-  created_at: timestamp, No Null, Default: current_timestamp()
-  updated_at: timestamp, Yes Null, Comment: Timestamp of last edit
-  updated_by_user_id: int(11), Yes Null, Comment: FK pointing to user who last edited
-
-Indexes:
-  PRIMARY: id (Unique)
-  fk_forum_posts_topic_idx: topic_id
-  fk_forum_posts_user_idx: user_id
-  fk_forum_posts_editor_idx: updated_by_user_id
-  idx_posts_topic_created: (topic_id, created_at)
-
--------------------------------------
+Columns: id (Primary), topic_id (FK -> forum_topics), user_id (FK -> users, Null), content (TEXT), created_at, updated_at (Timestamp, Null), updated_by_user_id (FK -> users, Null).
+Indexes: PRIMARY, fk_forum_posts_topic_idx, fk_forum_posts_user_idx, fk_forum_posts_editor_idx, idx_posts_topic_created (topic_id, created_at).
+Foreign Keys: topic_id -> forum_topics(id), user_id -> users(id), updated_by_user_id -> users(id).
 -- Table: forum_topics
--------------------------------------
 Comments: Individual forum discussion threads
-Columns:
-  id (Primary): int(10), No Null
-  category_id: int(10), No Null, Comment: FK pointing to forum_categories
-  user_id: int(11), Yes Null, Comment: FK pointing to user who started topic
-  title: varchar(255), No Null, Comment: Topic Title
-  is_sticky: tinyint(1), No Null, Default: 0, Comment: 0 = Normal, 1 = Pinned
-  is_locked: tinyint(1), No Null, Default: 0, Comment: 0 = Open, 1 = Closed
-  created_at: timestamp, No Null, Default: current_timestamp()
-  last_post_at: timestamp, Yes Null, Comment: Timestamp of latest post
-  last_post_user_id: int(11), Yes Null, Comment: FK pointing to last poster
-
-Indexes:
-  PRIMARY: id (Unique)
-  fk_forum_topics_category_idx: category_id
-  fk_forum_topics_user_idx: user_id
-  fk_forum_topics_last_poster_idx: last_post_user_id
-  idx_topics_lastpost: last_post_at
-
--------------------------------------
+Columns: id (Primary), category_id (FK -> forum_categories), user_id (FK -> users, Null), title, is_sticky (TINYINT), is_locked (TINYINT), created_at, last_post_at (Timestamp, Null), last_post_user_id (FK -> users, Null).
+Indexes: PRIMARY, fk_forum_topics_category_idx, fk_forum_topics_user_idx, fk_forum_topics_last_poster_idx, idx_topics_lastpost.
+Foreign Keys: category_id -> forum_categories(id), user_id -> users(id), last_post_user_id -> users(id).
 -- Table: global_ads
--------------------------------------
-Columns:
-  id (Primary): int(11), No Null
-  ad_type: enum('text', 'image'), No Null
-  ad_title: varchar(150), Yes Null
-  ad_text: text, Yes Null
-  image_path: varchar(255), Yes Null
-  is_active: tinyint(1), No Null, Default: 1
-  created_at: timestamp, Yes Null, Default: current_timestamp()
-  updated_at: timestamp, Yes Null, Default: current_timestamp() (Note: Should likely be ON UPDATE CURRENT_TIMESTAMP)
-
-Indexes:
-  PRIMARY: id (Unique)
-
--------------------------------------
+Columns: id (Primary), ad_type (ENUM), ad_title, ad_text, image_path, is_active (TINYINT), created_at, updated_at.
+Indexes: PRIMARY.
 -- Table: global_questions
--------------------------------------
-Columns:
-  id (Primary): int(11), No Null
-  question_text: text, No Null
-  question_title: varchar(50), No Null, Comment: Stores base name, must be unique
-  created_at: timestamp, Yes Null, Default: current_timestamp()
-
-Indexes:
-  PRIMARY: id (Unique)
-  question_title: question_title (Unique)
-
--------------------------------------
+Columns: id (Primary), question_text (TEXT), question_title (Unique), created_at.
+Indexes: PRIMARY, question_title.
 -- Table: grants
--------------------------------------
-Columns:
-  id (Primary): int(11), No Null
-  name: varchar(255), No Null
-  grant_code: varchar(100), Yes Null
-  description: text, Yes Null
-  start_date: date, Yes Null
-  end_date: date, Yes Null
-  created_at: timestamp, Yes Null, Default: current_timestamp()
-  updated_at: timestamp, Yes Null, Default: current_timestamp() (Note: Should likely be ON UPDATE CURRENT_TIMESTAMP)
-  deleted_at: datetime, Yes Null
-
-Indexes:
-  PRIMARY: id (Unique)
-  name_UNIQUE: name (Unique)
-  grant_code_UNIQUE: grant_code (Unique)
-  idx_grants_deleted_at: deleted_at
-
--------------------------------------
+Columns: id (Primary), name (Unique), grant_code (Unique), description, start_date, end_date, created_at, updated_at, deleted_at (DATETIME, Null).
+Indexes: PRIMARY, name_UNIQUE, grant_code_UNIQUE, idx_grants_deleted_at.
 -- Table: sites
--------------------------------------
-Columns:
-  id (Primary): int(11), No Null
-  name: varchar(150), No Null
-  email_collection_desc: text, Yes Null
-  is_active: tinyint(1), No Null, Default: 1
-
-Indexes:
-  PRIMARY: id (Unique)
-
--------------------------------------
+Columns: id (Primary), name, email_collection_desc, is_active (TINYINT).
+Indexes: PRIMARY.
 -- Table: site_ads
--------------------------------------
-Columns:
-  id (Primary): int(11), No Null
-  site_id: int(11), No Null
-  global_ad_id: int(11), No Null
-  display_order: int(11), No Null, Default: 0
-  is_active: tinyint(1), No Null, Default: 1
-  created_at: timestamp, Yes Null, Default: current_timestamp()
-  updated_at: timestamp, Yes Null, Default: current_timestamp() (Note: Should likely be ON UPDATE CURRENT_TIMESTAMP)
-
-Indexes:
-  PRIMARY: id (Unique)
-  site_global_ad_unique: (site_id, global_ad_id) (Unique)
-  site_ads_global_ad_id_fk: global_ad_id
-
--------------------------------------
+Columns: id (Primary), site_id (FK -> sites), global_ad_id (FK -> global_ads), display_order, is_active (TINYINT), created_at, updated_at.
+Indexes: PRIMARY, site_global_ad_unique (site_id, global_ad_id), site_ads_global_ad_id_fk.
+Foreign Keys: site_id -> sites(id), global_ad_id -> global_ads(id).
 -- Table: site_configurations
--------------------------------------
-Columns:
-  site_id (Primary): int(11), No Null
-  config_key (Primary): varchar(50), No Null
-  config_value: text, Yes Null, Comment: Configuration value (can be boolean, string, etc.)
-  created_at: timestamp, Yes Null, Default: current_timestamp()
-  updated_at: timestamp, Yes Null, Default: current_timestamp() (Note: Should likely be ON UPDATE CURRENT_TIMESTAMP)
-
-Indexes:
-  PRIMARY: (site_id, config_key) (Unique)
-
--------------------------------------
+Columns: site_id (Primary, FK -> sites), config_key (Primary), config_value (TEXT), created_at, updated_at.
+Indexes: PRIMARY (site_id, config_key).
+Foreign Keys: site_id -> sites(id).
 -- Table: site_questions
--------------------------------------
-Columns:
-  id (Primary): int(11), No Null
-  site_id: int(11), No Null
-  global_question_id: int(11), No Null
-  display_order: int(11), No Null, Default: 0
-  is_active: tinyint(1), No Null, Default: 1
-  created_at: timestamp, Yes Null, Default: current_timestamp()
-
-Indexes:
-  PRIMARY: id (Unique)
-  site_global_question_unique: (site_id, global_question_id) (Unique)
-  site_questions_gq_id_fk: global_question_id
-
--------------------------------------
+Columns: id (Primary), site_id (FK -> sites), global_question_id (FK -> global_questions), display_order, is_active (TINYINT), created_at.
+Indexes: PRIMARY, site_global_question_unique (site_id, global_question_id), site_questions_gq_id_fk.
+Foreign Keys: site_id -> sites(id), global_question_id -> global_questions(id).
 -- Table: staff_notifications
--------------------------------------
-Columns:
-  id (Primary): int(11), No Null
-  site_id: int(11), No Null
-  staff_name: varchar(100), No Null
-  staff_email: varchar(100), No Null
-  is_active: tinyint(1), No Null, Default: 1
-
-Indexes:
-  PRIMARY: id (Unique)
-  staff_notifications_site_id_fk: site_id
-
--------------------------------------
+Columns: id (Primary), site_id (FK -> sites), staff_name, staff_email, is_active (TINYINT).
+Indexes: PRIMARY, staff_notifications_site_id_fk.
+Foreign Keys: site_id -> sites(id).
 -- Table: users
--------------------------------------
-Columns:
-  id (Primary): int(11), No Null
-  username: varchar(50), No Null
-  full_name: varchar(100), No Null
-  email: varchar(100), No Null
-  job_title: varchar(100), Yes Null, Comment: User's job title
-  department_id: int(11), Yes Null
-  password_hash: varchar(255), No Null
-  role: enum('kiosk', 'azwk_staff', 'outside_staff', 'director', 'administrator'), No Null, Default: 'kiosk'
-  site_id: int(11), Yes Null
-  last_login: timestamp, Yes Null
-  is_active: tinyint(1), No Null, Default: 1
-  created_at: timestamp, Yes Null, Default: current_timestamp()
-  deleted_at: datetime, Yes Null
-
-Indexes:
-  PRIMARY: id (Unique)
-  username: username (Unique)
-  email: email (Unique)
-  users_site_id_fk: site_id
-  fk_users_department_idx: department_id
-
--------------------------------------
--- Table: vendors (NEW)
--------------------------------------
-Columns:
-  id (Primary): int, No Null, Auto Increment
-  name: varchar(255), No Null, Unique
-  client_name_required: tinyint(1), No Null, Default: 0, Comment: 0 = No, 1 = Yes. Client name required in budget_allocations if this vendor is selected.
-  is_active: tinyint(1), No Null, Default: 1
-  created_at: timestamp, Null, Default: current_timestamp()
-  deleted_at: datetime, Null
-
-Indexes:
-  PRIMARY: id (Unique)
-  name_UNIQUE: name (Unique)
-  idx_vendors_active: is_active
-  idx_vendors_deleted_at: deleted_at
-
--------------------------------------
--- Table: budget_allocations (MODIFIED)
--------------------------------------
-Columns:
-  id (Primary): int(11), No Null
-  budget_id: int(11), No Null, Comment: FK to budgets table
-  transaction_date: date, No Null
-  vendor_id: int, Null, Comment: FK to vendors table (Was payee_vendor VARCHAR) - Should be NOT NULL after migration/setup.
-  client_name: varchar(255), Null, Comment: NEW - Conditionally required based on vendor.id
-  voucher_number: varchar(100), Yes Null
-  enrollment_date: date, Yes Null
-  class_start_date: date, Yes Null
-  purchase_date: date, Yes Null
-  payment_status: enum('P', 'U', 'Void'), No Null, Default: 'U', Comment: ADDED 'Void'
-  program_explanation: text, Yes Null
-  funding_dw: decimal(10,2), Yes Null, Default: 0.00
-  funding_dw_admin: decimal(10,2), Yes Null, Default: 0.00
-  funding_dw_sus: decimal(10,2), Yes Null, Default: 0.00
-  funding_adult: decimal(10,2), Yes Null, Default: 0.00
-  funding_adult_admin: decimal(10,2), Yes Null, Default: 0.00
-  funding_adult_sus: decimal(10,2), Yes Null, Default: 0.00
-  funding_rr: decimal(10,2), Yes Null, Default: 0.00
-  funding_h1b: decimal(10,2), Yes Null, Default: 0.00
-  funding_youth_is: decimal(10,2), Yes Null, Default: 0.00
-  funding_youth_os: decimal(10,2), Yes Null, Default: 0.00
-  funding_youth_admin: decimal(10,2), Yes Null, Default: 0.00
-  fin_voucher_received: varchar(10), Yes Null
-  fin_accrual_date: date, Yes Null
-  fin_obligated_date: date, Yes Null
-  fin_comments: text, Yes Null
-  fin_expense_code: varchar(50), Yes Null
-  fin_processed_by_user_id: int(11), Yes Null, Comment: FK to users.id (Finance user who processed)
-  fin_processed_at: datetime, Yes Null
-  created_by_user_id: int(11), No Null, Comment: FK to users.id (Who created the row)
-  updated_by_user_id: int(11), Yes Null, Comment: FK to users.id (Who last updated the row)
-  created_at: timestamp, Yes Null, Default: current_timestamp()
-  updated_at: timestamp, Yes Null, Default: current_timestamp()
-  deleted_at: datetime, Yes Null
-
-Indexes: (Include fk_alloc_vendor index now)
-  PRIMARY: id (Unique)
-  idx_alloc_budget_id: budget_id
-  idx_alloc_transaction_date: transaction_date
-  idx_alloc_deleted_at: deleted_at
-  fk_alloc_fin_processed_user_idx: fin_processed_by_user_id
-  fk_alloc_created_user_idx: created_by_user_id
-  fk_alloc_updated_user_idx: updated_by_user_id
-  -- fk_alloc_vendor: vendor_id (Add index if not automatically created by FK constraint)
-
-Foreign Keys: (Include fk_alloc_vendor)
-  fk_alloc_budget: budget_id -> budgets(id)
-  fk_alloc_vendor: vendor_id -> vendors(id)
-  fk_alloc_fin_processed_user: fin_processed_by_user_id -> users(id)
-  fk_alloc_created_user: created_by_user_id -> users(id)
-  fk_alloc_updated_user: updated_by_user_id -> users(id)
-
--------------------------------------
+Columns: id (Primary), username (Unique), full_name, email (Unique), job_title, department_id (FK -> departments, Null), password_hash, role (ENUM 'kiosk','azwk_staff','outside_staff','director','administrator'), site_id (FK -> sites, Null), last_login (Timestamp, Null), is_active (TINYINT), created_at, deleted_at (DATETIME, Null).
+Indexes: PRIMARY, username, email, users_site_id_fk, fk_users_department_idx.
+Foreign Keys: department_id -> departments(id), site_id -> sites(id).
+-- Table: vendors
+Columns: id (Primary), name (Unique), client_name_required (TINYINT), is_active (TINYINT), created_at, deleted_at (DATETIME, Null).
+Indexes: PRIMARY, name_UNIQUE, idx_vendors_active, idx_vendors_deleted_at.

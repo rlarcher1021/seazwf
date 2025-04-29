@@ -29,3 +29,4 @@ error_log
 # Backup files
 *.bak
 *.old
+plan_display_user_names_allocations_table.md
