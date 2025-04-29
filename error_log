@@ -2420,3 +2420,21 @@
 [29-Apr-2025 13:37:03 Europe/Berlin] Database Connection Error: SQLSTATE[HY000] [2002] No connection could be made because the target machine actively refused it
 [29-Apr-2025 13:39:18 Europe/Berlin] Database Connection Error: SQLSTATE[HY000] [2002] No connection could be made because the target machine actively refused it
 [29-Apr-2025 13:45:00 Europe/Berlin] Database Connection Error: SQLSTATE[HY000] [2002] No connection could be made because the target machine actively refused it
+[29-Apr-2025 20:00:02 Europe/Berlin] Dashboard Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
+(
+    [0] => q_age
+    [1] => q_interviewing
+    [2] => q_veteran
+)
+
+[29-Apr-2025 20:00:04 Europe/Berlin] Dashboard Debug - Filter ID: all - Active VALID question columns for data fetch (prefixed): Array
+(
+    [0] => q_age
+    [1] => q_interviewing
+    [2] => q_veteran
+)
+
+[29-Apr-2025 20:00:09 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/site_settings_panel.php'. Selected Site ID = 4
+[29-Apr-2025 20:00:11 Europe/Berlin] Alerts Debug: Checking current directory path: C:\xampp\htdocs\public_html/error_log
+[29-Apr-2025 20:00:11 Europe/Berlin] Alerts Debug: Found log file in current directory.
+[29-Apr-2025 20:00:11 Europe/Berlin] Alerts INFO: Determined log file path: C:\xampp\htdocs\public_html/error_log

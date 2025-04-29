@@ -1,6 +1,6 @@
 Arizona@Work Check-In System - Living Project Plan
 Version: 1.35
-Date: 2025-04-25
+Date: 2025-04-29
 (This Living Plan document is the "Single Source of Truth". User Responsibility: Maintain locally, provide current code, request plan updates. Developer (AI) Responsibility: Use plan/code context, focus on single tasks, provide code, assist plan updates.)
 1. Project Goal:
 Develop a web-based check-in and tracking system for Arizona@Work sites.
@@ -13,10 +13,10 @@ Core Roles Involved: azwk_staff, Director, Administrator (as defined in users.ro
 Core Departments Involved: AZ@Work operational departments, Finance Department (referenced by users.department_id FK to departments.id).
 Permission Logic: Access and actions within the Budget Module (via Web UI) are determined by the user's assigned Role AND their assigned Department (from the users table, stored in session).
 Kiosk: Limited access role. (No budget module access).
-AZ@Work Staff (azwk_staff) assigned to an AZ@Work Department: Permissions as defined in v1.32 (Web UI).
-AZ@Work Staff (azwk_staff) assigned to the Finance Department: Permissions as defined in v1.32 (Web UI).
+AZ@Work Staff (azwk_staff) assigned to an AZ@Work Department: Permissions as defined in v1.32 (Web UI - Add/Edit assigned Staff budgets, staff fields only, see core columns).
+AZ@Work Staff (azwk_staff) assigned to the Finance Department: Permissions as defined in v1.32 (Web UI - Add Admin allocations, Edit Staff fin_* fields, Edit Admin all fields, Delete Admin allocations, see all columns).
 Outside Staff: Role exists, permissions TBC. Likely no budget access.
-Director (director): Permissions as defined in v1.32 (Web UI).
+Director (director): Permissions as defined in v1.32 (Web UI - Full Budget Setup, Add/Edit Staff allocations staff fields, Void allocations, see all columns).
 Administrator (administrator): System-wide configuration, user management. Full access.
 3. Authentication System:
 Web UI:
@@ -102,14 +102,14 @@ Indexes: PRIMARY, fk_ai_logs_resume (resume_id).
 -- Table: ai_resume_val
 Columns: id (Primary), name, email (Unique), user_id (FK -> users), site, signup_time, created_at.
 Indexes: PRIMARY, idx_unique_email, idx_site, fk_ai_resumeval_user (user_id).
--- Table: api_keys (NEW - Requires SQL CREATE)
-Comments: Stores API keys for external system access.
+-- Table: api_keys
+Comments: Stores API keys for external system access. Created via SQL.
 Columns: id (Primary), key_hash (Unique, Comment: Secure hash of API key), description, associated_permissions (TEXT, Comment: JSON/list of permissions), created_at, last_used_at (Timestamp, Null), is_active (TINYINT, Default: 1).
 Indexes: PRIMARY, idx_key_hash_unique, idx_api_keys_active (is_active).
 -- Table: budgets
 Columns: id (Primary), name, user_id (FK -> users, Allows Null), grant_id (FK -> grants), department_id (FK -> departments), fiscal_year_start, fiscal_year_end, budget_type (ENUM 'Staff', 'Admin'), notes, created_at, updated_at, deleted_at (DATETIME, Null).
 Indexes: PRIMARY, fk_budget_user_idx, fk_budget_grant_idx, fk_budget_department_idx, idx_budgets_fiscal_year_start, idx_budgets_deleted_at.
-Foreign Keys: user_id -> users(id), grant_id -> grants(id), department_id -> departments(id). (Note: user_id FK needs review due to NULL allowance).
+Foreign Keys: user_id -> users(id), grant_id -> grants(id), department_id -> departments(id).
 -- Table: budget_allocations
 Columns: id (Primary), budget_id (FK -> budgets), transaction_date, vendor_id (FK -> vendors, Null), client_name (VARCHAR, Null), voucher_number, enrollment_date, class_start_date, purchase_date, payment_status (ENUM 'P', 'U', 'Void'), program_explanation, funding_* (DECIMAL fields), fin_* (VARCHAR/DATE/TEXT fields), fin_processed_by_user_id (FK -> users, Null), fin_processed_at (DATETIME, Null), created_by_user_id (FK -> users), updated_by_user_id (FK -> users, Null), created_at, updated_at, deleted_at (DATETIME, Null).
 Indexes: PRIMARY, idx_alloc_budget_id, idx_alloc_transaction_date, idx_alloc_deleted_at, fk_alloc_fin_processed_user_idx, fk_alloc_created_user_idx, fk_alloc_updated_user_idx, fk_alloc_vendor (vendor_id).
@@ -118,8 +118,8 @@ Foreign Keys: budget_id -> budgets(id), vendor_id -> vendors(id), fin_processed_
 Columns: id (Primary), site_id (FK -> sites), first_name, last_name, check_in_time, notified_staff_id (FK -> users, Null), client_email, q_veteran (ENUM), q_age (ENUM), q_interviewing (ENUM).
 Indexes: PRIMARY, check_ins_site_id_fk, check_ins_notified_staff_id_fk, idx_checkins_site_time (site_id, check_in_time).
 Foreign Keys: site_id -> sites(id), notified_staff_id -> users(id).
--- Table: checkin_notes (NEW - Requires SQL CREATE)
-Comments: Stores notes associated with specific check-in records.
+-- Table: checkin_notes
+Comments: Stores notes associated with specific check-in records. Created via SQL.
 Columns: id (Primary), check_in_id (FK -> check_ins), note_text (TEXT), created_by_user_id (FK -> users, Null), created_by_api_key_id (FK -> api_keys, Null), created_at, deleted_at (DATETIME, Null).
 Indexes: PRIMARY, idx_checkin_notes_checkin_id, idx_checkin_notes_deleted_at, fk_checkin_note_user_creator_idx, fk_checkin_note_api_creator_idx.
 Foreign Keys: check_in_id -> check_ins(id), created_by_user_id -> users(id), created_by_api_key_id -> api_keys(id).
@@ -224,25 +224,27 @@ Review compliance requirements (e.g., PII handling if client emails/names are st
 Completed/Resolved Since v1.34:
 Database schema updated to include created_by_api_key_id in forum_posts.
 Developer reported completion of API Foundation (Phase 1) and Initial Endpoints (Phase 2).
+Required SQL for api_keys, checkin_notes, forum_posts alteration completed by User.
+API routing issues (.htaccess, include paths) resolved via debugging.
 Previous Completions:
 Budget Module functionality (Role+Dept Permissions, User Name Display) tested and confirmed "running smooth".
 Database Schema structure clarified via user-provided dump and updated in this plan.
 XAMPP test environment recovered.
 Admin Budget creation fixed (DB allows NULL user_id).
-Current Status: Awaiting API testing information from the developer and user testing of the new API endpoints.
+Current Status: API Foundation and initial Endpoints are implemented. Awaiting API testing information from the developer and subsequent user testing. Debugging revealed and resolved issues with API routing and script execution.
 Known Issues: Potential inconsistencies in updated_at column definitions noted in schema dump (may need fixing later).
-Required User Action: None (SQL for api_keys, checkin_notes, forum_posts completed).
-Required Developer Action: Provide API testing details: Base URL, test API key, authentication method, expected permissions for test key.
+Required User Action: Generate test API key data (hash plain key, insert into api_keys table with appropriate permissions).
+Required Developer Action: Provide API testing details: Base URL, authentication method expected (confirm Authorization: Bearer or X-API-Key), expected permissions names for test key (read:checkin_data, create:checkin_note, read:budget_allocations, create:forum_post, generate:reports).
 Remaining Tasks (API Development - Developer):
-Awaiting testing feedback on Phase 1 & 2.
+Awaiting testing feedback on Phase 1 & 2 implementation.
 Remaining Tasks (General):
-Define API Key Permissions: Finalize specific permissions (e.g., read:checkin_data) and determine how they will be stored/managed in api_keys.associated_permissions. Create initial test key data.
+Define API Key Permissions (Formalize): Finalize specific permissions strings and determine how they will be stored/managed long-term in api_keys.associated_permissions.
 Define Report Details: Specify requirements for API reports.
-Testing: Test API foundation and endpoints thoroughly using tools (Postman/Insomnia) as they are developed and when details are provided.
+API Testing: User (Robert) to test API foundation and endpoints thoroughly using tools (Postman/n8n) once setup details and test key are ready.
 Address potential updated_at inconsistencies.
 Security Reviews (Upload Dir, Code Review, FK Errors, etc.).
 Documentation (API Docs, User Manual updates).
-Immediate Next Step: Request API testing details (Base URL, Test API Key, Auth Method, Permissions) from the developer. Once received, User (Robert) to begin API testing (with PM guidance).
+Immediate Next Step: User (Robert) to generate test API key & insert into DB. Request API testing details (Auth Method, Permissions Names) from the developer. Once received, User (Robert) to begin API testing (with PM guidance).
 14. Future Enhancements (Post-MVP):
 AI Agent Integration (utilizing the API).
 Admin UI for API Key Management.

@@ -7,11 +7,31 @@ date_default_timezone_set('America/Phoenix'); // Or your preferred timezone
 
 // Include necessary files
 // Assuming db_connect.php is in the root 'includes' directory
-require_once __DIR__ . '/../../includes/db_connect.php'; // Provides $conn
-require_once __DIR__ . '/includes/error_handler.php';
-require_once __DIR__ . '/includes/auth_functions.php';
-require_once __DIR__ . '/data_access/allocation_data_api.php'; // Added for allocation endpoint
-require_once __DIR__ . '/data_access/forum_data_api.php'; // Added for forum endpoint
+require_once __DIR__ . '/../../includes/db_connect.php'; // Provides $pdo
+require_once __DIR__ . '/includes/error_handler.php'; // Provides sendJsonError
+
+// --- Database Connection Check ---
+if (!isset($pdo) || !($pdo instanceof PDO)) {
+    // Log the error for server-side details
+    error_log("CRITICAL API ERROR: Failed to establish PDO database connection in api/v1/index.php.");
+    // Send a generic error response - Ensure error_handler.php is included before this point
+    // Check if function exists before calling, in case error_handler failed to load
+    if (function_exists('sendJsonError')) {
+        sendJsonError(500, 'Database connection failed. Please contact administrator.', 'DB_CONNECTION_FAILED');
+    } else {
+        // Fallback if error handler isn't available
+        http_response_code(500);
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'message' => 'Database connection failed and error handler unavailable.']);
+    }
+    // Exit script to prevent further execution without a DB connection
+    exit;
+}
+// --- End Database Connection Check ---
+
+require_once __DIR__ . '/includes/auth_functions.php'; // Uses $pdo
+require_once __DIR__ . '/data_access/allocation_data_api.php'; // Uses $pdo
+require_once __DIR__ . '/data_access/forum_data_api.php'; // Uses $pdo
 
 // --- Global Error Handling ---
 // Set a top-level exception handler to catch unhandled errors
@@ -19,7 +39,13 @@ set_exception_handler(function ($exception) {
     // Log the detailed error
     error_log("Unhandled API Exception: " . $exception->getMessage() . " in " . $exception->getFile() . ":" . $exception->getLine());
     // Send a generic 500 error response
-    sendJsonError(500, "An internal server error occurred.", "INTERNAL_SERVER_ERROR");
+    if (function_exists('sendJsonError')) {
+        sendJsonError(500, "An internal server error occurred.", "INTERNAL_SERVER_ERROR");
+    } else {
+        http_response_code(500);
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'message' => 'Internal server error and error handler unavailable.']);
+    }
 });
 
 // --- Request Parsing ---
@@ -61,39 +87,29 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
     }
 
     // --- Authentication ---
-    $apiKeyData = authenticateApiKey($conn);
+    $apiKeyData = authenticateApiKey($pdo); // Pass $pdo
     if ($apiKeyData === false) {
-        // Error response handled within authenticateApiKey or sendJsonError called directly if needed
-        // Example: sendJsonError(401, "Authentication failed. Invalid or missing API Key.", "AUTH_FAILED");
-        // Assuming authenticateApiKey calls sendJsonError on failure and exits.
+        // Error response handled within authenticateApiKey (it calls sendJsonError and exits)
     }
 
     // --- Authorization ---
     $requiredPermission = "read:checkin_data"; // As per Living Plan
     if (!checkApiKeyPermission($requiredPermission, $apiKeyData)) {
-        // Error response handled within checkApiKeyPermission or sendJsonError called directly
-        // Example: sendJsonError(403, "Permission denied. API key does not have the required '{$requiredPermission}' permission.", "AUTH_FORBIDDEN");
-         // Assuming checkApiKeyPermission calls sendJsonError on failure and exits.
+        // Error response handled within checkApiKeyPermission (it calls sendJsonError and exits)
     }
 
     // --- Endpoint Logic: Fetch Check-in Data ---
     try {
-        // Prepare statement to prevent SQL injection
-        $stmt = $conn->prepare("SELECT * FROM check_ins WHERE id = ?");
-        if (!$stmt) {
-             // Log the specific prepare error
-             error_log("API Error: Failed to prepare statement for check-in fetch: " . $conn->error);
-             sendJsonError(500, 'Database error during statement preparation.', 'DB_PREPARE_ERROR');
-        }
-
-        $stmt->bind_param("i", $checkinId);
+        // Prepare statement using PDO
+        $stmt = $pdo->prepare("SELECT * FROM check_ins WHERE id = :id");
+        $stmt->bindParam(':id', $checkinId, PDO::PARAM_INT);
         $stmt->execute();
-        $result = $stmt->get_result();
 
-        if ($result->num_rows === 1) {
+        // Fetch using PDO
+        $checkinData = $stmt->fetch(PDO::FETCH_ASSOC); // Fetch a single row
+
+        if ($checkinData) { // Check if data was found
             // Record found
-            $checkinData = $result->fetch_assoc();
-
             // Set headers and output JSON
             header('Content-Type: application/json; charset=utf-8');
             http_response_code(200);
@@ -103,10 +119,9 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
             // Record not found
             sendJsonError(404, "Check-in not found for ID: {$checkinId}.", "NOT_FOUND");
         }
+        // No need to close PDO statement explicitly
 
-        $stmt->close();
-
-    } catch (mysqli_sql_exception $e) {
+    } catch (PDOException $e) { // Catch PDOException
         // Catch specific database errors
         error_log("API Database Error (GET /checkins/{$checkinId}): " . $e->getMessage() . " (Code: " . $e->getCode() . ")");
         sendJsonError(500, 'Database error occurred while fetching check-in data.', 'DB_EXECUTION_ERROR');
@@ -128,7 +143,7 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
     }
 
     // --- Authentication ---
-    $apiKeyData = authenticateApiKey($conn);
+    $apiKeyData = authenticateApiKey($pdo); // Pass $pdo
     if ($apiKeyData === false) {
         // Error response handled within authenticateApiKey (it calls sendJsonError and exits)
     }
@@ -155,51 +170,41 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
         $noteText = trim($data['note_text']);
         $apiKeyId = $apiKeyData['id']; // Get the ID from authenticated key
 
-        // 2. Check if Check-in Exists (using prepared statement)
-        $stmtCheck = $conn->prepare("SELECT id FROM check_ins WHERE id = ?");
-        if (!$stmtCheck) {
-             error_log("API Error: Failed to prepare statement for check-in existence check: " . $conn->error);
-             sendJsonError(500, 'Database error during statement preparation.', 'DB_PREPARE_ERROR');
-        }
-        $stmtCheck->bind_param("i", $checkinId);
+        // 2. Check if Check-in Exists (using PDO)
+        $stmtCheck = $pdo->prepare("SELECT id FROM check_ins WHERE id = :id");
+        $stmtCheck->bindParam(':id', $checkinId, PDO::PARAM_INT);
         $stmtCheck->execute();
-        $resultCheck = $stmtCheck->get_result();
-        if ($resultCheck->num_rows === 0) {
-            $stmtCheck->close(); // Close statement before sending error
+        if ($stmtCheck->fetchColumn() === false) { // Check if any row was returned
+            // No need to close PDO statement explicitly
             sendJsonError(404, "Check-in not found for ID: {$checkinId}.", "CHECKIN_NOT_FOUND");
         }
-        $stmtCheck->close();
+        // No need to close PDO statement explicitly
 
-        // 3. Insert Note (using prepared statement)
-        $stmtInsert = $conn->prepare("INSERT INTO checkin_notes (check_in_id, note_text, created_by_api_key_id, created_at) VALUES (?, ?, ?, NOW())");
-         if (!$stmtInsert) {
-             error_log("API Error: Failed to prepare statement for note insertion: " . $conn->error);
-             sendJsonError(500, 'Database error during statement preparation.', 'DB_PREPARE_ERROR');
-         }
-        $stmtInsert->bind_param("isi", $checkinId, $noteText, $apiKeyId);
+        // 3. Insert Note (using PDO)
+        $sqlInsert = "INSERT INTO checkin_notes (check_in_id, note_text, created_by_api_key_id, created_at) VALUES (:check_in_id, :note_text, :api_key_id, NOW())";
+        $stmtInsert = $pdo->prepare($sqlInsert);
+        $stmtInsert->bindParam(':check_in_id', $checkinId, PDO::PARAM_INT);
+        $stmtInsert->bindParam(':note_text', $noteText, PDO::PARAM_STR);
+        $stmtInsert->bindParam(':api_key_id', $apiKeyId, PDO::PARAM_INT);
 
         if (!$stmtInsert->execute()) {
-             // Log specific insert error
-             error_log("API Database Error (POST /checkins/{$checkinId}/notes - Insert): " . $stmtInsert->error . " (Code: " . $stmtInsert->errno . ")");
-             $stmtInsert->close(); // Close statement before sending error
-             sendJsonError(500, 'Database error during note insertion.', 'DB_INSERT_ERROR');
+             // PDOException will be caught below if execute fails
+             // Log specific insert error? PDOException message should be logged by catch block.
+             // No need to close PDO statement explicitly
+             // Let exception handler catch and log
+             throw new PDOException("Database error during note insertion."); // Throw exception
         }
-        $newNoteId = $conn->insert_id; // Get the ID of the inserted note
-        $stmtInsert->close();
+        $newNoteId = $pdo->lastInsertId(); // Get the ID of the inserted note
+        // No need to close PDO statement explicitly
 
-        // 4. Fetch the Created Note (using prepared statement)
-        $stmtFetch = $conn->prepare("SELECT * FROM checkin_notes WHERE id = ?");
-         if (!$stmtFetch) {
-             error_log("API Error: Failed to prepare statement for fetching created note: " . $conn->error);
-             sendJsonError(500, 'Database error during statement preparation.', 'DB_PREPARE_ERROR');
-         }
-        $stmtFetch->bind_param("i", $newNoteId);
+        // 4. Fetch the Created Note (using PDO)
+        $stmtFetch = $pdo->prepare("SELECT * FROM checkin_notes WHERE id = :id");
+        $stmtFetch->bindParam(':id', $newNoteId, PDO::PARAM_INT);
         $stmtFetch->execute();
-        $resultFetch = $stmtFetch->get_result();
+        $createdNote = $stmtFetch->fetch(PDO::FETCH_ASSOC); // Fetch single row
 
-        if ($resultFetch->num_rows === 1) {
-            $createdNote = $resultFetch->fetch_assoc();
-             $stmtFetch->close(); // Close statement after fetching
+        if ($createdNote) { // Check if fetch was successful
+             // No need to close PDO statement explicitly
 
             // 5. Send Response
             header('Content-Type: application/json; charset=utf-8');
@@ -207,13 +212,13 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
             echo json_encode($createdNote, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 
         } else {
-             $stmtFetch->close(); // Close statement before sending error
+             // No need to close PDO statement explicitly
              // This case should ideally not happen if insert succeeded, but handle defensively
              error_log("API Error: Failed to fetch newly created note (ID: {$newNoteId}) after insertion.");
              sendJsonError(500, 'Failed to retrieve the created note after insertion.', 'FETCH_AFTER_INSERT_FAILED');
         }
 
-    } catch (mysqli_sql_exception $e) {
+    } catch (PDOException $e) { // Catch PDOException
         // Catch specific database errors during the process
         error_log("API Database Error (POST /checkins/{$checkinId}/notes): " . $e->getMessage() . " (Code: " . $e->getCode() . ")");
         sendJsonError(500, 'Database error occurred while adding check-in note.', 'DB_ERROR');
@@ -238,7 +243,7 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
     }
 
     // --- Authentication ---
-    $apiKeyData = authenticateApiKey($conn);
+    $apiKeyData = authenticateApiKey($pdo); // Pass $pdo
     if ($apiKeyData === false) {
         // Error response handled within authenticateApiKey (it calls sendJsonError and exits)
         // No further action needed here if authenticateApiKey exits on failure.
@@ -275,9 +280,11 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
          case '/example':
              if ($requestMethod === 'GET') {
                  // 1. Authentication
-            $apiKeyData = authenticateApiKey($conn);
+            $apiKeyData = authenticateApiKey($pdo); // Pass $pdo
             if ($apiKeyData === false) {
-                sendJsonError(401, "Authentication required. Invalid or missing API Key.", "AUTH_FAILED");
+                // Assuming authenticateApiKey calls sendJsonError and exits on failure
+                // If not, uncomment below:
+                // sendJsonError(401, "Authentication required. Invalid or missing API Key.", "AUTH_FAILED");
             }
 
             // 2. Authorization
@@ -306,7 +313,7 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
     case '/allocations':
         if ($requestMethod === 'GET') {
             // --- Authentication ---
-            $apiKeyData = authenticateApiKey($conn);
+            $apiKeyData = authenticateApiKey($pdo); // Pass $pdo
             if ($apiKeyData === false) {
                 // Assuming authenticateApiKey calls sendJsonError on failure and exits.
                 // If not, uncomment below:
@@ -326,8 +333,8 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
                 // Get query parameters
                 $queryParams = $_GET;
 
-                // Call the data access function
-                $result = getAllocations($conn, $queryParams);
+                // Call the data access function (now expects PDO)
+                $result = getAllocations($pdo, $queryParams); // Pass $pdo
 
                 // Send success response
                 header('Content-Type: application/json; charset=utf-8');
@@ -358,7 +365,7 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
     case '/forum/posts':
         if ($requestMethod === 'POST') {
             // --- Authentication ---
-            $apiKeyData = authenticateApiKey($conn);
+            $apiKeyData = authenticateApiKey($pdo); // Pass $pdo
             if ($apiKeyData === false) {
                 // Error handled within authenticateApiKey
             }
@@ -391,35 +398,37 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
                 $postBody = trim($data['post_body']);
                 $apiKeyId = $apiKeyData['id'];
 
-                // Start Transaction
-                $conn->begin_transaction();
+                // Start Transaction (PDO)
+                $pdo->beginTransaction();
 
-                // 2. Check if Topic Exists and is not locked
-                if (!checkTopicExists($conn, $topicId)) {
-                    $conn->rollback(); // Rollback before sending error
+                // 2. Check if Topic Exists and is not locked (Pass $pdo)
+                if (!checkTopicExists($pdo, $topicId)) {
+                    $pdo->rollBack(); // Rollback before sending error (PDO uses rollBack)
                     sendJsonError(404, "Forum topic not found or is locked for ID: {$topicId}.", "TOPIC_NOT_FOUND_OR_LOCKED");
                 }
 
-                // 3. Insert Post
-                $newPostId = createForumPost($conn, $topicId, $postBody, $apiKeyId);
+                // 3. Insert Post (Pass $pdo)
+                $newPostId = createForumPost($pdo, $topicId, $postBody, $apiKeyId);
                 if ($newPostId === false) {
-                    $conn->rollback();
+                    $pdo->rollBack();
                     // Error logged within createForumPost
-                    sendJsonError(500, 'Database error during post insertion.', 'DB_POST_INSERT_ERROR');
+                    // Let exception handler catch and log
+                    throw new RuntimeException('Database error during post insertion.'); // Throw exception
                 }
 
-                // 4. Update Topic Last Post Timestamp
-                if (!updateTopicLastPost($conn, $topicId)) {
-                    $conn->rollback();
+                // 4. Update Topic Last Post Timestamp (Pass $pdo)
+                if (!updateTopicLastPost($pdo, $topicId)) {
+                    $pdo->rollBack();
                     // Error logged within updateTopicLastPost
-                    sendJsonError(500, 'Database error during topic update.', 'DB_TOPIC_UPDATE_ERROR');
+                    // Let exception handler catch and log
+                    throw new RuntimeException('Database error during topic update.'); // Throw exception
                 }
 
-                // 5. Commit Transaction
-                $conn->commit();
+                // 5. Commit Transaction (PDO)
+                $pdo->commit();
 
-                // 6. Fetch the Created Post
-                $createdPost = getForumPostById($conn, $newPostId);
+                // 6. Fetch the Created Post (Pass $pdo)
+                $createdPost = getForumPostById($pdo, $newPostId);
                 if ($createdPost === null) {
                     // This is unlikely if insert/commit succeeded, but handle defensively
                     error_log("API Error: Failed to fetch newly created post (ID: {$newPostId}) after transaction commit.");
@@ -433,17 +442,24 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
                 http_response_code(201); // Created
                 echo json_encode($createdPost, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 
-            } catch (mysqli_sql_exception $e) {
+            } catch (PDOException $e) { // Catch PDOException
                 // Rollback transaction if active and an SQL error occurred
-                if ($conn->in_transaction) {
-                    $conn->rollback();
+                if ($pdo->inTransaction()) { // PDO uses inTransaction()
+                    $pdo->rollBack(); // PDO uses rollBack()
                 }
                 error_log("API Database Error (POST /forum/posts): " . $e->getMessage() . " (Code: " . $e->getCode() . ")");
                 sendJsonError(500, 'Database error occurred while creating forum post.', 'DB_ERROR');
+            } catch (RuntimeException $e) { // Catch custom runtime exceptions
+                 if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                error_log("API Runtime Error (POST /forum/posts): " . $e->getMessage());
+                // Send specific error message if available, otherwise generic
+                sendJsonError(500, $e->getMessage() ?: 'An internal error occurred processing the forum post.', 'RUNTIME_FORUM_ERROR');
             } catch (Exception $e) {
                  // Rollback transaction if active and a general error occurred
-                if ($conn->in_transaction) {
-                    $conn->rollback();
+                if ($pdo->inTransaction()) { // PDO uses inTransaction()
+                    $pdo->rollBack(); // PDO uses rollBack()
                 }
                 error_log("API Logic Error (POST /forum/posts): " . $e->getMessage());
                 sendJsonError(500, 'An unexpected error occurred processing the request.', 'UNEXPECTED_ERROR');
@@ -476,6 +492,6 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
 }
 
 // Restore the previous exception handler if needed (though exit usually terminates)
-restore_exception_handler();
+// restore_exception_handler(); // Generally not needed due to exit calls
 
 ?>

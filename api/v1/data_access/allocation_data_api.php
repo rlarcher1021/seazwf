@@ -6,18 +6,17 @@
  * Handles validation of query parameters, dynamic SQL query building with prepared statements,
  * execution, and fetching results including pagination information.
  *
- * @param mysqli $conn The database connection object.
+ * @param PDO $pdo The database connection object (PDO).
  * @param array $queryParams Associative array of query parameters (e.g., $_GET).
  * @return array An array containing 'data' (array of allocation records) and 'pagination' info.
  * @throws InvalidArgumentException If query parameters have invalid format.
  * @throws RuntimeException If a database error occurs.
  */
-function getAllocations(mysqli $conn, array $queryParams): array
+function getAllocations(PDO $pdo, array $queryParams): array
 {
     // --- Parameter Validation & Defaults ---
     $filters = [];
-    $params = [];
-    $types = "";
+    $params = []; // Use associative array for named placeholders
 
     // Fiscal Year (Validate as YYYY integer)
     if (isset($queryParams['fiscal_year'])) {
@@ -28,9 +27,8 @@ function getAllocations(mysqli $conn, array $queryParams): array
             throw new InvalidArgumentException('Invalid query parameter format for fiscal_year. Must be a valid year (YYYY).');
         }
         // Assuming fiscal year filtering is based on budget's start year
-        $filters[] = "YEAR(b.fiscal_year_start) = ?";
-        $params[] = $year;
-        $types .= "i";
+        $filters[] = "YEAR(b.fiscal_year_start) = :fiscal_year"; // Use named placeholder
+        $params[':fiscal_year'] = $year;
     }
 
     // Grant ID (Validate as positive integer)
@@ -39,9 +37,8 @@ function getAllocations(mysqli $conn, array $queryParams): array
         if ($grantId === false) {
             throw new InvalidArgumentException('Invalid query parameter format for grant_id. Must be a positive integer.');
         }
-        $filters[] = "b.grant_id = ?";
-        $params[] = $grantId;
-        $types .= "i";
+        $filters[] = "b.grant_id = :grant_id"; // Use named placeholder
+        $params[':grant_id'] = $grantId;
     }
 
     // Department ID (Validate as positive integer)
@@ -50,9 +47,8 @@ function getAllocations(mysqli $conn, array $queryParams): array
         if ($deptId === false) {
             throw new InvalidArgumentException('Invalid query parameter format for department_id. Must be a positive integer.');
         }
-        $filters[] = "b.department_id = ?";
-        $params[] = $deptId;
-        $types .= "i";
+        $filters[] = "b.department_id = :department_id"; // Use named placeholder
+        $params[':department_id'] = $deptId;
     }
 
     // Budget ID (Validate as positive integer)
@@ -61,9 +57,8 @@ function getAllocations(mysqli $conn, array $queryParams): array
         if ($budgetId === false) {
             throw new InvalidArgumentException('Invalid query parameter format for budget_id. Must be a positive integer.');
         }
-        $filters[] = "ba.budget_id = ?";
-        $params[] = $budgetId;
-        $types .= "i";
+        $filters[] = "ba.budget_id = :budget_id"; // Use named placeholder
+        $params[':budget_id'] = $budgetId;
     }
 
     // Pagination
@@ -90,18 +85,11 @@ function getAllocations(mysqli $conn, array $queryParams): array
     $countSql = "SELECT COUNT(ba.id) as total " . $baseSql . " " . $whereSql;
     $totalRecords = 0;
     try {
-        $stmtCount = $conn->prepare($countSql);
-        if (!$stmtCount) {
-             throw new RuntimeException("Database error preparing count query: " . $conn->error);
-        }
-        if (!empty($params)) {
-            $stmtCount->bind_param($types, ...$params);
-        }
-        $stmtCount->execute();
-        $resultCount = $stmtCount->get_result();
-        $totalRecords = (int)$resultCount->fetch_assoc()['total'];
-        $stmtCount->close();
-    } catch (mysqli_sql_exception $e) {
+        $stmtCount = $pdo->prepare($countSql);
+        // Bind parameters directly in execute for PDO
+        $stmtCount->execute($params); // Pass associative array for named placeholders
+        $totalRecords = (int)$stmtCount->fetchColumn(); // Fetch the single count value
+    } catch (PDOException $e) { // Catch PDOException
         error_log("API DB Error (Count Allocations): " . $e->getMessage());
         throw new RuntimeException("Database error counting allocations.", 0, $e);
     }
@@ -110,30 +98,27 @@ function getAllocations(mysqli $conn, array $queryParams): array
     $dataSql = "SELECT ba.*, b.name as budget_name, b.fiscal_year_start, b.grant_id, b.department_id " // Select specific fields needed
              . $baseSql . " " . $whereSql
              . " ORDER BY ba.transaction_date DESC, ba.id DESC " // Example ordering
-             . " LIMIT ? OFFSET ?";
+             . " LIMIT :limit OFFSET :offset"; // Use named placeholders for limit/offset
 
     $data = [];
     try {
-        $stmtData = $conn->prepare($dataSql);
-         if (!$stmtData) {
-             throw new RuntimeException("Database error preparing data query: " . $conn->error);
+        $stmtData = $pdo->prepare($dataSql);
+
+        // Bind the filter parameters (if any) using named placeholders
+        foreach ($params as $key => $value) {
+             // Determine type (simple check, adjust if needed for floats/blobs etc.)
+             $paramType = is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR;
+             $stmtData->bindValue($key, $value, $paramType);
         }
 
-        // Add limit and offset params
-        $dataParams = $params;
-        $dataTypes = $types . "ii"; // Add types for limit and offset
-        $dataParams[] = $limit;
-        $dataParams[] = $offset;
+        // Bind LIMIT and OFFSET using named placeholders
+        $stmtData->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmtData->bindValue(':offset', $offset, PDO::PARAM_INT);
 
-        if (!empty($dataParams)) {
-            $stmtData->bind_param($dataTypes, ...$dataParams);
-        }
         $stmtData->execute();
-        $resultData = $stmtData->get_result();
-        $data = $resultData->fetch_all(MYSQLI_ASSOC);
-        $stmtData->close();
+        $data = $stmtData->fetchAll(PDO::FETCH_ASSOC); // Fetch all results as associative array
 
-    } catch (mysqli_sql_exception $e) {
+    } catch (PDOException $e) { // Catch PDOException
         error_log("API DB Error (Fetch Allocations): " . $e->getMessage());
         throw new RuntimeException("Database error fetching allocations.", 0, $e);
     }

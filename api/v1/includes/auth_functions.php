@@ -1,19 +1,15 @@
 <?php
 
-// Ensure the main DB connection is included. Adjust path as necessary.
-// Assuming db_connect.php is in the root 'includes' directory relative to the project root.
-require_once __DIR__ . '/../../../includes/db_connect.php';
-
 /**
  * Authenticates an API request based on the provided API key in headers.
  *
  * Checks 'Authorization: Bearer <key>' first, then 'X-API-Key: <key>'.
  * Verifies the key against the hashed key in the database using password_verify().
  *
- * @param PDO|mysqli $conn The database connection object.
+ * @param PDO $pdo The database connection object (PDO).
  * @return array|false Returns the API key data (id, associated_permissions) if valid and active, otherwise false.
  */
-function authenticateApiKey($conn): array|false
+function authenticateApiKey(PDO $pdo): array|false
 {
     $apiKey = null;
 
@@ -36,7 +32,7 @@ function authenticateApiKey($conn): array|false
     // We select the hash to use with password_verify()
     try {
         // Using PDO as an example, adjust if using mysqli
-        $stmt = $conn->prepare("SELECT id, key_hash, associated_permissions FROM api_keys WHERE is_active = 1");
+        $stmt = $pdo->prepare("SELECT id, key_hash, associated_permissions FROM api_keys WHERE is_active = 1");
         // If performance becomes an issue with many keys, add a WHERE clause
         // that filters by a non-sensitive part of the key if possible, or implement caching.
         // For now, fetching all active keys and verifying in PHP is acceptable for moderate loads.
@@ -49,7 +45,7 @@ function authenticateApiKey($conn): array|false
                 // Key is valid and active, return relevant data
                 // Update last_used_at timestamp (optional, consider performance impact)
                  try {
-                     $updateStmt = $conn->prepare("UPDATE api_keys SET last_used_at = NOW() WHERE id = :id");
+                     $updateStmt = $pdo->prepare("UPDATE api_keys SET last_used_at = NOW() WHERE id = :id");
                      $updateStmt->bindParam(':id', $keyRecord['id'], PDO::PARAM_INT);
                      $updateStmt->execute();
                  } catch (PDOException $e) {
