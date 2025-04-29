@@ -116,7 +116,7 @@ function generateCheckinDetailReport(PDO $pdo, array $apiKeyData, array $validat
     $hasReadAll = checkApiKeyPermission('read:all_checkin_data', $apiKeyData);
     $hasReadSite = checkApiKeyPermission('read:site_checkin_data', $apiKeyData);
 
-    $whereClauses = ['ci.deleted_at IS NULL']; // Base clause for soft delete if applicable (assuming check_ins might have it)
+    $whereClauses = []; // Initialize empty, check_ins does not have deleted_at
     $queryParams = [];
     $siteIdFilter = null;
 
