@@ -32,6 +32,7 @@ if (!isset($pdo) || !($pdo instanceof PDO)) {
 require_once __DIR__ . '/includes/auth_functions.php'; // Uses $pdo
 require_once __DIR__ . '/data_access/allocation_data_api.php'; // Uses $pdo
 require_once __DIR__ . '/data_access/forum_data_api.php'; // Uses $pdo
+require_once __DIR__ . '/handlers/report_handler.php'; // Uses $pdo, auth_functions, error_handler
 
 // --- Global Error Handling ---
 // Set a top-level exception handler to catch unhandled errors
@@ -230,50 +231,58 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
 
     exit; // Crucial: Stop script execution after handling the request
 
-// --- NEW ROUTE FOR REPORTS ---
-} elseif ($requestMethod === 'GET' && preg_match('#^/reports/([^/]+)$#', $routePath, $matches)) { // Match /reports/ followed by non-slash characters
-    $reportType = trim($matches[1]);
-
-    // Validate report type (must be non-empty string)
-    // Basic validation: check if it's not empty after trimming.
-    // More specific validation (e.g., allowed report types) would go here in full implementation.
-    if (empty($reportType)) {
-        // This case might be redundant due to regex [^/]+, but good for robustness.
-        sendJsonError(400, 'Missing or invalid report type.', 'INVALID_REPORT_TYPE');
-    }
+// --- NEW ROUTE FOR REPORTS (Corrected Routing) ---
+} elseif ($requestMethod === 'GET' && $routePath === '/reports') { // Match exact path /reports
 
     // --- Authentication ---
     $apiKeyData = authenticateApiKey($pdo); // Pass $pdo
     if ($apiKeyData === false) {
-        // Error response handled within authenticateApiKey (it calls sendJsonError and exits)
-        // No further action needed here if authenticateApiKey exits on failure.
+        // authenticateApiKey should call sendJsonError(401, ...) and exit if failed
+        // If it returns false without exiting, handle it here:
+         sendJsonError(401, "Authentication failed. Invalid or missing API Key.", "AUTH_FAILED");
     }
 
-    // --- Authorization ---
-    $requiredPermission = "generate:reports"; // As per Living Plan line 80
+    // --- Authorization (Base Permission) ---
+    $requiredPermission = "generate:reports"; // As per Living Plan
     if (!checkApiKeyPermission($requiredPermission, $apiKeyData)) {
-        // Error response handled within checkApiKeyPermission (it calls sendJsonError and exits)
-        // No further action needed here if checkApiKeyPermission exits on failure.
+        // checkApiKeyPermission returns false if permission missing
+        sendJsonError(403, "Permission denied. API key requires the '{$requiredPermission}' permission.", "AUTH_FORBIDDEN");
     }
 
-    // --- Endpoint Logic (Placeholder) ---
+    // --- Endpoint Logic (Call Handler) ---
     try {
-        // Set headers and output JSON placeholder
+        // Get query parameters
+        $queryParams = $_GET;
+
+        // Call the handler function from report_handler.php
+        $reportResult = handleGetReports($pdo, $apiKeyData, $queryParams);
+
+        // Send success response
         header('Content-Type: application/json; charset=utf-8');
         http_response_code(200);
-        echo json_encode([
-            'status' => 'OK',
-            'message' => 'Placeholder for report generation.',
-            'requested_report' => $reportType // Use the extracted report type
-        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        echo json_encode($reportResult, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 
+    } catch (InvalidArgumentException $e) {
+        // Handle bad request errors (400) or permission errors (403) from the handler
+        $statusCode = $e->getCode() === 403 ? 403 : 400; // Use code from exception if 403
+        $errorCode = $statusCode === 403 ? 'FORBIDDEN' : 'BAD_REQUEST';
+        // Log permission errors specifically if desired
+        if($statusCode === 403) {
+            error_log("API Permission Error (GET /reports): " . $e->getMessage() . " for API Key ID: " . ($apiKeyData['id'] ?? 'unknown'));
+        }
+        sendJsonError($statusCode, $e->getMessage(), $errorCode);
+    } catch (RuntimeException $e) {
+        // Handle internal server errors (500) from the handler
+        error_log("API Runtime Error (GET /reports): " . $e->getMessage());
+        sendJsonError(500, 'An internal error occurred while generating the report.', 'REPORT_GENERATION_ERROR');
     } catch (Exception $e) {
-         // Catch any unexpected errors during this minimal logic execution
-         error_log("API Logic Error (GET /reports/{$reportType}): " . $e->getMessage());
-         sendJsonError(500, 'An unexpected error occurred processing the report request.', 'UNEXPECTED_REPORT_ERROR');
+        // Catch any other unexpected errors during handler execution
+        error_log("API Unexpected Error (GET /reports): " . $e->getMessage());
+        sendJsonError(500, 'An unexpected error occurred processing the report request.', 'UNEXPECTED_REPORT_ERROR');
     }
 
     exit; // Crucial: Stop script execution after handling the request
+
 } else {
      // --- Fallback to switch for non-parameterized routes ---
      switch ($routePath) {
