@@ -115,7 +115,7 @@ if ($question_base_titles === []) {
 $chart_labels_json = json_encode($active_chart_labels);
 $question_columns_json = json_encode($active_question_columns); // Contains only validated columns now
 // Log prefixed names used for data fetching
-error_log("Dashboard Debug - Filter ID: {$site_filter_id} - Active VALID question columns for data fetch (prefixed): " . print_r($active_question_columns, true));
+// error_log("Dashboard Debug - Filter ID: {$site_filter_id} - Active VALID question columns for data fetch (prefixed): " . print_r($active_question_columns, true));
 
 
 // --- Determine initial state for the dashboard manual check-in button ---

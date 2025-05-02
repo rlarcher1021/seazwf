@@ -16,7 +16,7 @@ hashtest.php
 # User uploads (if they are large/dynamic and shouldn't be in version control)
 wp-content/uploads/
 images/user_uploads/
-
+curltest
 # Node.js dependencies (if applicable)
 node_modules/
 # Composer dependencies (if applicable)

@@ -25,15 +25,71 @@ budget_allocations:
 Columns: id (Primary), budget_id (FK -> budgets), transaction_date, vendor_id (FK -> vendors, Null), client_name (VARCHAR, Null), voucher_number, enrollment_date, class_start_date, purchase_date, payment_status (ENUM 'P', 'U', 'Void'), program_explanation, funding_* (DECIMAL fields), fin_* (VARCHAR/DATE/TEXT fields), fin_processed_by_user_id (FK -> users, Null), fin_processed_at (DATETIME, Null), created_by_user_id (FK -> users), updated_by_user_id (FK -> users, Null), created_at, updated_at, deleted_at (DATETIME, Null).
 Indexes: PRIMARY, idx_alloc_budget_id, idx_alloc_transaction_date, idx_alloc_deleted_at, fk_alloc_fin_processed_user_idx, fk_alloc_created_user_idx, fk_alloc_updated_user_idx, fk_alloc_vendor (vendor_id).
 Foreign Keys: budget_id -> budgets(id), vendor_id -> vendors(id), fin_processed_by_user_id -> users(id), created_by_user_id -> users(id), updated_by_user_id -> users(id).
-check_ins:
-Columns: id (Primary), site_id (FK -> sites), first_name, last_name, check_in_time, notified_staff_id (FK -> users, Null), client_email, q_* fields (e.g., q_veteran ENUM, q_age ENUM, q_interviewing ENUM, other q_* fields from previous plan version).
-Indexes: PRIMARY, check_ins_site_id_fk, check_ins_notified_staff_id_fk, idx_checkins_site_time (site_id, check_in_time).
-Foreign Keys: site_id -> sites(id), notified_staff_id -> users(id).
+check_ins: (Modified - Schema Updated)
+Columns: id (Primary), site_id (FK -> sites), first_name, last_name, check_in_time, notified_staff_id (FK -> users, Null), client_email, q_veteran ENUM('Yes', 'No', 'Decline to Answer') NULL DEFAULT NULL, q_age ENUM('16-18', '19-24', '25-44', '45-54', '55-64', '65+', 'Decline to Answer') NULL DEFAULT NULL, q_interviewing ENUM('Yes', 'No', 'Decline to Answer') NULL DEFAULT NULL, [other demographic q_* fields...], client_id (INT, Null, FK -> clients).
+Indexes: PRIMARY, check_ins_site_id_fk, check_ins_notified_staff_id_fk, idx_checkins_site_time (site_id, check_in_time), fk_checkins_client_idx (client_id).
+Foreign Keys: site_id -> sites(id), notified_staff_id -> users(id), client_id -> clients(id) (ON DELETE SET NULL ON UPDATE CASCADE).
+Comment: Stores data from manual entries (client_id=NULL) and QR scans (client_id populated).
+checkin_answers: (NEW - Added for dynamic check-in questions)
+Comments: Stores answers to dynamic questions for individual check-ins (manual or client).
+Columns:
+  id (INT, Primary, Auto Increment)
+  check_in_id (INT, NOT NULL, FK -> check_ins, Comment: Foreign key to the check_ins table)
+  question_id (INT, NOT NULL, FK -> global_questions, Comment: Foreign key to the global_questions table)
+  answer (ENUM('Yes', 'No'), NOT NULL, Comment: Answer provided by the user)
+  created_at (TIMESTAMP, Default: CURRENT_TIMESTAMP)
+Indexes: PRIMARY, fk_checkin_answers_checkin_idx (check_in_id), fk_checkin_answers_question_idx (question_id), idx_checkin_question_unique (check_in_id, question_id, Unique, Comment: Ensure only one answer per question per check-in).
+Foreign Keys: check_in_id -> check_ins(id) (ON DELETE CASCADE), question_id -> global_questions(id) (ON DELETE CASCADE).
+
 checkin_notes: (Structure Confirmed)
 Comments: Stores notes associated with specific check-in records. created_by_api_key_id tracks API creation.
 Columns: id (Primary), check_in_id (FK -> check_ins), note_text (TEXT), created_by_user_id (FK -> users, Null), created_by_api_key_id (FK -> api_keys, Null), created_at, deleted_at (DATETIME, Null).
 Indexes: PRIMARY, idx_checkin_notes_checkin_id, idx_checkin_notes_deleted_at, fk_checkin_note_user_creator_idx (created_by_user_id), fk_checkin_note_api_creator_idx (created_by_api_key_id).
 Foreign Keys: check_in_id -> check_ins(id), created_by_user_id -> users(id), created_by_api_key_id -> api_keys(id).
+client_answers: (NEW - Added for dynamic questions)
+Comments: Stores client answers to dynamic questions from global_questions.
+Columns:
+id (Primary)
+client_id (INT, FK -> clients)
+question_id (INT, FK -> global_questions)
+answer (TEXT, Null)
+created_at (TIMESTAMP, Default: CURRENT_TIMESTAMP)
+updated_at (TIMESTAMP, Null, ON UPDATE CURRENT_TIMESTAMP)
+Indexes: PRIMARY, fk_client_answers_client_idx (client_id), fk_client_answers_question_idx (question_id), idx_client_question_unique (client_id, question_id).
+Foreign Keys: client_id -> clients(id) (ON DELETE CASCADE), question_id -> global_questions(id) (ON DELETE CASCADE).
+clients: (Modified - Added site_id)
+Comments: Stores client account information for portal login and QR check-in.
+Columns:
+id (Primary)
+username (VARCHAR, Unique)
+email (VARCHAR, Unique)
+password_hash (VARCHAR)
+first_name (VARCHAR)
+last_name (VARCHAR)
+site_id (INT, Null, FK -> sites)
+client_qr_identifier (VARCHAR, Unique, Comment: Persistent UUID/ID for static QR code)
+email_preference_jobs (TINYINT(1), NOT NULL, Default: 0, Comment: 0=OptOut, 1=OptIn for job/event emails)
+q_veteran ENUM('Yes', 'No', 'Decline to Answer') NULL DEFAULT NULL
+q_age ENUM('16-18', '19-24', '25-44', '45-54', '55-64', '65+', 'Decline to Answer') NULL DEFAULT NULL
+q_interviewing ENUM('Yes', 'No', 'Decline to Answer') NULL DEFAULT NULL
+[other relevant q_* demographic fields...]
+created_at (TIMESTAMP, Default: CURRENT_TIMESTAMP)
+updated_at (TIMESTAMP, Null, ON UPDATE CURRENT_TIMESTAMP)
+deleted_at (DATETIME, Null)
+Indexes: PRIMARY, username_UNIQUE, email_UNIQUE, qr_identifier_UNIQUE, idx_clients_deleted_at, fk_clients_site_idx (site_id).
+Foreign Keys: site_id -> sites(id) (ON DELETE SET NULL ON UPDATE CASCADE).
+client_profile_audit_log: (NEW - Added for Site Admin client profile changes)
+Comments: Logs changes made to client profile fields by authorized staff.
+Columns:
+  id (INT, Primary, Auto Increment)
+  client_id (INT, NOT NULL, FK -> clients, Comment: The client whose profile was changed)
+  changed_by_user_id (INT, NOT NULL, FK -> users, Comment: The staff user who made the change)
+  timestamp (TIMESTAMP, NOT NULL, Default: CURRENT_TIMESTAMP, Comment: When the change occurred)
+  field_name (VARCHAR(255), NOT NULL, Comment: e.g., 'first_name', 'last_name', 'site_id', 'email_preference_jobs', 'question_id_X')
+  old_value (TEXT, NULL, Comment: Previous value of the field)
+  new_value (TEXT, NULL, Comment: New value of the field)
+Indexes: PRIMARY, idx_audit_client (client_id), idx_audit_user (changed_by_user_id), idx_audit_timestamp (timestamp).
+Foreign Keys: client_id -> clients(id) (ON DELETE CASCADE), changed_by_user_id -> users(id) (ON DELETE RESTRICT).
 departments:
 Comments: Stores global department names.
 Columns: id (Primary), name (Unique), slug (Unique), created_at, deleted_at (DATETIME, Null).
@@ -85,8 +141,9 @@ staff_notifications:
 Columns: id (Primary), site_id (FK -> sites), staff_name, staff_email, is_active (TINYINT).
 Indexes: PRIMARY, staff_notifications_site_id_fk.
 Foreign Keys: site_id -> sites(id).
-users:
-Columns: id (Primary), username (Unique), full_name, email (Unique), job_title, department_id (FK -> departments, Null), password_hash, role (ENUM 'kiosk','azwk_staff','outside_staff','director','administrator'), site_id (FK -> sites, Null), last_login (Timestamp, Null), is_active (TINYINT), created_at, deleted_at (DATETIME, Null).
+users: (Modified - Added is_site_admin)
+Comments: Stores Staff/Admin/Kiosk users. is_site_admin grants site-specific admin rights.
+Columns: id (Primary), username (Unique), full_name, email (Unique), job_title, department_id (FK -> departments, Null), password_hash, role (ENUM 'kiosk','azwk_staff','outside_staff','director','administrator'), is_site_admin (TINYINT(1), NOT NULL, Default: 0, Comment: Flag indicating if user has site-level admin privileges (0=No, 1=Yes)), site_id (FK -> sites, Null), last_login (Timestamp, Null), is_active (TINYINT), created_at, deleted_at (DATETIME, Null).
 Indexes: PRIMARY, username, email, users_site_id_fk, fk_users_department_idx.
 Foreign Keys: department_id -> departments(id), site_id -> sites(id).
 vendors:

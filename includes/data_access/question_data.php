@@ -252,7 +252,7 @@ function getAllGlobalQuestionTitles(PDO $pdo): array
  */
 function getActiveQuestionsForSite(PDO $pdo, int $site_id): array
 {
-    $sql = "SELECT sq.global_question_id, gq.question_text, gq.question_title
+    $sql = "SELECT sq.global_question_id AS id, gq.question_text, gq.question_title -- Alias global_question_id as id
             FROM site_questions sq
             JOIN global_questions gq ON sq.global_question_id = gq.id
             WHERE sq.site_id = :site_id AND sq.is_active = TRUE
@@ -279,6 +279,59 @@ function getActiveQuestionsForSite(PDO $pdo, int $site_id): array
     }
 }
 
+/**
+ * Fetches active questions relevant to a specific site or all sites context.
+ * Returns distinct global question ID, text, and title.
+ * Ordered by question title for consistency.
+ *
+ * @param PDO $pdo The PDO database connection object.
+ * @param int|string $siteFilter The specific site ID or 'all'.
+ * @return array An array of associative arrays representing the questions [id, question_text, question_title], or empty array on failure.
+ */
+function getActiveQuestionsForContext(PDO $pdo, $siteFilter): array
+{
+    $params = [];
+    if (is_numeric($siteFilter) && $siteFilter > 0) {
+        // Specific site: Use existing logic but ensure distinctness just in case (though site_questions should handle this)
+        $sql = "SELECT DISTINCT gq.id, gq.question_text, gq.question_title
+                FROM site_questions sq
+                JOIN global_questions gq ON sq.global_question_id = gq.id
+                WHERE sq.site_id = :site_id AND sq.is_active = TRUE
+                ORDER BY gq.question_title ASC";
+        $params[':site_id'] = (int)$siteFilter;
+    } elseif ($siteFilter === 'all') {
+        // All sites context: Get distinct questions active on ANY site
+        $sql = "SELECT DISTINCT gq.id, gq.question_text, gq.question_title
+                FROM site_questions sq
+                JOIN global_questions gq ON sq.global_question_id = gq.id
+                WHERE sq.is_active = TRUE
+                ORDER BY gq.question_title ASC";
+        // No parameters needed for 'all'
+    } else {
+        error_log("getActiveQuestionsForContext: Invalid siteFilter provided: " . print_r($siteFilter, true));
+        return []; // Invalid filter
+    }
+
+    try {
+        $stmt = $pdo->prepare($sql);
+        if (!$stmt) {
+            error_log("ERROR getActiveQuestionsForContext: Prepare failed for siteFilter '{$siteFilter}'. PDO Error: " . implode(" | ", $pdo->errorInfo()));
+            return [];
+        }
+
+        $execute_success = $stmt->execute($params);
+        if (!$execute_success) {
+            error_log("ERROR getActiveQuestionsForContext: Execute failed for siteFilter '{$siteFilter}'. Statement Error: " . implode(" | ", $stmt->errorInfo()));
+            return [];
+        }
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+    } catch (PDOException $e) {
+        error_log("EXCEPTION in getActiveQuestionsForContext for siteFilter '{$siteFilter}': " . $e->getMessage());
+        return [];
+    }
+}
 
 /**
  * Checks if a global question with the given sanitized base title already exists.
@@ -312,10 +365,17 @@ function globalQuestionTitleExists(PDO $pdo, string $sanitized_base_title): bool
  * @param PDO $pdo PDO connection object.
  * @param string $question_text The full text of the question.
  * @param string $sanitized_base_title The validated, sanitized base title.
+ * @param string $session_role The role of the user performing the action.
  * @return int|false The new global question ID on success, false on failure.
  */
-function addGlobalQuestion(PDO $pdo, string $question_text, string $sanitized_base_title): int|false
+function addGlobalQuestion(PDO $pdo, string $question_text, string $sanitized_base_title, string $session_role): int|false
 {
+    // Permission Check: Only administrators can add global questions
+    if ($session_role !== 'administrator') {
+        error_log("PERMISSION DENIED: User role '{$session_role}' attempted to add global question '{$sanitized_base_title}'.");
+        return false;
+    }
+
      if (empty($question_text) || empty($sanitized_base_title)) {
          error_log("ERROR addGlobalQuestion: Missing text or sanitized title.");
          return false;
@@ -414,10 +474,17 @@ function getGlobalQuestionById(PDO $pdo, int $global_question_id): ?array
  * @param PDO $pdo PDO connection object.
  * @param int $global_question_id The ID of the global question to update.
  * @param string $new_text The new question text.
+ * @param string $session_role The role of the user performing the action.
  * @return bool True on success, false on failure.
  */
-function updateGlobalQuestionText(PDO $pdo, int $global_question_id, string $new_text): bool
+function updateGlobalQuestionText(PDO $pdo, int $global_question_id, string $new_text, string $session_role): bool
 {
+    // Permission Check: Only administrators can update global questions
+    if ($session_role !== 'administrator') {
+        error_log("PERMISSION DENIED: User role '{$session_role}' attempted to update global question ID {$global_question_id}.");
+        return false;
+    }
+
     if (empty($new_text)) {
         error_log("ERROR updateGlobalQuestionText: New text cannot be empty for ID {$global_question_id}.");
         return false;
@@ -450,10 +517,17 @@ function updateGlobalQuestionText(PDO $pdo, int $global_question_id, string $new
  *
  * @param PDO $pdo PDO connection object.
  * @param int $global_question_id The ID of the global question to delete.
+ * @param string $session_role The role of the user performing the action.
  * @return bool True on success, false on failure.
  */
-function deleteGlobalQuestion(PDO $pdo, int $global_question_id): bool
+function deleteGlobalQuestion(PDO $pdo, int $global_question_id, string $session_role): bool
 {
+    // Permission Check: Only administrators can delete global questions
+    if ($session_role !== 'administrator') {
+        error_log("PERMISSION DENIED: User role '{$session_role}' attempted to delete global question ID {$global_question_id}.");
+        return false;
+    }
+
     try {
         $pdo->beginTransaction();
         // Optional: Delete related site_questions first if needed due to FK constraints
@@ -489,10 +563,26 @@ function deleteGlobalQuestion(PDO $pdo, int $global_question_id): bool
  * @param int $site_id The ID of the site.
  * @param int $global_question_id The ID of the global question.
  * @param int $is_active 1 if active, 0 if inactive.
+ * @param string $session_role The role of the user performing the action.
+ * @param int $is_site_admin The site admin status of the user (1 or 0).
+ * @param int|null $session_site_id The user's assigned site ID.
  * @return bool True on success, false on failure (e.g., already assigned).
  */
-function assignQuestionToSite(PDO $pdo, int $site_id, int $global_question_id, int $is_active): bool
+function assignQuestionToSite(PDO $pdo, int $site_id, int $global_question_id, int $is_active, string $session_role, int $is_site_admin, ?int $session_site_id): bool
 {
+    // Permission Check
+    $can_assign = false;
+    if ($session_role === 'administrator' || $session_role === 'director') {
+        $can_assign = true;
+    } elseif ($is_site_admin === 1 && $site_id === $session_site_id) {
+        $can_assign = true;
+    }
+
+    if (!$can_assign) {
+        error_log("PERMISSION DENIED: User (Role: {$session_role}, SiteAdmin: {$is_site_admin}, SessionSite: {$session_site_id}) attempted to assign question {$global_question_id} to site {$site_id}.");
+        return false;
+    }
+
     try {
         $pdo->beginTransaction();
         // Get max display order for the site
@@ -542,12 +632,29 @@ function assignQuestionToSite(PDO $pdo, int $site_id, int $global_question_id, i
  *
  * @param PDO $pdo PDO connection object.
  * @param int $site_question_id The ID of the record in the site_questions table.
- * @param int $site_id The ID of the site (for verification).
+ * @param int $site_id The ID of the site (for verification and permission check).
+ * @param string $session_role The role of the user performing the action.
+ * @param int $is_site_admin The site admin status of the user (1 or 0).
+ * @param int|null $session_site_id The user's assigned site ID.
  * @return bool True on success, false on failure.
  */
-function removeQuestionFromSite(PDO $pdo, int $site_question_id, int $site_id): bool
+function removeQuestionFromSite(PDO $pdo, int $site_question_id, int $site_id, string $session_role, int $is_site_admin, ?int $session_site_id): bool
 {
+    // Permission Check
+    $can_remove = false;
+    if ($session_role === 'administrator' || $session_role === 'director') {
+        $can_remove = true;
+    } elseif ($is_site_admin === 1 && $site_id === $session_site_id) {
+        $can_remove = true;
+    }
+
+    if (!$can_remove) {
+        error_log("PERMISSION DENIED: User (Role: {$session_role}, SiteAdmin: {$is_site_admin}, SessionSite: {$session_site_id}) attempted to remove site_question {$site_question_id} from site {$site_id}.");
+        return false;
+    }
+
      try {
+        // We still verify site_id in the query for data integrity, even though permission was checked
         $stmt = $pdo->prepare("DELETE FROM site_questions WHERE id = :id AND site_id = :sid");
          if (!$stmt) {
              error_log("ERROR removeQuestionFromSite: Prepare failed for ID {$site_question_id}. PDO Error: " . implode(" | ", $pdo->errorInfo()));
@@ -570,13 +677,30 @@ function removeQuestionFromSite(PDO $pdo, int $site_question_id, int $site_id): 
  *
  * @param PDO $pdo PDO connection object.
  * @param int $site_question_id The ID of the record in the site_questions table.
- * @param int $site_id The ID of the site (for verification).
+ * @param int $site_id The ID of the site (for verification and permission check).
+ * @param string $session_role The role of the user performing the action.
+ * @param int $is_site_admin The site admin status of the user (1 or 0).
+ * @param int|null $session_site_id The user's assigned site ID.
  * @return bool True on success, false on failure.
  */
-function toggleSiteQuestionActive(PDO $pdo, int $site_question_id, int $site_id): bool
+function toggleSiteQuestionActive(PDO $pdo, int $site_question_id, int $site_id, string $session_role, int $is_site_admin, ?int $session_site_id): bool
 {
+    // Permission Check
+    $can_toggle = false;
+    if ($session_role === 'administrator' || $session_role === 'director') {
+        $can_toggle = true;
+    } elseif ($is_site_admin === 1 && $site_id === $session_site_id) {
+        $can_toggle = true;
+    }
+
+    if (!$can_toggle) {
+        error_log("PERMISSION DENIED: User (Role: {$session_role}, SiteAdmin: {$is_site_admin}, SessionSite: {$session_site_id}) attempted to toggle active status for site_question {$site_question_id} on site {$site_id}.");
+        return false;
+    }
+
     $sql = "UPDATE site_questions SET is_active = NOT is_active WHERE id = :id AND site_id = :sid";
     try {
+        // We still verify site_id in the query for data integrity
         $stmt = $pdo->prepare($sql);
          if (!$stmt) {
              error_log("ERROR toggleSiteQuestionActive: Prepare failed for ID {$site_question_id}. PDO Error: " . implode(" | ", $pdo->errorInfo()));

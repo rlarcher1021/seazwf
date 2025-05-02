@@ -18,6 +18,7 @@ require_once __DIR__ . '/includes/utils.php';      // Provides format_base_name_
 require_once __DIR__ . '/includes/data_access/question_data.php'; // Provides getAllGlobalQuestionTitles
 require_once __DIR__ . '/includes/data_access/checkin_data.php'; // Provides generateCustomReportData
 
+require_once __DIR__ . '/includes/data_access/budget_allocations_dal.php'; // Provides getAllocationsForReport
 // --- Response Helper Functions ---
 function send_json_response($data, $success = true) {
     header('Content-Type: application/json');
@@ -395,6 +396,102 @@ if ($action === 'generate_custom_report') {
     // Should not reach here if output type is valid
     send_error_response("An unexpected error occurred processing the report type.", 500);
 
+// --- Action: Get Check-in Detail Data (Paginated) ---
+} elseif ($action === 'get_checkin_detail_data') {
+
+    // --- Permission Check (Adjust roles as needed for this report) ---
+    $allowedRoles = ['azwk_staff', 'director', 'administrator'];
+    if (!isset($_SESSION['user_id']) || !isset($_SESSION['active_role']) || !in_array($_SESSION['active_role'], $allowedRoles)) {
+        send_error_response("Permission Denied or Not Logged In.", 403, true);
+    }
+
+    // --- Input Validation & Sanitization ---
+    $site_id_param = $_POST['site_id'] ?? null;
+    $start_date_str = $_POST['start_date'] ?? null;
+    $end_date_str = $_POST['end_date'] ?? null;
+    $page = isset($_POST['page']) && is_numeric($_POST['page']) ? max(1, intval($_POST['page'])) : 1;
+    $limit = isset($_POST['limit']) && is_numeric($_POST['limit']) ? max(1, intval($_POST['limit'])) : 25; // Default limit
+    $search_term = isset($_POST['search']) ? trim($_POST['search']) : ''; // Optional search term
+
+    $user_role = $_SESSION['active_role'];
+    $user_site_id = $_SESSION['active_site_id'] ?? null;
+
+    // Validate Site ID Access (Similar logic to dashboard chart)
+    $validated_site_id = null;
+    if ($user_role === 'administrator' || $user_role === 'director') {
+        if ($site_id_param === 'all' || $site_id_param === null || $site_id_param === '') { // Treat null/empty as 'all' for admins/directors
+             $validated_site_id = 'all';
+        } elseif (is_numeric($site_id_param)) {
+            $validated_site_id = intval($site_id_param);
+            // Optional: Check if site exists
+        } else {
+            send_error_response("Invalid site ID specified.", 400, true);
+        }
+    } elseif (in_array($user_role, ['azwk_staff', 'outside_staff'])) {
+        if ($user_site_id === null) {
+            send_error_response("No site assigned to your account.", 403, true);
+        }
+        // Staff can only request their own site ID or 'all' if applicable (though 'all' might be restricted UI-side)
+        if ($site_id_param === null || $site_id_param === '' || (is_numeric($site_id_param) && intval($site_id_param) === $user_site_id)) {
+             $validated_site_id = $user_site_id;
+        } else {
+             send_error_response("You can only view data for your assigned site.", 403, true);
+        }
+    } else {
+        send_error_response("Permission Denied for this role.", 403, true);
+    }
+
+    if ($validated_site_id === null) { // Should only be null if logic above fails
+         send_error_response("Could not determine a valid site context.", 400, true);
+    }
+
+
+    // Validate Dates (Use defaults if not provided or invalid)
+    $default_end_date = date('Y-m-d');
+    $default_start_date = date('Y-m-d', strtotime('-29 days')); // Default to last 30 days
+    $filter_start_date = preg_match("/^\d{4}-\d{2}-\d{2}$/", $start_date_str) ? $start_date_str : $default_start_date;
+    $filter_end_date = preg_match("/^\d{4}-\d{2}-\d{2}$/", $end_date_str) ? $end_date_str : $default_end_date;
+
+    // --- Fetch Check-in Data ---
+    // Assuming getCheckinsByFiltersPaginated returns ['data' => [...], 'total' => N, 'page' => N, 'limit' => N]
+    // And includes the 'answers' JSON string in each check-in record within 'data'
+    $checkinResult = getCheckinsByFiltersPaginated(
+        $pdo,
+        $validated_site_id,
+        $filter_start_date,
+        $filter_end_date,
+        $page,
+        $limit,
+        $search_term // Pass search term
+    );
+
+    if ($checkinResult === null) {
+        send_error_response("Failed to retrieve check-in data.", 500, true);
+    }
+
+    // --- Fetch Active Dynamic Question Headers ---
+    $dynamic_question_headers = getActiveQuestionsForContext($pdo, $validated_site_id);
+    if ($dynamic_question_headers === null) { // Function returns [] on error/no results, check explicitly for null if it could happen
+         error_log("Warning: Failed to retrieve dynamic question headers for site context: " . $validated_site_id);
+         $dynamic_question_headers = []; // Ensure it's an array for the response
+    }
+
+
+    // --- Prepare JSON Response ---
+    $response_data = [
+        'checkins' => $checkinResult['data'] ?? [],
+        'pagination' => [
+            'total' => $checkinResult['total'] ?? 0,
+            'page' => $checkinResult['page'] ?? $page,
+            'limit' => $checkinResult['limit'] ?? $limit,
+            'totalPages' => isset($checkinResult['total'], $checkinResult['limit']) && $checkinResult['limit'] > 0 ? ceil($checkinResult['total'] / $checkinResult['limit']) : 0
+        ],
+        'dynamic_question_headers' => $dynamic_question_headers
+    ];
+
+    send_json_response($response_data);
+
+
 // --- Action: Get Question Responses Data for Dashboard Chart ---
 } elseif ($action === 'get_question_responses_data') {
 
@@ -460,6 +557,69 @@ if ($action === 'generate_custom_report') {
     // --- Send Response ---
     send_json_response($chart_data); // Send the data structure {labels: [...], data: [...]}
 
+// --- Action: Get Allocation Report Data (Paginated & Filtered) ---
+} elseif ($action === 'get_allocation_report_data') {
+
+    // --- Permission Check (Allow roles that can view budget/allocation data) ---
+    $allowedRoles = ['administrator', 'director', 'azwk_staff']; // Adjust if finance role needs specific handling different from azwk_staff
+    if (!isset($_SESSION['user_id']) || !isset($_SESSION['active_role']) || !in_array($_SESSION['active_role'], $allowedRoles)) {
+        send_error_response("Permission Denied or Not Logged In.", 403, true);
+    }
+
+    // --- Retrieve User Context ---
+    $user_id = $_SESSION['user_id'];
+    $user_role = $_SESSION['active_role'];
+    // Use department_id from session, which should be set during login/auth
+    $user_department_id = $_SESSION['department_id'] ?? null; 
+
+    // --- Retrieve and Validate Filters & Pagination ---
+    $filters = [];
+    if (!empty($_POST['fiscal_year']) && is_numeric($_POST['fiscal_year'])) {
+        $filters['fiscal_year'] = intval($_POST['fiscal_year']);
+    }
+    if (!empty($_POST['grant_id']) && is_numeric($_POST['grant_id'])) {
+        $filters['grant_id'] = intval($_POST['grant_id']);
+    }
+    if (!empty($_POST['department_id']) && is_numeric($_POST['department_id'])) {
+        $filters['department_id'] = intval($_POST['department_id']);
+    }
+    if (!empty($_POST['budget_id']) && is_numeric($_POST['budget_id'])) {
+        $filters['budget_id'] = intval($_POST['budget_id']);
+    }
+    if (!empty($_POST['vendor_id']) && is_numeric($_POST['vendor_id'])) {
+        $filters['vendor_id'] = intval($_POST['vendor_id']);
+    }
+
+    $page = isset($_POST['page']) && is_numeric($_POST['page']) ? max(1, intval($_POST['page'])) : 1;
+    $limit = isset($_POST['limit']) && is_numeric($_POST['limit']) ? max(1, intval($_POST['limit'])) : 25; // Default limit
+
+    // --- Fetch Allocation Data using DAL function ---
+    $reportResult = getAllocationsForReport(
+        $pdo,
+        $filters,
+        $user_role,
+        $user_department_id,
+        $user_id,
+        $page,
+        $limit
+    );
+
+    if ($reportResult === false) {
+        send_error_response("Failed to retrieve allocation report data.", 500, true);
+    }
+
+    // --- Prepare JSON Response ---
+    $response_data = [
+        'allocations' => $reportResult['data'] ?? [],
+        'pagination' => [
+            'total' => $reportResult['total'] ?? 0,
+            'page' => $page,
+            'limit' => $limit,
+            'totalPages' => isset($reportResult['total']) && $limit > 0 ? ceil($reportResult['total'] / $limit) : 0
+        ]
+    ];
+
+    send_json_response($response_data);
 } else {
     // --- Unknown Action ---
     send_error_response("Unknown action specified.", 400);

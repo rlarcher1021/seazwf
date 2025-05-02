@@ -568,11 +568,13 @@ jQuery(document).ready(function($) { // Use jQuery wrapper
     // --- Add Message to UI ---
     const addMessage = (text, sender, save = true) => {
         const messageClass = `chat-message ${sender}`; // e.g., 'chat-message user' or 'chat-message ai'
-        // Parse markdown to HTML using Markdown-it (ensure library is loaded)
-        const md = window.markdownit ? window.markdownit() : null; // Get instance if available
-        const htmlContent = md ? md.render(text) : text; // Render if instance exists, else fallback to raw text
 
-        const messageElement = $('<div></div>').addClass(messageClass).html(htmlContent); // Use .html() with parsed content
+        // Create the message element
+        const messageElement = $('<div></div>').addClass(messageClass);
+
+        // Use .text() for all message types to prevent XSS
+        messageElement.text(text);
+
         messagesContainer.append(messageElement);
         messagesContainer.scrollTop(messagesContainer[0].scrollHeight); // Scroll to bottom
 

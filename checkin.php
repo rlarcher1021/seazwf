@@ -231,7 +231,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $errors[] = "Please answer the question: \"" . htmlspecialchars($question['question_text']) . "\"";
         }
     }
-    error_log("[DEBUG checkin.php POST] Prepared Question answers array FINAL: " . print_r($question_answers, true));
 
     // Validate selected staff notifier
     if ($allow_notifier) {
@@ -510,6 +509,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
+<!-- CSRF Token for AJAX requests -->
+    <meta name="csrf-token" content="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
     <title>Welcome - Check In - <?php echo htmlspecialchars($site_name); ?></title>
     <link rel="icon" type="image/png" href="assets/img/flaviconlogo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -568,6 +569,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </div>
 
             <!-- Existing Form Container (Now inside central column) -->
+<!-- QR Code Reader Placeholder -->
+            <div id="qr-reader" style="width: 500px; margin: 15px auto; border: 1px solid #ccc;"></div>
+            <div id="qr-reader-results" class="mt-3 text-center"></div> <!-- Area for results/messages -->
             <div class="checkin-container" id="checkin-form-container">
                 <h1>Welcome to Arizona@Work <?php echo htmlspecialchars($site_name); ?>!</h1>
                 <h2>Please Check In</h2>
@@ -601,7 +605,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     <!-- Dynamic Questions -->
                     <?php if (!empty($assigned_questions)): ?>
                         <?php foreach ($assigned_questions as $question):
-                            $q_key = 'q_' . $question['global_question_id']; $current_answer = $form_data[$q_key] ?? null; ?>
+                            $q_key = 'q_' . $question['id']; // Use the alias 'id' from getActiveQuestionsForSite query
+                            $current_answer = $form_data[$q_key] ?? null; ?>
                             <div class="form-group">
                                 <label class="form-label"><?php echo htmlspecialchars($question['question_text']); ?>:</label>
                                 <div class="radio-group">
@@ -760,7 +765,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         */
 
     <!-- ============ End JavaScript for Sticky Sidebar Centering (Removed) ============ -->
-    </script>
+</script>
 
+<!-- QR Code Library -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+    <!-- Kiosk Specific JavaScript -->
+    <script src="assets/js/kiosk.js?v=<?php echo filemtime(__DIR__ . '/assets/js/kiosk.js'); ?>"></script>
 </body>
 </html>

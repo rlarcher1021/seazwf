@@ -1,4 +1,7 @@
-[29-Apr-2025 21:21:07 Europe/Berlin] Admin action: Error log cleared by user ID: 1
-[29-Apr-2025 21:21:07 Europe/Berlin] Alerts Debug: Checking current directory path: C:\xampp\htdocs\public_html/error_log
-[29-Apr-2025 21:21:07 Europe/Berlin] Alerts Debug: Found log file in current directory.
-[29-Apr-2025 21:21:07 Europe/Berlin] Alerts INFO: Determined log file path: C:\xampp\htdocs\public_html/error_log
+[03-May-2025 00:41:40 Europe/Berlin] Admin action: Error log cleared by user ID: 1
+[03-May-2025 00:41:41 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/api_keys_panel.php'. Selected Site ID = 4, Role = administrator, IsSiteAdmin = 0
+[03-May-2025 00:41:41 Europe/Berlin] DEBUG configurations.php: Before panel include. Tab='api-keys', Selected Site ID=4, Role='administrator', IsSiteAdmin=0
+[03-May-2025 00:43:14 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/api_keys_panel.php'. Selected Site ID = 4, Role = administrator, IsSiteAdmin = 0
+[03-May-2025 00:43:14 Europe/Berlin] DEBUG configurations.php: Before panel include. Tab='api-keys', Selected Site ID=4, Role='administrator', IsSiteAdmin=0
+[03-May-2025 00:46:51 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/api_keys_panel.php'. Selected Site ID = 4, Role = administrator, IsSiteAdmin = 0
+[03-May-2025 00:46:51 Europe/Berlin] DEBUG configurations.php: Before panel include. Tab='api-keys', Selected Site ID=4, Role='administrator', IsSiteAdmin=0

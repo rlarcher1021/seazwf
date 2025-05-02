@@ -5,98 +5,146 @@
  * ... (header comment) ...
  */
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+// --- Determine if it's a client-related page FIRST ---
+// Use SCRIPT_NAME as it reflects the initially requested script, even if included.
+$script_path = $_SERVER['SCRIPT_NAME'];
+$script_basename = basename($script_path);
+$is_client_login_or_register = in_array($script_basename, ['client_login.php', 'client_register.php']);
+$is_client_portal_page = strpos($script_path, '/client_portal/') !== false;
+$is_client_facing_page = $is_client_login_or_register || $is_client_portal_page;
 
-$currentPage = basename($_SERVER['PHP_SELF']);
-$allowedUnauthenticated = ['index.php'];
+// --- Staff Session Handling and Authentication ---
+// ONLY run staff session start and auth checks if it's NOT a client-facing page
+if (!$is_client_facing_page) {
 
-if (!in_array($currentPage, $allowedUnauthenticated)) {
-    // Check if user_id and active_role are set
+    // --- Conditionally Start Default Session ---
+    // Only start the default session if a session isn't already active
+    if (session_status() === PHP_SESSION_NONE) {
+        // No session_name() here, assume default staff session
+        session_start();
+    }
+
+    // --- Staff Authentication & Authorization Logic ---
+    $staff_allowed_unauthenticated = ['index.php']; // Staff pages accessible without login
+
+    // Check if staff session variables are set
     if (!isset($_SESSION['user_id']) || !isset($_SESSION['active_role'])) {
-        session_unset(); session_destroy();
-        header("Location: index.php?reason=not_logged_in"); exit;
-    }
-
-    $role = $_SESSION['active_role'];
-    $accessDenied = false;
-
-    // Define roles allowed for each page
-    $accessRules = [
-        'checkin.php' => ['kiosk', 'azwk_staff', 'outside_staff', 'director', 'administrator'], // ALL roles can access checkin
-        'select_checkin_site.php' => ['director', 'administrator'], // ONLY Director/Admin
-        'dashboard.php' => ['azwk_staff', 'outside_staff', 'director', 'administrator'],
-        'reports.php' => ['azwk_staff', 'outside_staff', 'director', 'administrator'],
-        'export_report.php' => ['azwk_staff', 'outside_staff', 'director', 'administrator'], // Match reports access
-        'notifications.php' => ['azwk_staff'], // outside_staff intentionally excluded
-        'configurations.php' => ['administrator'],
-        'users.php' => ['administrator'],
-        'alerts.php' => ['administrator'],
-        'logout.php' => ['kiosk', 'azwk_staff', 'outside_staff', 'director', 'administrator'], // ALL logged in roles
-        'forum_index.php' => ['azwk_staff', 'outside_staff', 'director', 'administrator'], // Forum category list
-        'view_category.php' => ['azwk_staff', 'outside_staff', 'director', 'administrator'], // View topics in a category
-        'view_topic.php' => ['azwk_staff', 'outside_staff', 'director', 'administrator'], // View posts in a topic
-        'create_topic.php' => ['azwk_staff', 'outside_staff', 'director', 'administrator'], // Create new topic form/handler
-        'ajax_report_handler.php' => ['azwk_staff', 'outside_staff', 'director', 'administrator'], // AJAX endpoint for reports/dashboard charts
-        'account.php' => ['azwk_staff', 'outside_staff', 'director', 'administrator'], // User account self-management (exclude kiosk)
-        // Add other specific pages here if needed
-        // Budget Feature Pages (Consolidated under budget_settings.php now)
-        // 'grant_management.php' => ['director', 'administrator'], // Removed
-        // 'budget_setup.php' => ['director', 'administrator'], // Removed
-        'budget_settings.php' => ['director', 'administrator'], // NEW Consolidated Settings Page
-        'budgets.php' => ['director', 'azwk_staff', 'finance', 'administrator'], // Budget Allocation Management
-        'ajax_get_budgets.php' => ['director', 'azwk_staff', 'finance', 'administrator'], // AJAX for budgets page
-        'ajax_allocation_handler.php' => ['director', 'azwk_staff', 'finance', 'administrator'], // AJAX for budgets page
-        'vendor_handler.php' => ['director', 'administrator'], // AJAX for vendor CRUD (Key changed to basename)
-        // Add AJAX handler for vendor CRUD if needed later
-    ];
-
-    // Check if the current page has a rule defined
-    if (array_key_exists($currentPage, $accessRules)) {
-        // Check if the user's role is in the allowed list for this page
-        if (!in_array($role, $accessRules[$currentPage])) {
-            $accessDenied = true;
+        // If session vars aren't set, check if the current page is one that requires login
+        if (!in_array($script_basename, $staff_allowed_unauthenticated)) {
+             // It's not an allowed unauthenticated page, so redirect to login
+             session_unset(); // Ensure clean state before redirect
+             session_destroy();
+             header("Location: index.php?reason=not_logged_in");
+             exit;
         }
-        // If role IS allowed by the rule, $accessDenied remains false
+        // If it IS an allowed unauthenticated page (like index.php), just continue without further checks.
     } else {
-        // Page not explicitly listed in rules - deny access for safety
-        error_log("Access Attempt to Unlisted Page: User '{$_SESSION['username']}' (Role: {$role}) to {$currentPage}");
-        $accessDenied = true;
-    }
+        // --- Staff User is Logged In - Perform Role-Based Access Control ---
+        $role = $_SESSION['active_role'];
+        $accessDenied = false;
+        // [AUTH DEBUG] Start of staff auth block
 
 
-    // Kiosk specific restriction (Keep this!)
-     if (isset($_SESSION['real_role']) && $_SESSION['real_role'] === 'kiosk' && !in_array($currentPage, ['checkin.php', 'logout.php'])) {
-          // Even if allowed by rules above, force Kiosk ONLY to checkin/logout
-          header("Location: checkin.php");
-          exit;
-     }
+        // Define roles allowed for each STAFF page
+        $accessRules = [
+            'checkin.php' => ['kiosk', 'azwk_staff', 'outside_staff', 'director', 'administrator'],
+            'select_checkin_site.php' => ['director', 'administrator'],
+            'dashboard.php' => ['azwk_staff', 'outside_staff', 'director', 'administrator'],
+            'reports.php' => ['azwk_staff', 'outside_staff', 'director', 'administrator'],
+            'export_report.php' => ['azwk_staff', 'outside_staff', 'director', 'administrator'],
+            'notifications.php' => ['azwk_staff'],
+            'configurations.php' => ['administrator'],
+            'users.php' => ['administrator'],
+            'alerts.php' => ['administrator'],
+            'logout.php' => ['kiosk', 'azwk_staff', 'outside_staff', 'director', 'administrator'],
+            'forum_index.php' => ['azwk_staff', 'outside_staff', 'director', 'administrator'],
+            'view_category.php' => ['azwk_staff', 'outside_staff', 'director', 'administrator'],
+            'view_topic.php' => ['azwk_staff', 'outside_staff', 'director', 'administrator'],
+            'create_topic.php' => ['azwk_staff', 'outside_staff', 'director', 'administrator'],
+            'ajax_report_handler.php' => ['azwk_staff', 'outside_staff', 'director', 'administrator'],
+            'account.php' => ['azwk_staff', 'outside_staff', 'director', 'administrator'],
+            'budget_settings.php' => ['director', 'administrator'],
+            'budgets.php' => ['director', 'azwk_staff', 'finance', 'administrator'],
+            'ajax_get_budgets.php' => ['director', 'azwk_staff', 'finance', 'administrator'],
+            'ajax_allocation_handler.php' => ['director', 'azwk_staff', 'finance', 'administrator'],
+            'vendor_handler.php' => ['director', 'administrator'], // Assuming this is AJAX for budget_settings
+            'qr_checkin.php' => ['kiosk'], // Allow kiosk role for QR check-in AJAX handler
+            'client_editor.php' => ['director', 'administrator'], // Added access for Director and Administrator
+            'api_keys_handler.php' => ['administrator'], // Corrected: Use basename for AJAX handler access rule
+            // NOTE: index.php is intentionally NOT listed. Logged-in users might be redirected from index.php elsewhere.
+        ];
 
-
-    if ($accessDenied) {
-        error_log("Access Denied: User '{$_SESSION['username']}' (Active Role: {$role}) attempted to access {$currentPage}");
-        // Redirect logic (keep existing)
-        $redirectTarget = 'index.php?reason=access_denied';
-        if (in_array($role, ['azwk_staff', 'outside_staff', 'director', 'administrator', 'finance'])) { // Added finance here
-             $redirectTarget = 'dashboard.php?reason=access_denied';
-        }
-        // Avoid setting session message if maybe redirecting to login? Check target.
-        if (strpos($redirectTarget, 'dashboard.php') !== false) {
-            // Use the flash message system from utils.php if available
-            if (function_exists('set_flash_message')) {
-                 set_flash_message('auth_error', "Access Denied: Your current role ({$role}) does not permit access to {$currentPage}.", 'error');
-            } else {
-                // Fallback if utils isn't included before auth (should be)
-                $_SESSION['flash_message'] = "Access Denied: Your current role ({$role}) does not permit access to {$currentPage}.";
-                $_SESSION['flash_type'] = 'error';
+        // Check access rules for the current page
+        if (array_key_exists($script_basename, $accessRules)) {
+            if (!in_array($role, $accessRules[$script_basename])) {
+                $accessDenied = true; // Role not allowed for this specific page
+                // [AUTH DEBUG] Inside $accessRules check (fail)
+            } else { // Role IS allowed
+                 // [AUTH DEBUG] Inside $accessRules check (pass)
             }
+        } else {
+            // Page is not listed in access rules. Deny access unless it's index.php (which handles its own logic).
+            if ($script_basename !== 'index.php') {
+                 // Attempt to safely get username for logging
+                 $logUsername = isset($_SESSION['username']) ? $_SESSION['username'] : 'Unknown';
+                 error_log("Access Attempt to Unlisted Staff Page: User '{$logUsername}' (Role: {$role}) to {$script_basename}");
+                 $accessDenied = true;
+                 // [AUTH DEBUG] Inside else (page not listed)
+            }
+             // If it's index.php, allow script execution to continue (index.php might redirect based on role).
         }
-        header("Location: " . $redirectTarget);
-        exit;
-    }
 
-} // End check for authenticated pages
+        // Kiosk specific restriction (Apply AFTER general rules)
+        if (isset($_SESSION['real_role']) && $_SESSION['real_role'] === 'kiosk' && !in_array($script_basename, ['checkin.php', 'logout.php', 'qr_checkin.php'])) {
+             $accessDenied = true; // Kiosk trying to access disallowed page
+        }
+
+        // [AUTH DEBUG] Before Site Admin override check
+        // Site Admin Override: Allow access to specific pages regardless of primary role rules
+        $siteAdminAllowedPages = ['users.php', 'configurations.php', 'client_editor.php'];
+        // [AUTH DEBUG] Inside Site Admin override check
+        if (isset($_SESSION['is_site_admin']) && $_SESSION['is_site_admin'] == 1 && in_array($script_basename, $siteAdminAllowedPages)) {
+            $accessDenied = false; // Explicitly grant access
+        } else {
+        }
+        // [AUTH DEBUG] After Site Admin override check
+        // Handle Access Denied
+        if ($accessDenied) {
+            // [AUTH DEBUG] Inside final if ($accessDenied)
+            $username = $_SESSION['username'] ?? 'Unknown'; // Handle case where username might not be set
+            // Determine redirect target based on role and situation - MUST HAPPEN BEFORE LOGGING IT
+            $redirectTarget = 'index.php?reason=access_denied'; // Default redirect
+            if (isset($_SESSION['real_role']) && $_SESSION['real_role'] === 'kiosk') {
+                 $redirectTarget = 'checkin.php'; // Force kiosk back to checkin page
+            } elseif (in_array($role, ['azwk_staff', 'outside_staff', 'director', 'administrator', 'finance'])) {
+                 // Redirect most staff roles to dashboard on denial
+                 $redirectTarget = 'dashboard.php?reason=access_denied';
+            }
+            // Note: If role is somehow invalid or not in the list above, they go to index.php
+
+            error_log("Access Denied: User '{$username}' (Active Role: {$role}) attempted to access {$script_basename}");
+
+
+            // Set flash message ONLY if redirecting to dashboard (avoid showing on login page)
+            if (strpos($redirectTarget, 'dashboard.php') !== false) {
+                $displayRole = htmlspecialchars($role, ENT_QUOTES, 'UTF-8');
+                $displayPage = htmlspecialchars($script_basename, ENT_QUOTES, 'UTF-8');
+                if (function_exists('set_flash_message')) {
+                     set_flash_message('auth_error', "Access Denied: Your current role ({$displayRole}) does not permit access to {$displayPage}.", 'error');
+                } else {
+                    // Fallback if utils isn't included before auth (less likely now)
+                    $_SESSION['flash_message'] = "Access Denied: Your current role ({$displayRole}) does not permit access to {$displayPage}.";
+                    $_SESSION['flash_type'] = 'error';
+                }
+            }
+
+            header("Location: " . $redirectTarget);
+            exit;
+        }
+        // If access is not denied, script execution continues for the staff page.
+    } // End else (user is logged in)
+
+} // End if (!$is_client_facing_page)
 
 
 /**

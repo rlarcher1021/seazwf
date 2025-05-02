@@ -325,4 +325,107 @@ function checkForumPermissions(string $requiredRole, ?string $userRole): bool {
     return $userLevel >= $requiredLevel;
 }
 
+/**
+ * Fetches all non-deleted forum posts with pagination, joining topic and user information.
+ *
+ * @param PDO $pdo The PDO database connection object.
+ * @param int $page The current page number (1-based).
+ * @param int $limit The number of posts per page.
+ * @return array An array containing 'posts' (array of post objects) and 'total_count' (int), or ['posts' => [], 'total_count' => 0] on failure.
+ */
+function getAllForumPosts(PDO $pdo, int $page = 1, int $limit = 25): array
+{
+    // Sanitize pagination parameters
+    $page = max(1, $page);
+    $limit = max(1, $limit);
+    $offset = ($page - 1) * $limit;
+
+    $result = ['posts' => [], 'total_count' => 0];
+
+    try {
+        // Query to get the paginated posts
+        $sqlPosts = "SELECT
+                        p.id AS post_id,
+                        p.content,
+                        p.created_at,
+                        p.topic_id,
+                        t.title AS topic_title,
+                        p.user_id,
+                        COALESCE(u.full_name, 'System/API User') AS author_full_name,
+                        p.created_by_api_key_id
+                    FROM
+                        forum_posts p
+                    LEFT JOIN
+                        forum_topics t ON p.topic_id = t.id
+                    LEFT JOIN
+                        users u ON p.user_id = u.id
+                    -- WHERE p.is_deleted = 0 -- is_deleted column not found in provided schema
+                    ORDER BY
+                        p.created_at DESC
+                    LIMIT :limit OFFSET :offset";
+
+        $stmtPosts = $pdo->prepare($sqlPosts);
+        $stmtPosts->bindParam(':limit', $limit, PDO::PARAM_INT);
+        $stmtPosts->bindParam(':offset', $offset, PDO::PARAM_INT);
+        $stmtPosts->execute();
+        $result['posts'] = $stmtPosts->fetchAll(PDO::FETCH_ASSOC);
+
+        // Query to get the total count of non-deleted posts
+        $sqlCount = "SELECT COUNT(*) FROM forum_posts -- WHERE is_deleted = 0"; // is_deleted column not found
+        $stmtCount = $pdo->query($sqlCount);
+        if ($stmtCount) {
+            $result['total_count'] = (int)$stmtCount->fetchColumn();
+        }
+
+        return $result;
+
+    } catch (PDOException $e) {
+        error_log("Error fetching all forum posts: " . $e->getMessage());
+        return $result; // Return default empty result on error
+    }
+}
 ?>
+/**
+ * Fetches the most recent non-deleted forum posts, joining topic and user information.
+ *
+ * @param PDO $pdo The PDO database connection object.
+ * @param int $limit The maximum number of recent posts to fetch.
+ * @return array An array of post objects, or an empty array on failure.
+ */
+function getRecentForumPosts(PDO $pdo, int $limit = 10): array
+{
+    // Ensure limit is a positive integer
+    $limit = max(1, $limit);
+
+    try {
+        $sql = "SELECT
+                    p.id AS post_id,
+                    p.content,
+                    p.created_at,
+                    p.topic_id,
+                    t.title AS topic_title,
+                    p.user_id,
+                    COALESCE(u.full_name, 'System/API User') AS author_full_name,
+                    p.created_by_api_key_id
+                FROM
+                    forum_posts p
+                LEFT JOIN
+                    forum_topics t ON p.topic_id = t.id
+                LEFT JOIN
+                    users u ON p.user_id = u.id
+                WHERE
+                    p.is_deleted = 0
+                ORDER BY
+                    p.created_at DESC
+                LIMIT :limit";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    } catch (PDOException $e) {
+        error_log("Error fetching recent forum posts: " . $e->getMessage());
+        return []; // Return empty array on error
+    }
+}

@@ -6,12 +6,46 @@ if (basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'])) {
 
 
 // Ensure required variables are available from configurations.php
-if (!isset($pdo)) {
-     error_log("Config Panel Error: Required variable \$pdo not set in ads_panel.php");
-     echo "<div class='message-area message-error'>Configuration error: Required variable \$pdo not available.</div>";
+// $pdo, $selected_config_site_id, $session_role, $is_site_admin, $session_site_id (conditionally)
+$required_vars_missing = false;
+$error_detail = '';
+if (!isset($pdo)) { $required_vars_missing = true; $error_detail = '$pdo'; }
+elseif (!isset($session_role)) { $required_vars_missing = true; $error_detail = '$session_role'; }
+elseif (!isset($is_site_admin)) { $required_vars_missing = true; $error_detail = '$is_site_admin'; }
+elseif ($is_site_admin === 1 && !isset($session_site_id)) {
+    // Site admins MUST have their own site ID set
+    $required_vars_missing = true;
+    $error_detail = '$session_site_id (for Site Admin)';
+} elseif (!isset($selected_config_site_id)) {
+     // This panel requires a site to be selected for configuration
+     $required_vars_missing = true;
+     $error_detail = '$selected_config_site_id';
+}
+
+if ($required_vars_missing) {
+     error_log("Config Panel Error: Required variable {$error_detail} not set in ads_panel.php");
+     echo "<div class='message-area message-error'>Configuration error: Required context variable ({$error_detail}) not available for this panel.</div>";
      return; // Stop further execution
 }
-// $selected_config_site_id might be null, which is okay for global actions, but check where needed.
+// $selected_config_site_id can be null if no site is selected by admin/director, or if site admin's site is invalid. Check where needed.
+
+// --- Permission Helper ---
+// Can the current user manage global items? (Admin/Director only)
+$can_manage_global_ads = in_array($session_role, ['administrator', 'director']) && !$is_site_admin;
+// Can the current user manage the currently selected site's items?
+$can_manage_selected_site_ads = false;
+if ($selected_config_site_id !== null) {
+    if (in_array($session_role, ['administrator', 'director'])) {
+        $can_manage_selected_site_ads = true; // Admins/Directors can manage any selected site
+    } elseif ($is_site_admin === 1 && $selected_config_site_id === $session_site_id) {
+        $can_manage_selected_site_ads = true; // Site Admin can manage their own site
+    }
+}
+
+// Include necessary data access functions
+require_once __DIR__ . '/../data_access/ad_data.php';
+require_once __DIR__ . '/../data_access/site_data.php'; // Needed for site ID validation in POST
+require_once __DIR__ . '/../utils.php'; // For reorder_items
 
 // Define Ad Upload Constants if not already defined (might be better in a central config file)
 if (!defined('AD_UPLOAD_PATH')) {
@@ -41,7 +75,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         // Let configurations.php handle the redirect after setting the flash message
         return; // Stop processing this panel
     }
-
     // --- End CSRF Token Verification ---
 
 
@@ -58,43 +91,76 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $unique_filename = null;
     $uploaded_image_path_db = null;
 
-    // Check if the action is relevant to this panel
+    // --- Permission Check for POST Actions ---
+    $action_allowed = false;
+    switch ($action) {
+        case 'add_global_ad':
+        case 'update_global_ad':
+        case 'delete_global_ad':
+        case 'toggle_global_ad_active':
+            // Only Admins/Directors can manage global ads
+            if ($can_manage_global_ads) {
+                $action_allowed = true;
+            } else {
+                $message = "Access Denied: You do not have permission to manage global ads.";
+            }
+            break;
+
+        case 'assign_site_ad':
+        case 'remove_site_ad':
+        case 'toggle_site_ad_active':
+        case 'move_site_ad_up':
+        case 'move_site_ad_down':
+            // Check if the user can manage the specific site the action targets
+            // The $posted_site_id should match the $selected_config_site_id determined by configurations.php
+            if ($posted_site_id && $posted_site_id == $selected_config_site_id) {
+                if (in_array($session_role, ['administrator', 'director'])) {
+                    $action_allowed = true; // Admins/Directors can manage any selected site
+                } elseif ($is_site_admin === 1 && $posted_site_id === $session_site_id) {
+                    $action_allowed = true; // Site Admin can manage their own site
+                } else {
+                     $message = "Access Denied: You do not have permission to manage ads for this site (ID: {$posted_site_id}).";
+                }
+            } else {
+                 $message = "Site ID mismatch or missing. Cannot perform action.";
+                 error_log("Ads Panel POST Error: Site ID mismatch. Posted: {$posted_site_id}, Selected Config: {$selected_config_site_id}, Session Site: {$session_site_id}");
+            }
+            break;
+
+        default:
+            $message = "Invalid action specified.";
+            break;
+    }
+
+    if (!$action_allowed) {
+        $_SESSION['flash_message'] = $message;
+        $_SESSION['flash_type'] = 'error';
+        // Regenerate CSRF token after failed POST processing
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        // Let configurations.php handle redirect
+        return; // Stop processing
+    }
+    // --- End Permission Check ---
+
+
+    // Check if the action is relevant to this panel (redundant after permission check, but keep for safety)
     if (in_array($action, [
         'add_global_ad', 'delete_global_ad', 'toggle_global_ad_active', 'update_global_ad',
         'assign_site_ad', 'remove_site_ad', 'toggle_site_ad_active', 'move_site_ad_up', 'move_site_ad_down'
     ])) {
-        // Validate site ID for site-specific actions
+        // Validate site ID for site-specific actions (already partially done in permission check)
         if (in_array($action, ['assign_site_ad', 'remove_site_ad', 'toggle_site_ad_active', 'move_site_ad_up', 'move_site_ad_down'])) {
-            // Detailed logging for site ID validation
-            error_log("DEBUG ads_panel.php POST: Validating site ID. Action: {$action},
-                Posted Site ID: " . var_export($posted_site_id, true) . ",
-                Selected Config Site ID: " . var_export($selected_config_site_id, true) . ",
-                Session Site ID: " . var_export($_SESSION['selected_config_site_id'] ?? 'Not Set', true) . ",
-                GET Site ID: " . var_export($_GET['site_id'] ?? 'Not Set', true));
-
-            // More robust site ID validation
-            $sites_list = getAllSitesWithStatus($pdo);
-            $valid_site_ids = array_column($sites_list, 'id');
-            $valid_site_ids[] = null; // Allow null for global actions
-
-            if ($posted_site_id !== null && !in_array($posted_site_id, $valid_site_ids)) {
-                $_SESSION['flash_message'] = "Invalid site ID. Please select a valid site.";
+            if ($posted_site_id === null || $posted_site_id !== $selected_config_site_id) {
+                $_SESSION['flash_message'] = "Site ID mismatch or missing. Please ensure you're on the correct site configuration page.";
                 $_SESSION['flash_type'] = 'error';
-                goto end_ad_post_handling;
-            }
-
-            // Additional check for site-specific actions
-            if ($posted_site_id !== $selected_config_site_id) {
-                $_SESSION['flash_message'] = "Site ID mismatch. Please ensure you're on the correct site configuration page.";
-                $_SESSION['flash_type'] = 'error';
-                goto end_ad_post_handling;
+                goto end_ad_post_handling; // Use goto to jump past processing
             }
         }
 
         try {
             switch ($action) {
                 // ========================
-                // Global Ad Actions
+                // Global Ad Actions (Permission already checked: $can_manage_global_ads)
                 // ========================
                 case 'add_global_ad':
                      $ad_type = $_POST['ad_type'] ?? null; $ad_title = trim($_POST['ad_title'] ?? ''); $ad_text = trim($_POST['ad_text'] ?? ''); $is_active = isset($_POST['is_active']) ? 1 : 0; $image_file = $_FILES['ad_image'] ?? null;
@@ -123,8 +189,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                           $message = "Upload error: " . ($upload_errors[$image_file['error']] ?? "Unknown error code {$image_file['error']}."); error_log("Config upload error: {$message}"); break;
                      }
 
-                     // Add global ad using data access function (handles transaction)
-                     $new_ad_id = addGlobalAd($pdo, $ad_type, $ad_title, $ad_text, $uploaded_image_path_db, $is_active);
+                     // Add global ad using data access function (handles transaction), passing session role
+                     $new_ad_id = addGlobalAd($pdo, $ad_type, $ad_title, $ad_text, $uploaded_image_path_db, $is_active, $session_role);
                      if ($new_ad_id !== false) {
                           $success = true; $message = "Global ad added."; $message_type = 'success'; error_log("Admin Action: Added Global Ad ID {$new_ad_id}.");
                      } else {
@@ -140,8 +206,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                      if ($item_id) { // item_id is global_ad_id here
                           // Get image path first for potential deletion
                           $image_path = getGlobalAdImagePath($pdo, $item_id);
-                          // Delete ad using data access function (handles transaction)
-                          if (deleteGlobalAd($pdo, $item_id)) {
+                          // Delete ad using data access function (handles transaction), passing session role
+                          if (deleteGlobalAd($pdo, $item_id, $session_role)) {
                                $success = true; $message = "Global ad deleted."; $message_type = 'success'; error_log("Admin Action: Deleted Global Ad ID {$item_id}.");
                                // Attempt file deletion if path exists
                                if ($image_path) {
@@ -158,8 +224,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
                 case 'toggle_global_ad_active':
                       if ($item_id) { // item_id is global_ad_id here
-                           // Toggle status using data access function (handles transaction)
-                           if (toggleGlobalAdActive($pdo, $item_id)) {
+                           // Toggle status using data access function (handles transaction), passing session role
+                           if (toggleGlobalAdActive($pdo, $item_id, $session_role)) {
                                 $success = true; $message = "Global ad status toggled."; $message_type = 'success';
                            } else { $message = "DB error toggling status."; } // Error logged in function
                       } else { $message = "Invalid ID."; }
@@ -191,8 +257,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                      } elseif ($ad_type === 'image' && $delete_current_image && $old_image_path) { $image_path_to_save = null; error_log("Admin Action: Marked image '{$old_image_path}' for deletion for Ad ID {$edit_ad_id}."); }
                        elseif ($ad_type === 'text' && $old['ad_type'] === 'image' && $old_image_path) { $image_path_to_save = null; error_log("Admin Action: Type changed, mark image '{$old_image_path}' for deletion for Ad ID {$edit_ad_id}."); }
 
-                    // Update Database using data access function (handles transaction)
-                    if (updateGlobalAd($pdo, $edit_ad_id, $ad_type, $ad_title, $ad_text, $image_path_to_save, $is_active)) {
+                    // Update Database using data access function (handles transaction), passing session role
+                    if (updateGlobalAd($pdo, $edit_ad_id, $ad_type, $ad_title, $ad_text, $image_path_to_save, $is_active, $session_role)) {
                         $success = true; $message = "Global ad updated."; $message_type = 'success'; error_log("Admin Action: Updated Global Ad ID {$edit_ad_id}.");
                         // Determine if old image needs deleting AFTER successful DB update
                           $image_to_delete = null;
@@ -216,22 +282,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     break;
 
                 // ========================
-                // Site Ad Assignment Actions
+                // Site Ad Assignment Actions (Permission already checked: $can_manage_selected_site_ads)
                 // ========================
                 case 'assign_site_ad':
                      $ga_id = filter_input(INPUT_POST, 'global_ad_id', FILTER_VALIDATE_INT); $active = isset($_POST['assign_is_active']) ? 1 : 0;
                      if ($posted_site_id && $ga_id) {
-                          // Assign using data access function (handles transaction and order)
-                          if (assignAdToSite($pdo, $posted_site_id, $ga_id, $active)) {
+                          // Assign using data access function (handles transaction and order), passing session context
+                          if (assignAdToSite($pdo, $posted_site_id, $ga_id, $active, $session_role, $is_site_admin, $session_site_id)) {
                                $success = true; $message = "Ad assigned."; $message_type = 'success';
                           } else { $message = "Failed to assign ad (already assigned or DB error)."; } // Error logged in function
                      } else { $message = "Invalid site/ad ID."; }
                      break;
                 case 'remove_site_ad':
                      if ($posted_site_id && $item_id) { // item_id is site_ad_id
-                          // Remove using data access function
-                          if (removeAdFromSite($pdo, $item_id, $posted_site_id)) {
-                               // Reorder separately using the function from ad_data.php
+                          // Remove using data access function, passing session context
+                          if (removeAdFromSite($pdo, $item_id, $posted_site_id, $session_role, $is_site_admin, $session_site_id)) {
+                               // Reorder separately using the function from utils.php (assuming it exists)
                                if (reorder_items($pdo, 'site_ads', 'display_order', 'site_id', $posted_site_id)) {
                                     $success = true; $message = "Ad removed & reordered."; $message_type = 'success';
                                } else { $message = "Ad removed, but failed to reorder items."; $message_type = 'warning'; } // Reorder error logged in function
@@ -240,8 +306,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                      break;
                 case 'toggle_site_ad_active':
                      if ($posted_site_id && $item_id) { // item_id is site_ad_id
-                          // Toggle using data access function (handles transaction)
-                          if (toggleSiteAdActive($pdo, $item_id, $posted_site_id)) {
+                          // Toggle using data access function (handles transaction), passing session context
+                          if (toggleSiteAdActive($pdo, $item_id, $posted_site_id, $session_role, $is_site_admin, $session_site_id)) {
                                $success = true; $message = "Site ad status toggled."; $message_type = 'success';
                           } else { $message = "Failed to toggle site ad status."; } // Error logged in function
                      } else { $message = "Invalid site/item ID."; }
@@ -283,6 +349,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         // Let configurations.php handle the redirect
     } // End check for relevant action
+
+    // Regenerate CSRF token after any POST processing
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+
 }
 end_ad_post_handling: // Label for goto jump
 // --- END: Handle POST Actions for Ads ---
@@ -294,8 +364,8 @@ $edit_ad_id_get = filter_input(INPUT_GET, 'edit_ad_id', FILTER_VALIDATE_INT); //
 $edit_ad_data = null;
 $panel_error_message = ''; // Panel specific error
 
-// Fetch Global Ad Edit Data only if view state and ID are correct
-if ($view_state === 'edit_global_ad' && $edit_ad_id_get) {
+// Fetch Global Ad Edit Data only if view state and ID are correct AND user has permission
+if ($view_state === 'edit_global_ad' && $edit_ad_id_get && $can_manage_global_ads) {
     try {
         // Fetch using data access function
         $edit_ad_data = getGlobalAdById($pdo, $edit_ad_id_get);
@@ -314,6 +384,12 @@ if ($view_state === 'edit_global_ad' && $edit_ad_id_get) {
         $view_state = 'list'; // Revert to list view on error
         $edit_ad_id_get = null;
     }
+} elseif ($view_state === 'edit_global_ad' && !$can_manage_global_ads) {
+    // User tried to access edit view without permission
+    $_SESSION['flash_message'] = "Access Denied: You do not have permission to edit global ads.";
+    $_SESSION['flash_type'] = 'error';
+    $view_state = 'list';
+    $edit_ad_id_get = null;
 }
 // --- END: Logic for Edit View ---
 
@@ -322,6 +398,7 @@ if ($view_state === 'edit_global_ad' && $edit_ad_id_get) {
 $global_ads_list = [];
 $site_ads_assigned = [];
 $site_ads_available = [];
+$selected_site_details = null; // Fetch site details for display
 
 // 1. Fetch Global Ads (always needed for this panel)
 $global_ads_list = getAllGlobalAds($pdo);
@@ -333,6 +410,12 @@ if ($global_ads_list === false) { // Check for false explicitly on error
 // 2. Fetch Site-Specific Ad Data if a site is selected
 if ($selected_config_site_id !== null) {
      try {
+         // Fetch site details
+         $selected_site_details = getSiteDetailsById($pdo, $selected_config_site_id);
+         if (!$selected_site_details) {
+              $panel_error_message .= " Error loading details for selected site ID: {$selected_config_site_id}.";
+         }
+
          // Fetch Assigned Site Ads using data access function
          $site_ads_assigned = getSiteAdsAssigned($pdo, $selected_config_site_id);
          if ($site_ads_assigned === false) { // Check for false explicitly on error
@@ -357,6 +440,7 @@ if ($selected_config_site_id !== null) {
           $panel_error_message .= " Error loading site-specific ad data.";
           $site_ads_assigned = []; // Reset on error
           $site_ads_available = []; // Reset on error
+          $selected_site_details = null; // Reset on error
      }
 } else {
     // No site selected, determine available based only on global active status
@@ -403,6 +487,7 @@ function get_ad_image_preview_url($image_path) {
     <p>Manage advertisements that can be displayed on the check-in page sidebars. Ads must be active here AND assigned/activated per site to display.</p>
 
     <!-- Add/Edit Global Ad Form Section -->
+    <?php if ($can_manage_global_ads): // Only show forms if user has permission ?>
     <div class="admin-form-container form-section">
         <?php if ($view_state === 'edit_global_ad' && $edit_ad_data): // Use $edit_ad_data fetched earlier ?>
             <!-- == EDIT GLOBAL AD FORM == -->
@@ -439,7 +524,7 @@ function get_ad_image_preview_url($image_path) {
                     <div class="mb-3"><label for="ad_title" class="form-label">Ad Title (for Admin):</label><input type="text" id="ad_title" name="ad_title" class="form-control" maxlength="150"><p class="form-description">Optional identifier.</p></div>
                     <div class="mb-3"><label for="ad_type" class="form-label">Ad Type:</label><select id="ad_type" name="ad_type" class="form-select" required onchange="toggleAdFields()"><option value="text" selected>Text Ad</option><option value="image">Image Ad</option></select></div>
                     <div class="mb-3 full-width" id="ad-text-group"><label for="ad_text" class="form-label">Ad Text Content:</label><textarea id="ad_text" name="ad_text" class="form-control" rows="4"></textarea><p class="form-description">Basic HTML allowed.</p></div>
-                    <div class="mb-3 full-width" id="ad-image-group" class="d-none"><label for="ad_image" class="form-label">Upload Ad Image:</label><input type="file" id="ad_image" name="ad_image" class="form-control" accept="image/jpeg,image/png,image/gif,image/webp"><p class="form-description">Max 2MB. JPG, PNG, GIF, WEBP.</p></div>
+                    <div class="mb-3 full-width d-none" id="ad-image-group"><label for="ad_image" class="form-label">Upload Ad Image:</label><input type="file" id="ad_image" name="ad_image" class="form-control" accept="image/jpeg,image/png,image/gif,image/webp"><p class="form-description">Max 2MB. JPG, PNG, GIF, WEBP.</p></div>
                     <div class="mb-3 form-check"> <input type="checkbox" name="is_active" value="1" checked class="form-check-input" id="add_is_active_ad"> <label class="form-check-label" for="add_is_active_ad">Active?</label> </div>
                 </div>
                 <div class="form-actions"><button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Add Global Ad</button></div>
@@ -447,12 +532,13 @@ function get_ad_image_preview_url($image_path) {
              <!-- == END ADD GLOBAL AD FORM == -->
         <?php endif; ?>
     </div> <!-- End .admin-form-container -->
+    <?php endif; // End $can_manage_global_ads check ?>
 
     <!-- List Global Ads -->
     <h4 class="form-section-title">Existing Global Ads</h4>
     <div class="table-container">
         <table class="table table-striped table-hover">
-            <thead><tr><th>Title</th><th>Type</th><th>Preview</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Title</th><th>Type</th><th>Preview</th><th>Status</th><?php if ($can_manage_global_ads): ?><th>Actions</th><?php endif; ?></tr></thead>
             <tbody>
                 <?php if (!empty($global_ads_list)): ?>
                     <?php foreach ($global_ads_list as $ad):
@@ -463,6 +549,7 @@ function get_ad_image_preview_url($image_path) {
                           else { $preview='<em>N/A</em>'; } ?>
                         <tr>
                             <td><?php echo htmlspecialchars($ad['ad_title'] ?: '<em>Untitled</em>'); ?></td><td><?php echo htmlspecialchars(ucfirst($ad['ad_type'])); ?></td><td><?php echo $preview; ?></td><td><span class="status-badge <?php echo $ad['is_active'] ? 'status-active' : 'status-inactive'; ?>"><?php echo $ad['is_active'] ? 'Active' : 'Inactive'; ?></span></td>
+                            <?php if ($can_manage_global_ads): ?>
                             <td class="actions-cell">
                                 <a href="configurations.php?tab=ads_management&view=edit_global_ad&edit_ad_id=<?php echo $ad['id']; ?><?php echo $selected_config_site_id ? '&site_id='.$selected_config_site_id : ''; ?>" class="btn btn-outline btn-sm" title="Edit"><i class="fas fa-edit"></i></a>
                                 <form method="POST" action="configurations.php?tab=ads_management&site_id=<?php echo $selected_config_site_id ?? 'all'; ?>" class="d-inline-block"><input type="hidden" name="action" value="toggle_global_ad_active">
@@ -470,9 +557,10 @@ function get_ad_image_preview_url($image_path) {
                                 <form method="POST" action="configurations.php?tab=ads_management&site_id=<?php echo $selected_config_site_id ?? 'all'; ?>" class="d-inline-block" onsubmit="return confirm('Delete this global ad? This cannot be undone.');"><input type="hidden" name="action" value="delete_global_ad">
                 <input type="hidden" name="submitted_tab" value="ads-management"><input type="hidden" name="item_id" value="<?php echo $ad['id']; ?>"><?php if ($selected_config_site_id): ?><input type="hidden" name="site_id" value="<?php echo $selected_config_site_id; ?>"><?php endif; ?><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>"><button type="submit" class="btn btn-danger btn-sm" title="Delete"><i class="fas fa-trash"></i></button></form>
                             </td>
+                            <?php endif; // End $can_manage_global_ads check ?>
                         </tr>
                     <?php endforeach; ?>
-                <?php else: ?><tr><td colspan="5" class="text-center">No global ads defined yet.</td></tr><?php endif; ?>
+                <?php else: ?><tr><td colspan="<?php echo $can_manage_global_ads ? 5 : 4; ?>" class="text-center">No global ads defined yet.</td></tr><?php endif; ?>
             </tbody>
         </table>
     </div>
@@ -485,6 +573,7 @@ function get_ad_image_preview_url($image_path) {
       <?php if ($selected_config_site_id !== null && $selected_site_details !== null): ?>
           <p>Select active global ads to display on this site's check-in page. Order affects potential display sequence.</p>
           <!-- Assign Ad Form -->
+          <?php if ($can_manage_selected_site_ads): // Only show form if user can manage this site's ads ?>
           <div class="admin-form-container form-section">
                <h4 class="form-section-title">Assign Global Ad</h4>
               <form method="POST" action="configurations.php?tab=ads_management&site_id=<?php echo $selected_config_site_id; ?>">
@@ -498,79 +587,93 @@ function get_ad_image_preview_url($image_path) {
                    <div class="form-actions"><button type="submit" class="btn btn-primary" <?php echo empty($site_ads_available) ? 'disabled' : ''; ?>><i class="fas fa-plus"></i> Assign Ad to Site</button></div>
                </form>
           </div>
-          <!-- List Assigned Site Ads -->
-          <h4 class="form-section-title">Ads Currently Assigned to Site (Order affects display)</h4>
+          <?php endif; // End $can_manage_selected_site_ads check for form ?>
+
+          <!-- List Assigned Ads -->
+          <h4 class="form-section-title">Ads Assigned to this Site</h4>
           <div class="table-container">
               <table class="table table-striped table-hover">
-                  <thead><tr><th>Order</th><th>Title</th><th>Type</th><th>Preview</th><th>Site Status</th><th>Global Status</th><th>Actions</th></tr></thead>
+                  <thead><tr><th>Order</th><th>Title</th><th>Type</th><th>Preview</th><th>Site Status</th><th>Global Status</th><?php if ($can_manage_selected_site_ads): ?><th>Actions</th><?php endif; ?></tr></thead>
                   <tbody>
-                      <?php $sa_count = count($site_ads_assigned); if ($sa_count > 0): ?>
-                          <?php foreach ($site_ads_assigned as $i => $sa):
-                               $preview_url = get_ad_image_preview_url($sa['image_path']);
-                               $preview = '';
-                               if ($sa['ad_type'] === 'text' && !empty($sa['ad_text'])) { $preview = htmlspecialchars(substr(strip_tags($sa['ad_text']), 0, 50)) . (strlen(strip_tags($sa['ad_text'])) > 50 ? '...' : ''); }
-                               elseif ($sa['ad_type'] === 'image' && !empty($preview_url)) { $preview='<img src="' . $preview_url . '" alt="Ad Preview" class="admin-ad-preview-img admin-ad-preview-img-xsmall">'; }
-                               else { $preview='<em>N/A</em>'; } ?>
+                      <?php if (!empty($site_ads_assigned)): ?>
+                          <?php foreach ($site_ads_assigned as $index => $sa):
+                                $site_ad_id = $sa['site_ad_id'];
+                                $global_ad_id = $sa['global_ad_id'];
+                                $is_first = ($index === 0);
+                                $is_last = ($index === (count($site_ads_assigned) - 1));
+                                $preview_url = get_ad_image_preview_url($sa['image_path']);
+                                $preview = '';
+                                if ($sa['ad_type'] === 'text' && !empty($sa['ad_text'])) { $preview = htmlspecialchars(substr(strip_tags($sa['ad_text']), 0, 50)) . (strlen(strip_tags($sa['ad_text'])) > 50 ? '...' : ''); }
+                                elseif ($sa['ad_type'] === 'image' && !empty($preview_url)) { $preview='<img src="' . $preview_url . '" alt="Ad Preview" class="admin-ad-preview-img admin-ad-preview-img-tiny">'; }
+                                else { $preview='<em>N/A</em>'; }
+                          ?>
                               <tr>
-                                  <td><?php echo htmlspecialchars($sa['display_order']); ?></td><td><?php echo htmlspecialchars($sa['ad_title'] ?: '<em>Untitled</em>'); ?></td><td><?php echo htmlspecialchars(ucfirst($sa['ad_type'])); ?></td><td><?php echo $preview; ?></td>
+                                  <td class="actions-cell">
+                                      <!-- Reordering buttons -->
+                                      <?php if ($can_manage_selected_site_ads): ?>
+                                          <form method="POST" action="configurations.php?tab=ads_management&site_id=<?php echo $selected_config_site_id; ?>" class="d-inline-block"><input type="hidden" name="action" value="move_site_ad_up"><input type="hidden" name="submitted_tab" value="ads-management"><input type="hidden" name="item_id" value="<?php echo $site_ad_id; ?>"><input type="hidden" name="site_id" value="<?php echo $selected_config_site_id; ?>"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>"><button type="submit" class="btn btn-outline btn-sm" title="Move Up" <?php echo $is_first ? 'disabled' : ''; ?>><i class="fas fa-arrow-up"></i></button></form>
+                                          <form method="POST" action="configurations.php?tab=ads_management&site_id=<?php echo $selected_config_site_id; ?>" class="d-inline-block"><input type="hidden" name="action" value="move_site_ad_down"><input type="hidden" name="submitted_tab" value="ads-management"><input type="hidden" name="item_id" value="<?php echo $site_ad_id; ?>"><input type="hidden" name="site_id" value="<?php echo $selected_config_site_id; ?>"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>"><button type="submit" class="btn btn-outline btn-sm" title="Move Down" <?php echo $is_last ? 'disabled' : ''; ?>><i class="fas fa-arrow-down"></i></button></form>
+                                      <?php else: ?>
+                                          <?php echo htmlspecialchars($sa['display_order']); ?>
+                                      <?php endif; ?>
+                                  </td>
+                                  <td><?php echo htmlspecialchars($sa['ad_title'] ?: '<em>Untitled</em>'); ?></td>
+                                  <td><?php echo htmlspecialchars(ucfirst($sa['ad_type'])); ?></td>
+                                  <td><?php echo $preview; ?></td>
                                   <td><span class="status-badge <?php echo $sa['site_is_active'] ? 'status-active' : 'status-inactive'; ?>"><?php echo $sa['site_is_active'] ? 'Active' : 'Inactive'; ?></span></td>
                                   <td><span class="status-badge <?php echo $sa['global_is_active'] ? 'status-active' : 'status-inactive'; ?>"><?php echo $sa['global_is_active'] ? 'Active' : 'Inactive'; ?></span></td>
+                                  <?php if ($can_manage_selected_site_ads): ?>
                                   <td class="actions-cell">
-                                      <?php if ($i > 0): ?><form method="POST" action="configurations.php?tab=ads_management&site_id=<?php echo $selected_config_site_id; ?>" class="d-inline-block"><input type="hidden" name="action" value="move_site_ad_up">
-               <input type="hidden" name="submitted_tab" value="ads-management"><input type="hidden" name="site_id" value="<?php echo $selected_config_site_id; ?>"><input type="hidden" name="item_id" value="<?php echo $sa['site_ad_id']; ?>"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>"><button type="submit" class="btn btn-outline btn-sm" title="Move Up"><i class="fas fa-arrow-up"></i></button></form><?php endif; ?>
-                                      <?php if ($i < $sa_count - 1): ?><form method="POST" action="configurations.php?tab=ads_management&site_id=<?php echo $selected_config_site_id; ?>" class="d-inline-block"><input type="hidden" name="action" value="move_site_ad_down">
-               <input type="hidden" name="submitted_tab" value="ads-management"><input type="hidden" name="site_id" value="<?php echo $selected_config_site_id; ?>"><input type="hidden" name="item_id" value="<?php echo $sa['site_ad_id']; ?>"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>"><button type="submit" class="btn btn-outline btn-sm" title="Move Down"><i class="fas fa-arrow-down"></i></button></form><?php endif; ?>
-                                      <form method="POST" action="configurations.php?tab=ads_management&site_id=<?php echo $selected_config_site_id; ?>" class="d-inline-block"><input type="hidden" name="action" value="toggle_site_ad_active">
-               <input type="hidden" name="submitted_tab" value="ads-management"><input type="hidden" name="site_id" value="<?php echo $selected_config_site_id; ?>"><input type="hidden" name="item_id" value="<?php echo $sa['site_ad_id']; ?>"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>"><button type="submit" class="btn btn-outline btn-sm" title="<?php echo $sa['site_is_active'] ? 'Deactivate for Site' : 'Activate for Site'; ?>"><i class="fas <?php echo $sa['site_is_active'] ? 'fa-toggle-off' : 'fa-toggle-on'; ?>"></i></button></form>
-               <form method="POST" action="configurations.php?tab=ads_management&site_id=<?php echo $selected_config_site_id; ?>" class="d-inline-block" onsubmit="return confirm('Remove this ad assignment from this site?');"><input type="hidden" name="action" value="remove_site_ad">
-                <input type="hidden" name="submitted_tab" value="ads-management"><input type="hidden" name="site_id" value="<?php echo $selected_config_site_id; ?>"><input type="hidden" name="item_id" value="<?php echo $sa['site_ad_id']; ?>"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>"><button type="submit" class="btn btn-danger btn-sm" title="Remove from Site"><i class="fas fa-unlink"></i></button></form>
+                                      <form method="POST" action="configurations.php?tab=ads_management&site_id=<?php echo $selected_config_site_id; ?>" class="d-inline-block"><input type="hidden" name="action" value="toggle_site_ad_active"><input type="hidden" name="submitted_tab" value="ads-management"><input type="hidden" name="item_id" value="<?php echo $site_ad_id; ?>"><input type="hidden" name="site_id" value="<?php echo $selected_config_site_id; ?>"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>"><button type="submit" class="btn btn-outline btn-sm" title="<?php echo $sa['site_is_active'] ? 'Deactivate' : 'Activate'; ?>"><i class="fas <?php echo $sa['site_is_active'] ? 'fa-toggle-off' : 'fa-toggle-on'; ?>"></i></button></form>
+                                      <form method="POST" action="configurations.php?tab=ads_management&site_id=<?php echo $selected_config_site_id; ?>" class="d-inline-block" onsubmit="return confirm('Unassign this ad from the site?');"><input type="hidden" name="action" value="remove_site_ad"><input type="hidden" name="submitted_tab" value="ads-management"><input type="hidden" name="item_id" value="<?php echo $site_ad_id; ?>"><input type="hidden" name="site_id" value="<?php echo $selected_config_site_id; ?>"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>"><button type="submit" class="btn btn-warning btn-sm" title="Unassign"><i class="fas fa-unlink"></i></button></form>
                                   </td>
+                                  <?php endif; // End $can_manage_selected_site_ads check ?>
                               </tr>
                           <?php endforeach; ?>
-                      <?php else: ?><tr><td colspan="7" class="text-center">No ads assigned to this site yet.</td></tr><?php endif; ?>
+                      <?php else: ?>
+                          <tr><td colspan="<?php echo $can_manage_selected_site_ads ? 7 : 6; ?>" class="text-center">No ads assigned to this site yet.</td></tr>
+                      <?php endif; ?>
                   </tbody>
               </table>
           </div>
       <?php else: ?>
-          <div class="message-area message-info">Please select a site from the dropdown above to manage its ad assignments.</div>
+          <p>Select a site from the dropdown above to manage its ad assignments.</p>
       <?php endif; ?>
- </div> <!-- End Site Ad Assignment Section -->
+</div> <!-- End Site Ad Assignment Section -->
 
+<!-- Ad Panel Specific JS -->
+<script>
+function toggleAdFields() {
+    const adType = document.getElementById('ad_type').value;
+    const textGroup = document.getElementById('ad-text-group');
+    const imageGroup = document.getElementById('ad-image-group');
+    const textInput = document.getElementById('ad_text');
+    const imageInput = document.getElementById('ad_image');
 
- <!-- JS for conditional Ad Fields -->
- <script>
-     function toggleAdFields() {
-         // Function needed for Add form
-         const adTypeSelect = document.getElementById('ad_type'); // Assumes Add form has this ID
-         if (!adTypeSelect) return; // Only run if Add form's select exists
+    if (adType === 'text') {
+        textGroup.classList.remove('d-none');
+        imageGroup.classList.add('d-none');
+        textInput.required = true;
+        imageInput.required = false;
+        imageInput.value = ''; // Clear file input if switching to text
+    } else { // image
+        textGroup.classList.add('d-none');
+        imageGroup.classList.remove('d-none');
+        textInput.required = false;
+        imageInput.required = true; // Make required only if adding new image ad
+        // Don't clear text input automatically, user might switch back
+    }
+}
 
-         const adType = adTypeSelect.value;
-         const textGroup = document.getElementById('ad-text-group');
-         const imageGroup = document.getElementById('ad-image-group');
-         const textInput = document.getElementById('ad_text');
-         const imageInput = document.getElementById('ad_image');
-
-         if (adType === 'text') {
-             if(textGroup) textGroup.style.display = 'block';
-             if(imageGroup) imageGroup.style.display = 'none';
-             if(textInput) textInput.required = true;
-             if(imageInput) imageInput.required = false;
-             if(imageInput) imageInput.value = ''; // Clear file input
-         } else if (adType === 'image') {
-             if(textGroup) textGroup.style.display = 'none';
-             if(imageGroup) imageGroup.style.display = 'block';
-             if(textInput) textInput.required = false;
-             // Requirement for image is handled by POST validation, not strictly required on front-end
-             // if(imageInput) imageInput.required = true;
-             if(textInput) textInput.value = ''; // Clear text input
-         }
-     }
-     // Add listener to Add form's type selector
-     const addAdTypeSelect = document.getElementById('ad_type');
-     if (addAdTypeSelect) {
-        addAdTypeSelect.addEventListener('change', toggleAdFields);
-     }
-     // Run on page load to set initial state for Add form
-     document.addEventListener('DOMContentLoaded', toggleAdFields);
-     // Note: Edit form fields visibility is handled by inline PHP styles based on $edit_ad_data['ad_type']
- </script>
+// Initial call in case the page loads with 'image' selected (e.g., validation error)
+document.addEventListener('DOMContentLoaded', function() {
+    if (document.getElementById('ad_type')) {
+         toggleAdFields();
+    }
+    // Similar logic might be needed for the edit form if it exists on the page
+    if (document.getElementById('edit_ad_type')) {
+         // Assuming edit form fields have IDs like 'edit-ad-text-group', 'edit-ad-image-group' etc.
+         // You'd need a separate function or adapt toggleAdFields for the edit form.
+    }
+});
+</script>

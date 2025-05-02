@@ -83,7 +83,7 @@ function updateUser(PDO $pdo, int $userId, array $userData): bool
     // Handle optional job_title, store as NULL if empty/whitespace
     $jobTitleToSave = isset($userData['job_title']) && !empty(trim($userData['job_title'])) ? trim($userData['job_title']) : null;
 
-    $sql = "UPDATE users SET full_name = :full_name, email = :email, job_title = :job_title, role = :role, site_id = :site_id, department_id = :department_id, is_active = :is_active
+    $sql = "UPDATE users SET full_name = :full_name, email = :email, job_title = :job_title, role = :role, site_id = :site_id, department_id = :department_id, is_active = :is_active, is_site_admin = :is_site_admin
             WHERE id = :user_id";
     try {
         $stmt = $pdo->prepare($sql);
@@ -91,16 +91,20 @@ function updateUser(PDO $pdo, int $userId, array $userData): bool
             error_log("ERROR updateUser: Prepare failed for user ID {$userId}. PDO Error: " . implode(" | ", $pdo->errorInfo()));
             return false;
         }
-        $success = $stmt->execute([
-            ':full_name' => $userData['full_name'],
-            ':email' => $userData['email'] ?: null,
-            ':job_title' => $jobTitleToSave,
-            ':role' => $userData['role'],
-            ':site_id' => $userData['site_id'], // Already determined if null needed based on role
-            ':department_id' => $userData['department_id'] ?? null, // Add department_id, default to null if not provided
-            ':is_active' => $userData['is_active'],
-            ':user_id' => $userId
-        ]);
+        // Bind parameters explicitly with types for clarity and robustness
+        $stmt->bindValue(':full_name', $userData['full_name']);
+        $stmt->bindValue(':email', $userData['email'] ?: null);
+        $stmt->bindValue(':job_title', $jobTitleToSave);
+        $stmt->bindValue(':role', $userData['role']);
+        $stmt->bindValue(':site_id', $userData['site_id']); // PDO handles null correctly by default
+        $stmt->bindValue(':department_id', $userData['department_id'] ?? null); // PDO handles null correctly by default
+        $stmt->bindValue(':is_active', $userData['is_active'], PDO::PARAM_INT); // Bind as integer
+        // Safely get the value for is_site_admin, defaulting to 0 if not set, and ensure it's an integer
+        $isSiteAdminValue = isset($userData['is_site_admin']) ? (int)$userData['is_site_admin'] : 0;
+        $stmt->bindValue(':is_site_admin', $isSiteAdminValue, PDO::PARAM_INT); // Bind as integer
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT); // Bind user ID as integer
+
+        $success = $stmt->execute(); // Execute the prepared statement
          if (!$success) {
             error_log("ERROR updateUser: Execute failed for user ID {$userId}. Statement Error: " . implode(" | ", $stmt->errorInfo()));
         }
@@ -235,31 +239,47 @@ function deleteUser(PDO $pdo, int $userId): bool
  * Fetches all users with their assigned site names.
  *
  * @param PDO $pdo The PDO database connection object.
+ * @param string $session_role The role of the logged-in user ('administrator', 'director', etc.).
+ * @param int|null $session_site_id The site ID of the logged-in user (null if not applicable).
+ * @param bool $is_site_admin Whether the logged-in user is a site administrator.
  * @return array An array of user data, or empty array on failure.
  */
-function getAllUsersWithSiteNames(PDO $pdo): array
+function getAllUsersWithSiteNames(PDO $pdo, string $session_role, ?int $session_site_id, bool $is_site_admin): array
 {
-    // Added u.department_id and LEFT JOIN for department name
-    $sql = "SELECT u.id, u.username, u.full_name, u.email, u.role, u.site_id, u.department_id, u.last_login, u.is_active,
+    $params = [];
+    $sql = "SELECT u.id, u.username, u.full_name, u.email, u.role, u.site_id, u.department_id, u.last_login, u.is_active, u.is_site_admin,
                    s.name as site_name, d.name as department_name
             FROM users u
             LEFT JOIN sites s ON u.site_id = s.id
             LEFT JOIN departments d ON u.department_id = d.id
-            WHERE u.deleted_at IS NULL
-            ORDER BY u.username ASC";
+            WHERE u.deleted_at IS NULL";
+
+    // Site Admins (who are not Admins/Directors) only see users from their own site
+    if ($session_role !== 'administrator' && $session_role !== 'director' && $is_site_admin && $session_site_id !== null) {
+        $sql .= " AND u.site_id = :session_site_id";
+        $params[':session_site_id'] = $session_site_id;
+    }
+    // Note: If a user is neither admin/director nor site admin, they shouldn't reach users.php,
+    // but if they did, this query would fetch all users (unless further role checks are added).
+    // The primary access control is in users.php itself.
+
+    $sql .= " ORDER BY u.username ASC";
+
     try {
-        $stmt = $pdo->query($sql);
-        if (!$stmt) {
-             error_log("ERROR getAllUsersWithSiteNames: Query failed. PDO Error: " . implode(" | ", $pdo->errorInfo()));
+        $stmt = $pdo->prepare($sql);
+         if (!$stmt) {
+             error_log("ERROR getAllUsersWithSiteNames: Prepare failed. PDO Error: " . implode(" | ", $pdo->errorInfo()));
              return [];
-        }
+         }
+        $stmt->execute($params);
         $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        // Ensure boolean/int types are correct if needed (PDO often returns strings)
+
+        // Ensure boolean/int types are correct
         foreach ($users as &$user) {
             $user['is_active'] = (int)$user['is_active'];
+            $user['is_site_admin'] = isset($user['is_site_admin']) ? (int)$user['is_site_admin'] : 0;
             $user['site_id'] = ($user['site_id'] !== null) ? (int)$user['site_id'] : null;
-            $user['department_id'] = ($user['department_id'] !== null) ? (int)$user['department_id'] : null; // Cast department_id
-            // department_name will be null if no department is assigned or join fails
+            $user['department_id'] = ($user['department_id'] !== null) ? (int)$user['department_id'] : null;
         }
         unset($user); // Break reference
         return $users;
@@ -279,8 +299,8 @@ function getAllUsersWithSiteNames(PDO $pdo): array
 function getUserById(PDO $pdo, int $userId): ?array
 {
     try {
-        // Select specific columns including job_title and department_id
-        $stmt = $pdo->prepare("SELECT id, username, full_name, email, job_title, role, site_id, department_id, password_hash, last_login, created_at, is_active FROM users WHERE id = :user_id AND deleted_at IS NULL");
+        // Select specific columns including job_title, department_id, and is_site_admin
+        $stmt = $pdo->prepare("SELECT id, username, full_name, email, job_title, role, site_id, department_id, password_hash, last_login, created_at, is_active, is_site_admin FROM users WHERE id = :user_id AND deleted_at IS NULL");
          if (!$stmt) {
             error_log("ERROR getUserById: Prepare failed for user ID {$userId}. PDO Error: " . implode(" | ", $pdo->errorInfo()));
             return null;
@@ -289,6 +309,7 @@ function getUserById(PDO $pdo, int $userId): ?array
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         if ($user) {
              $user['is_active'] = (int)$user['is_active'];
+             $user['is_site_admin'] = isset($user['is_site_admin']) ? (int)$user['is_site_admin'] : 0; // Cast is_site_admin, default 0 if null
              $user['site_id'] = ($user['site_id'] !== null) ? (int)$user['site_id'] : null;
              $user['department_id'] = ($user['department_id'] !== null) ? (int)$user['department_id'] : null; // Cast department_id
         }
@@ -454,6 +475,30 @@ function getActiveUsersByDepartment(PDO $pdo, int $departmentId): array
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         error_log("EXCEPTION in getActiveUsersByDepartment for department ID {$departmentId}: " . $e->getMessage());
+        return [];
+    }
+}
+/**
+ * Fetches all active users (id, full_name, username) for dropdowns.
+ *
+ * @param PDO $pdo The PDO database connection object.
+ * @return array An array of active users [ ['id' => ..., 'full_name' => ..., 'username' => ...], ... ] or empty array on failure.
+ */
+function getAllActiveUsersForDropdown(PDO $pdo): array
+{
+    $sql = "SELECT id, full_name, username
+            FROM users
+            WHERE is_active = 1 AND deleted_at IS NULL
+            ORDER BY full_name ASC";
+    try {
+        $stmt = $pdo->query($sql);
+        if (!$stmt) {
+            error_log("ERROR getAllActiveUsersForDropdown: Query failed. PDO Error: " . implode(" | ", $pdo->errorInfo()));
+            return [];
+        }
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    } catch (PDOException $e) {
+        error_log("EXCEPTION in getAllActiveUsersForDropdown: " . $e->getMessage());
         return [];
     }
 }

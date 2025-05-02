@@ -15,7 +15,6 @@ include 'includes/header.php';
 ?>
 
 <div class="container mt-4">
-    <h2>Forum Categories</h2>
     <hr>
 
     <?php if (empty($categories)): ?>

@@ -28,7 +28,7 @@ require_once 'includes/data_access/department_data.php'; // For department funct
 
 
 // --- Role Check: Only Administrators can access this page ---
-if ($_SESSION['active_role'] !== 'administrator') {
+if (!($_SESSION['active_role'] === 'administrator' || (isset($_SESSION['is_site_admin']) && $_SESSION['is_site_admin'] == 1))) {
     $_SESSION['flash_message'] = "Access denied. Administrator privileges required.";
     $_SESSION['flash_type'] = 'error';
     header('Location: dashboard.php');
@@ -163,6 +163,42 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         // --- Edit User Action ---
         elseif ($action === 'edit_user' && $user_id) { // user_id validated above
+
+            // --- Permission Check ---
+            $target_user = getUserById($pdo, $user_id);
+            if (!$target_user) {
+                $_SESSION['flash_message'] = "Target user not found for editing.";
+                $_SESSION['flash_type'] = 'error';
+                header('Location: users.php');
+                exit;
+            }
+
+            $can_perform_action = false;
+            $session_role = $_SESSION['active_role'];
+            $session_is_site_admin = isset($_SESSION['is_site_admin']) && $_SESSION['is_site_admin'] == 1;
+            $session_site_id = $_SESSION['active_site_id'] ?? null;
+            $target_role = $target_user['role'];
+            $target_site_id = $target_user['site_id'];
+
+            if ($session_role === 'administrator') {
+                $can_perform_action = true;
+            } elseif ($session_role === 'director') {
+                // Assuming directors can manage all users for now
+                $can_perform_action = true;
+            } elseif ($session_is_site_admin && $session_site_id !== null) {
+                if ($target_site_id === $session_site_id && $target_role !== 'administrator' && $target_role !== 'director') {
+                    $can_perform_action = true;
+                }
+            }
+
+            if (!$can_perform_action) {
+                $_SESSION['flash_message'] = "Permission denied to edit the selected user.";
+                $_SESSION['flash_type'] = 'error';
+                header('Location: users.php');
+                exit;
+            }
+            // --- End Permission Check ---
+
             // Sanitize and validate input
             $full_name = trim(filter_input(INPUT_POST, 'full_name', FILTER_SANITIZE_SPECIAL_CHARS));
             $email_edit = trim(filter_input(INPUT_POST, 'email_edit', FILTER_VALIDATE_EMAIL));
@@ -202,7 +238,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                      'site_id' => $actual_site_id,
                      'is_active' => $is_active,
                      'job_title' => $job_title_edit ?: null, // Added job_title
-                     'department_id' => $department_id_edit // Added department_id
+                     'department_id' => $department_id_edit, // Added department_id
+                     'is_site_admin' => isset($_POST['is_site_admin']) ? 1 : 0 // Restore site admin handling
                  ];
 
                  // Use data access function to update user
@@ -232,9 +269,44 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         // --- Toggle Active Status Action ---
         elseif ($action === 'toggle_active' && $user_id) { // user_id validated above
-             // Prevent admin from deactivating themselves via this toggle
+
+             // Prevent self-toggle first
              if ($user_id === $_SESSION['user_id']) {
                   $_SESSION['flash_message'] = "You cannot toggle the active status of your own account.";
+                  $_SESSION['flash_type'] = 'error';
+                  header('Location: users.php');
+                  exit;
+             }
+
+            // --- Permission Check ---
+            $target_user = getUserById($pdo, $user_id);
+            if (!$target_user) {
+                $_SESSION['flash_message'] = "Target user not found for status toggle.";
+                $_SESSION['flash_type'] = 'error';
+                header('Location: users.php');
+                exit;
+            }
+
+            $can_perform_action = false;
+            $session_role = $_SESSION['active_role'];
+            $session_is_site_admin = isset($_SESSION['is_site_admin']) && $_SESSION['is_site_admin'] == 1;
+            $session_site_id = $_SESSION['active_site_id'] ?? null;
+            $target_role = $target_user['role'];
+            $target_site_id = $target_user['site_id'];
+
+            if ($session_role === 'administrator') {
+                $can_perform_action = true;
+            } elseif ($session_role === 'director') {
+                // Assuming directors can manage all users for now
+                $can_perform_action = true;
+            } elseif ($session_is_site_admin && $session_site_id !== null) {
+                if ($target_site_id === $session_site_id && $target_role !== 'administrator' && $target_role !== 'director') {
+                    $can_perform_action = true;
+                }
+            }
+
+            if (!$can_perform_action) {
+                $_SESSION['flash_message'] = "Permission denied to toggle status for the selected user.";
                   $_SESSION['flash_type'] = 'error';
                   header('Location: users.php');
                   exit;
@@ -257,6 +329,42 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
          // --- Reset Password Action ---
         elseif ($action === 'reset_password' && $user_id) { // user_id validated above
+
+            // --- Permission Check ---
+            $target_user = getUserById($pdo, $user_id);
+            if (!$target_user) {
+                $_SESSION['flash_message'] = "Target user not found for password reset.";
+                $_SESSION['flash_type'] = 'error';
+                header('Location: users.php');
+                exit;
+            }
+
+            $can_perform_action = false;
+            $session_role = $_SESSION['active_role'];
+            $session_is_site_admin = isset($_SESSION['is_site_admin']) && $_SESSION['is_site_admin'] == 1;
+            $session_site_id = $_SESSION['active_site_id'] ?? null;
+            $target_role = $target_user['role'];
+            $target_site_id = $target_user['site_id'];
+
+            if ($session_role === 'administrator') {
+                $can_perform_action = true;
+            } elseif ($session_role === 'director') {
+                // Assuming directors can manage all users for now
+                $can_perform_action = true;
+            } elseif ($session_is_site_admin && $session_site_id !== null) {
+                if ($target_site_id === $session_site_id && $target_role !== 'administrator' && $target_role !== 'director') {
+                    $can_perform_action = true;
+                }
+            }
+
+            if (!$can_perform_action) {
+                $_SESSION['flash_message'] = "Permission denied to reset password for the selected user.";
+                $_SESSION['flash_type'] = 'error';
+                header('Location: users.php');
+                exit;
+            }
+            // --- End Permission Check ---
+
             $new_password = $_POST['new_password'] ?? '';
             $confirm_new_password = $_POST['confirm_new_password'] ?? '';
 
@@ -299,17 +407,43 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             // Keep debugging logs for now until deletion is fully stable
             error_log("[DEBUG users.php] Entering delete_user action for user ID: " . $user_id);
 
-            // 1. Authorization Check
-            if ($_SESSION['active_role'] !== 'administrator') {
-                $_SESSION['flash_message'] = "Insufficient permissions to delete users.";
+            // 1. Prevent Self-Deletion (Highest Priority Check)
+            if ($_SESSION['user_id'] === $user_id) {
+                $_SESSION['flash_message'] = "You cannot delete your own account.";
                 $_SESSION['flash_type'] = 'error';
                 header('Location: users.php');
                 exit;
             }
 
-            // 2. Prevent Self-Deletion
-            if ($_SESSION['user_id'] === $user_id) {
-                $_SESSION['flash_message'] = "You cannot delete your own administrator account.";
+            // 2. Permission Check
+            $target_user = getUserById($pdo, $user_id);
+            if (!$target_user) {
+                $_SESSION['flash_message'] = "Target user not found for deletion.";
+                $_SESSION['flash_type'] = 'error';
+                header('Location: users.php');
+                exit;
+            }
+
+            $can_perform_action = false;
+            $session_role = $_SESSION['active_role'];
+            $session_is_site_admin = isset($_SESSION['is_site_admin']) && $_SESSION['is_site_admin'] == 1;
+            $session_site_id = $_SESSION['active_site_id'] ?? null;
+            $target_role = $target_user['role'];
+            $target_site_id = $target_user['site_id'];
+
+            if ($session_role === 'administrator') {
+                $can_perform_action = true;
+            } elseif ($session_role === 'director') {
+                // Assuming directors can manage all users for now
+                $can_perform_action = true;
+            } elseif ($session_is_site_admin && $session_site_id !== null) {
+                if ($target_site_id === $session_site_id && $target_role !== 'administrator' && $target_role !== 'director') {
+                    $can_perform_action = true;
+                }
+            }
+
+            if (!$can_perform_action) {
+                $_SESSION['flash_message'] = "Permission denied to delete the selected user.";
                 $_SESSION['flash_type'] = 'error';
                 header('Location: users.php');
                 exit;
@@ -351,9 +485,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 
 // --- Fetch User Data (Ensure this is AFTER POST handling) ---
-// Use data access function to fetch users
-$users = getAllUsersWithSiteNames($pdo);
-$user_fetch_error = ($users === []) ? "Error fetching user list." : ''; // Check if function returned empty (error logged in function)
+// Use data access function to fetch users, passing session context
+$session_role_for_fetch = $_SESSION['active_role'];
+$session_site_id_for_fetch = $_SESSION['active_site_id'] ?? null;
+$session_is_site_admin_for_fetch = isset($_SESSION['is_site_admin']) && $_SESSION['is_site_admin'] == 1;
+$users = getAllUsersWithSiteNames($pdo, $session_role_for_fetch, $session_site_id_for_fetch, $session_is_site_admin_for_fetch);
+$user_fetch_error = ($users === false) ? "Error fetching user list." : ''; // Check if function returned false (error logged in function)
 
 // --- Handle Displaying Add/Edit/Reset Password Forms ---
 $edit_user_data = null;
@@ -431,7 +568,7 @@ require_once 'includes/header.php';
             ?>
             <?php if ($flash_message): ?>
                 <div class="message-area message-<?php echo htmlspecialchars($flash_type); ?>">
-                    <?php echo $flash_message; // Allow potential <br> from errors ?>
+                    <?php echo htmlspecialchars($flash_message, ENT_QUOTES, 'UTF-8'); // Apply encoding ?>
                 </div>
             <?php endif; ?>
 
@@ -739,7 +876,15 @@ require_once 'includes/header.php';
                                     <?php endif; ?>
                                 </select>
                                 <p class="form-description">Optional. Assign user to a department.</p>
-                             </div>
+                            </div>
+                            <!-- Site Administrator Checkbox (Restore) -->
+                            <div class="form-check mb-3" style="grid-column: 1 / -1;">
+                                <input class="form-check-input" type="checkbox" name="is_site_admin" value="1" id="edit_is_site_admin" <?php echo ($edit_user_data['is_site_admin'] == 1) ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="edit_is_site_admin">
+                                    Grant Site Administrator Privileges
+                                </label>
+                                <p class="form-description">Allows user to manage other users within their assigned site(s).</p>
+                            </div>
                              <div class="form-check mb-3" style="grid-column: 1 / -1;">
                                  <input class="form-check-input" type="checkbox" name="is_active" value="1" id="edit_is_active" <?php echo ($edit_user_data['is_active'] == 1) ? 'checked' : ''; ?>>
                                  <label class="form-check-label" for="edit_is_active">

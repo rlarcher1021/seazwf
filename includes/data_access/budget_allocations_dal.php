@@ -498,6 +498,11 @@ function softDeleteBudgetAllocation(PDO $pdo, int $allocationId, int $currentUse
 
         // rowCount() > 0 indicates the update was successful
         return $stmt->rowCount() > 0;
+} catch (PDOException $e) {
+        error_log("Database error in softDeleteBudgetAllocation: " . $e->getMessage());
+        return false;
+    }
+} // Closing brace for softDeleteBudgetAllocation function
 
 
 
@@ -568,11 +573,6 @@ function getAllocationsByBudgetList(PDO $pdo, array $budgetIds): array
     }
 }
 
-    } catch (PDOException $e) {
-        error_log("Database error in softDeleteBudgetAllocation for allocation ID {$allocationId}: " . $e->getMessage());
-        return false;
-    }
-}
 /**
  * Retrieves all non-deleted allocations for a specific list of budget IDs.
  *
@@ -646,5 +646,217 @@ function getAllocationsByBudgetIds(PDO $pdo, array $budgetIds): array {
     } catch (PDOException $e) {
         error_log("Database error in getAllocationsByBudgetIds: " . $e->getMessage() . " Budget IDs: " . implode(',', $budgetIds));
         return []; // Return empty array on error
+    }
+}
+/**
+ * Retrieves filtered, paginated, and permission-controlled budget allocations for reporting.
+ * Includes related entity names (budget, grant, vendor, department, users).
+ *
+ * @param PDO $pdo The database connection object.
+ * @param array $filters Associative array of filters (e.g., ['fiscal_year' => '2024', 'grant_id' => 5, ...]).
+ *                       Supported filters: fiscal_year, grant_id, department_id, budget_id, vendor_id.
+ * @param string $userRole The role of the current user (e.g., 'administrator', 'director', 'azwk_staff').
+ * @param int|null $userDepartmentId The department ID of the current user (null if not applicable or admin/director).
+ * @param int $userId The ID of the current user (needed for staff/finance checks).
+ * @param int $page The current page number (1-based).
+ * @param int $limit The number of records per page.
+ * @return array|false An array containing 'data' (array of allocations) and 'total' (total matching records), or false on error.
+ */
+function getAllocationsForReport(PDO $pdo, array $filters, string $userRole, ?int $userDepartmentId, int $userId, int $page = 1, int $limit = 25): array|false
+{
+    // --- Base Query Construction ---
+    $select = "SELECT
+                    ba.id, ba.budget_id, ba.transaction_date, ba.vendor_id, ba.client_name, ba.voucher_number,
+                    ba.enrollment_date, ba.class_start_date, ba.purchase_date, ba.payment_status, ba.program_explanation,
+                    ba.funding_dw, ba.funding_dw_admin, ba.funding_dw_sus, ba.funding_adult, ba.funding_adult_admin,
+                    ba.funding_adult_sus, ba.funding_rr, ba.funding_h1b, ba.funding_youth_is, ba.funding_youth_os,
+                    ba.funding_youth_admin,
+                    ba.fin_voucher_received, ba.fin_accrual_date, ba.fin_obligated_date, ba.fin_comments, ba.fin_expense_code,
+                    ba.fin_processed_by_user_id, ba.fin_processed_at,
+                    ba.created_at, ba.created_by_user_id, ba.updated_at, ba.updated_by_user_id,
+                    b.name as budget_name, b.budget_type, b.fiscal_year_start, b.fiscal_year_end,
+                    g.name as grant_name,
+                    v.name as vendor_name,
+                    d.name as department_name,
+                    uc.full_name as created_by_name,
+                    uu.full_name as updated_by_name,
+                    up.full_name as processed_by_name";
+
+    $from = " FROM budget_allocations ba
+              JOIN budgets b ON ba.budget_id = b.id
+              JOIN grants g ON b.grant_id = g.id
+              JOIN departments d ON b.department_id = d.id
+              LEFT JOIN vendors v ON ba.vendor_id = v.id
+              LEFT JOIN users uc ON ba.created_by_user_id = uc.id
+              LEFT JOIN users uu ON ba.updated_by_user_id = uu.id
+              LEFT JOIN users up ON ba.fin_processed_by_user_id = up.id";
+
+    $whereClauses = [
+        "ba.deleted_at IS NULL",
+        "b.deleted_at IS NULL",
+        "g.deleted_at IS NULL",
+        "d.deleted_at IS NULL",
+        "(v.deleted_at IS NULL OR ba.vendor_id IS NULL)" // Allow if vendor is null or not deleted
+    ];
+    $params = [];
+
+    // --- Apply Filters ---
+    if (!empty($filters['fiscal_year']) && is_numeric($filters['fiscal_year'])) {
+        $year = intval($filters['fiscal_year']);
+        // Assuming fiscal year matches the start year in YYYY format
+        $whereClauses[] = "YEAR(b.fiscal_year_start) = :fiscal_year";
+        $params[':fiscal_year'] = $year;
+    }
+    if (!empty($filters['grant_id']) && is_numeric($filters['grant_id'])) {
+        $whereClauses[] = "b.grant_id = :grant_id";
+        $params[':grant_id'] = intval($filters['grant_id']);
+    }
+    if (!empty($filters['department_id']) && is_numeric($filters['department_id'])) {
+        $whereClauses[] = "b.department_id = :department_id";
+        $params[':department_id'] = intval($filters['department_id']);
+    }
+     if (!empty($filters['budget_id']) && is_numeric($filters['budget_id'])) {
+        $whereClauses[] = "ba.budget_id = :budget_id";
+        $params[':budget_id'] = intval($filters['budget_id']);
+    }
+    if (!empty($filters['vendor_id']) && is_numeric($filters['vendor_id'])) {
+        $whereClauses[] = "ba.vendor_id = :vendor_id";
+        $params[':vendor_id'] = intval($filters['vendor_id']);
+    }
+
+    // --- Apply Permission-Based Filtering ---
+    $roleLower = strtolower($userRole);
+
+    if ($roleLower === 'azwk_staff') {
+        // Check if finance staff (assuming finance dept has a specific ID or slug)
+        // We need the department slug or ID for finance. Let's assume slug 'finance' for now.
+        $financeDeptSlug = 'finance'; // TODO: Confirm Finance department identifier
+        $isFinanceStaff = false;
+        if ($userDepartmentId) {
+            $deptCheckSql = "SELECT slug FROM departments WHERE id = :dept_id";
+            $deptStmt = $pdo->prepare($deptCheckSql);
+            $deptStmt->bindParam(':dept_id', $userDepartmentId, PDO::PARAM_INT);
+            $deptStmt->execute();
+            $deptSlug = $deptStmt->fetchColumn();
+            if ($deptSlug === $financeDeptSlug) {
+                $isFinanceStaff = true;
+            }
+        }
+
+        if ($isFinanceStaff) {
+            // Finance staff see allocations for budgets in departments they have access to.
+            // Use the existing function to get accessible department IDs.
+            $accessibleDeptIds = getAccessibleDepartmentIdsForFinanceUser($pdo, $userId);
+            if (!empty($accessibleDeptIds)) {
+                $deptPlaceholders = implode(',', array_fill(0, count($accessibleDeptIds), '?'));
+                $whereClauses[] = "b.department_id IN ({$deptPlaceholders})";
+                // Add these IDs to the parameters array sequentially
+                foreach ($accessibleDeptIds as $deptId) {
+                    $params[] = $deptId; // PDO will handle binding these unnamed placeholders
+                }
+            } else {
+                 // Finance user has access to no departments, should see nothing
+                 $whereClauses[] = "1 = 0"; // Effectively blocks results
+            }
+        } else {
+            // Regular staff see allocations linked to budgets they manage (b.user_id = current user)
+            $whereClauses[] = "b.user_id = :current_user_id";
+            $params[':current_user_id'] = $userId;
+        }
+    } elseif ($roleLower === 'director') {
+        // Directors see all allocations within AZ@Work departments.
+        // Assuming an 'is_az_work_dept' flag exists in the 'departments' table.
+        // If not, this might need adjustment or removal if directors see everything.
+        // $whereClauses[] = "d.is_az_work_dept = 1"; // Uncomment if flag exists
+        // For now, assume directors see all (no additional WHERE clause needed)
+    } elseif ($roleLower === 'administrator') {
+        // Administrators see all allocations.
+        // No additional WHERE clause needed.
+    } else {
+        // Unknown or restricted role, should see nothing.
+        error_log("getAllocationsForReport: Unknown or unauthorized role '{$userRole}' for user ID {$userId}.");
+        $whereClauses[] = "1 = 0"; // Block results
+    }
+
+    // --- Construct Final WHERE Clause ---
+    $whereSql = !empty($whereClauses) ? 'WHERE ' . implode(' AND ', $whereClauses) : '';
+
+    // --- Get Total Count (for pagination) ---
+    $countSql = "SELECT COUNT(ba.id) " . $from . " " . $whereSql;
+    try {
+        $countStmt = $pdo->prepare($countSql);
+        // Bind parameters for count query (handle unnamed placeholders if they exist)
+        $countParams = [];
+        $unnamedIndex = 0;
+        foreach ($params as $key => $value) {
+            if (is_int($key) || ctype_digit($key)) { // Check if it's an unnamed placeholder param
+                 $countParams[] = $value;
+            } elseif (substr($key, 0, 1) === ':') { // Named placeholder
+                 $countParams[$key] = $value;
+            }
+        }
+        $countStmt->execute($countParams);
+        $totalRecords = (int)$countStmt->fetchColumn();
+    } catch (PDOException $e) {
+        error_log("Database error getting allocation report count: " . $e->getMessage() . " SQL: " . $countSql . " Params: " . print_r($countParams, true));
+        return false;
+    }
+
+    // --- Get Paginated Data ---
+    $offset = ($page - 1) * $limit;
+    $dataSql = $select . " " . $from . " " . $whereSql . " ORDER BY b.name ASC, ba.transaction_date DESC, ba.created_at DESC LIMIT :limit OFFSET :offset";
+
+    try {
+        $dataStmt = $pdo->prepare($dataSql);
+        // Bind all parameters for data query (including limit/offset)
+        $dataParams = $params; // Start with filter/permission params
+        $dataParams[':limit'] = $limit;
+        $dataParams[':offset'] = $offset;
+
+        // Bind named parameters
+        foreach ($dataParams as $key => $value) {
+             if (substr($key, 0, 1) === ':') {
+                 $type = PDO::PARAM_STR; // Default type
+                 if (is_int($value) || $key === ':limit' || $key === ':offset') {
+                     $type = PDO::PARAM_INT;
+                 } elseif (is_bool($value)) {
+                     $type = PDO::PARAM_BOOL;
+                 } elseif (is_null($value)) {
+                     $type = PDO::PARAM_NULL;
+                 }
+                 $dataStmt->bindValue($key, $value, $type);
+             }
+        }
+         // Bind unnamed parameters (for department IN clause if used)
+        $unnamedIndex = 1;
+        foreach ($params as $key => $value) {
+            if (is_int($key) || ctype_digit($key)) {
+                $dataStmt->bindValue($unnamedIndex++, $value, PDO::PARAM_INT); // Assuming dept IDs are INTs
+            }
+        }
+
+
+        $dataStmt->execute();
+        $allocations = $dataStmt->fetchAll(PDO::FETCH_ASSOC);
+
+         // Convert decimal fields
+         foreach ($allocations as &$allocation) {
+            foreach (ALLOCATION_FUNDING_FIELDS as $field) {
+                if (isset($allocation[$field])) {
+                    $allocation[$field] = (float)$allocation[$field];
+                }
+            }
+        }
+        unset($allocation); // Break reference
+
+
+        return [
+            'data' => $allocations,
+            'total' => $totalRecords
+        ];
+
+    } catch (PDOException $e) {
+        error_log("Database error getting allocation report data: " . $e->getMessage() . " SQL: " . $dataSql . " Params: " . print_r($dataParams, true));
+        return false;
     }
 }

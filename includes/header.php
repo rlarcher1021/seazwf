@@ -304,9 +304,36 @@ if (isset($_SESSION['active_role'])) {
                         <li><a href="notifications.php" <?php echo $current_page_basename === 'notifications.php' ? 'class="active"' : ''; ?>><i class="fas fa-bell"></i> Notifications</a></li>
                     <?php endif; ?>
                     <?php // --- END: Notifications --- ?>
-                    <?php if ($_SESSION['active_role'] === 'administrator'): ?>
+                    <?php // Configurations Link: Admin, Director, Site Admin
+                    if (
+                        (isset($_SESSION['active_role']) && ($_SESSION['active_role'] === 'administrator' || $_SESSION['active_role'] === 'director')) ||
+                        (isset($_SESSION['is_site_admin']) && $_SESSION['is_site_admin'] == 1)
+                    ): ?>
                         <li><a href="configurations.php" <?php echo $current_page_basename === 'configurations.php' ? 'class="active"' : ''; ?>><i class="fas fa-cog"></i> Configurations</a></li>
+                    <?php endif; ?>
+
+                    <?php // User Management Link: Admin, Site Admin
+                    if (
+                        (isset($_SESSION['active_role']) && $_SESSION['active_role'] === 'administrator') ||
+                        (isset($_SESSION['is_site_admin']) && $_SESSION['is_site_admin'] == 1)
+                    ): ?>
                         <li><a href="users.php" <?php echo $current_page_basename === 'users.php' ? 'class="active"' : ''; ?>><i class="fas fa-users-cog"></i> User Management</a></li>
+                    <?php endif; ?>
+
+                    <?php
+                    // Client Editor Link: Director, Site Admin, Administrator
+                    if (
+                        (isset($_SESSION['active_role']) && in_array($_SESSION['active_role'], ['director', 'administrator'])) || // Added 'administrator' back
+                        (isset($_SESSION['is_site_admin']) && $_SESSION['is_site_admin'] == 1)
+                    ) { // Use standard curly brace
+                        ?>
+                        <li><a href="client_editor.php" <?php echo $current_page_basename === 'client_editor.php' ? 'class="active"' : ''; ?>><i class="fas fa-address-card"></i> Client Editor</a></li>
+                    <?php
+                    } // End if with standard curly brace
+                    ?>
+
+                    <?php // System Alerts Link: Admin Only (Remains unchanged)
+                    if (isset($_SESSION['active_role']) && $_SESSION['active_role'] === 'administrator'): ?>
                         <li><a href="alerts.php" <?php echo $current_page_basename === 'alerts.php' ? 'class="active"' : ''; ?>><i class="fas fa-exclamation-triangle"></i> System Alerts</a></li>
                     <?php endif; ?>
                 </ul>

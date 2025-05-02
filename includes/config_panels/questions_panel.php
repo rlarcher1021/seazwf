@@ -5,14 +5,46 @@ if (basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'])) {
 }
 
 // Ensure required variables are available from configurations.php
-if (!isset($pdo) || !isset($selected_config_site_id)) { // Also check for selected_config_site_id existence
-     error_log("Config Panel Error: Required variable \$pdo or \$selected_config_site_id not set in questions_panel.php");
-     echo "<div class='message-area message-error'>Configuration error: Required variables not available.</div>";
+// $pdo, $selected_config_site_id, $session_role, $is_site_admin, $session_site_id (conditionally)
+$required_vars_missing = false;
+$error_detail = '';
+if (!isset($pdo)) { $required_vars_missing = true; $error_detail = '$pdo'; }
+elseif (!isset($session_role)) { $required_vars_missing = true; $error_detail = '$session_role'; }
+elseif (!isset($is_site_admin)) { $required_vars_missing = true; $error_detail = '$is_site_admin'; }
+elseif ($is_site_admin === 1 && !isset($session_site_id)) {
+    // Site admins MUST have their own site ID set
+    $required_vars_missing = true;
+    $error_detail = '$session_site_id (for Site Admin)';
+} elseif (!isset($selected_config_site_id)) {
+     // This panel requires a site to be selected for configuration
+     $required_vars_missing = true;
+     $error_detail = '$selected_config_site_id';
+}
+
+if ($required_vars_missing) {
+     error_log("Config Panel Error: Required variable {$error_detail} not set in questions_panel.php");
+     echo "<div class='message-area message-error'>Configuration error: Required context variable ({$error_detail}) not available for this panel.</div>";
      return; // Stop further execution
 }
+// $selected_config_site_id can be null if no site is selected by admin/director, or if site admin's site is invalid. Check where needed.
+
 if (!isset($_SESSION['csrf_token'])) { // Ensure CSRF token exists in session
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
+
+// --- Permission Helper ---
+// Can the current user manage global items? (Admin/Director only)
+$can_manage_global_questions = in_array($session_role, ['administrator', 'director']) && !$is_site_admin;
+// Can the current user manage the currently selected site's items?
+$can_manage_selected_site_questions = false;
+if ($selected_config_site_id !== null) {
+    if (in_array($session_role, ['administrator', 'director'])) {
+        $can_manage_selected_site_questions = true; // Admins/Directors can manage any selected site
+    } elseif ($is_site_admin === 1 && $selected_config_site_id === $session_site_id) {
+        $can_manage_selected_site_questions = true; // Site Admin can manage their own site
+    }
+}
+
 
 // Include necessary data access functions
 require_once __DIR__ . '/../data_access/question_data.php';
@@ -25,10 +57,10 @@ $view_state = $_GET['view'] ?? 'list'; // Default to 'list' view
 $edit_item_id = filter_input(INPUT_GET, 'edit_item_id', FILTER_VALIDATE_INT); // Used for Global Question edit
 $edit_question_data = null;
 
-// Fetch Global Question Edit Data only if view state and ID are correct
-if ($view_state === 'edit_global_question' && $edit_item_id) {
+// Fetch Global Question Edit Data only if view state and ID are correct AND user has permission
+if ($view_state === 'edit_global_question' && $edit_item_id && $can_manage_global_questions) {
     try {
-        // Fetch using data access function (to be created)
+        // Fetch using data access function
         $edit_question_data = getGlobalQuestionById($pdo, $edit_item_id);
         if(!$edit_question_data) {
              // Set flash message and redirect from configurations.php if needed
@@ -45,6 +77,12 @@ if ($view_state === 'edit_global_question' && $edit_item_id) {
         $view_state = 'list'; // Revert to list view on error
         $edit_item_id = null;
     }
+} elseif ($view_state === 'edit_global_question' && !$can_manage_global_questions) {
+    // User tried to access edit view without permission
+    $_SESSION['flash_message'] = "Access Denied: You do not have permission to edit global questions.";
+    $_SESSION['flash_type'] = 'error';
+    $view_state = 'list';
+    $edit_item_id = null;
 }
 // --- END: Logic for Edit View ---
 
@@ -58,7 +96,7 @@ $site_details = null;
 $site_name = 'Selected Site'; // Default
 
 try {
-    // Fetch all global questions
+    // Fetch all global questions (needed for display and assignment dropdown)
     $global_questions = getAllGlobalQuestions($pdo) ?: [];
 
     // Fetch site details and assigned questions only if a site is selected
@@ -67,16 +105,13 @@ try {
         $site_name = $site_details['name'] ?? 'Selected Site';
 
         // Fetch questions assigned to this site, ordered by display_order
-        // Assuming getSiteQuestionsAssigned returns comprehensive data
         $site_questions_data = getSiteQuestionsAssigned($pdo, $selected_config_site_id) ?: [];
 
         // Process assigned questions for lookup and ID list
         if (!empty($site_questions_data)) {
             foreach ($site_questions_data as $sq) {
                 // Ensure expected keys exist
-                // Get the site question primary key, trying 'site_question_id' first, then 'id'
                 $site_question_pk = $sq['site_question_id'] ?? $sq['id'] ?? null;
-                // Ensure expected keys exist
                 if (isset($sq['global_question_id'], $sq['is_active'], $sq['display_order']) && $site_question_pk !== null) {
                     $site_questions_lookup[$sq['global_question_id']] = [
                         'is_active' => $sq['is_active'],
@@ -112,26 +147,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
         error_log("CSRF token validation failed for questions_panel.php from IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'Unknown') . " | Session Token: " . $session_token_debug . " | POST Token: " . $post_token_debug);
         // Regenerate token on failure? Or just block? Blocking for now.
         // Do not proceed further in the panel script after CSRF failure
-        echo "<div class='message-area message-error'>".$_SESSION['flash_message']."</div>"; // Show message immediately
-        unset($_SESSION['flash_message']); // Clear flash
+        // Let configurations.php handle redirect
         return; // Stop processing this panel script entirely
     }
 
     // Proceed with action handling only if CSRF is valid
     $action = $_POST['action'];
-    // Use $selected_config_site_id directly for site context checks
-    $posted_site_id = filter_input(INPUT_POST, 'site_id', FILTER_VALIDATE_INT); // Still useful to check if it matches selected
+    // Use $selected_config_site_id for site context checks where applicable
+    $posted_site_id = filter_input(INPUT_POST, 'site_id', FILTER_VALIDATE_INT); // The site context the form was submitted under
     $item_id = filter_input(INPUT_POST, 'item_id', FILTER_VALIDATE_INT); // Used for global_question_id in most site/global actions
     $global_question_id_assign = filter_input(INPUT_POST, 'global_question_id_to_assign', FILTER_VALIDATE_INT); // Specifically for assign dropdown action
     $success = false;
     $message = "An error occurred performing the question action.";
     $message_type = 'error';
 
+    // --- Permission Check for POST Actions ---
+    $action_allowed = false;
+    switch ($action) {
+        case 'add_global_question':
+        case 'update_global_question':
+        case 'delete_global_question':
+            // Only Admins/Directors can manage global questions
+            if ($can_manage_global_questions) {
+                $action_allowed = true;
+            } else {
+                $message = "Access Denied: You do not have permission to manage global questions.";
+            }
+            break;
+
+        case 'assign_site_question':
+        case 'remove_site_question':
+        case 'toggle_site_question':
+        case 'reorder_site_question':
+            // Check if the user can manage the specific site the action targets
+            // The $posted_site_id should match the $selected_config_site_id determined by configurations.php
+            if ($posted_site_id && $posted_site_id == $selected_config_site_id) {
+                if (in_array($session_role, ['administrator', 'director'])) {
+                    $action_allowed = true; // Admins/Directors can manage any selected site
+                } elseif ($is_site_admin === 1 && $posted_site_id === $session_site_id) {
+                    $action_allowed = true; // Site Admin can manage their own site
+                } else {
+                     $message = "Access Denied: You do not have permission to manage questions for this site (ID: {$posted_site_id}).";
+                }
+            } else {
+                 $message = "Site ID mismatch or missing. Cannot perform action.";
+                 error_log("Questions Panel POST Error: Site ID mismatch. Posted: {$posted_site_id}, Selected Config: {$selected_config_site_id}, Session Site: {$session_site_id}");
+            }
+            break;
+
+        default:
+            $message = "Invalid action specified.";
+            break;
+    }
+
+    if (!$action_allowed) {
+        $_SESSION['flash_message'] = $message;
+        $_SESSION['flash_type'] = 'error';
+        // Regenerate CSRF token after failed POST processing
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        // Let configurations.php handle redirect
+        return; // Stop processing
+    }
+    // --- End Permission Check ---
 
 
+    // --- Process Allowed Action ---
     try {
         switch ($action) {
-            case 'add_global_question':
+            case 'add_global_question': // Already checked $can_manage_global_questions
                 $q_text = trim($_POST['question_text'] ?? '');
                 $raw_title_input = trim($_POST['question_title'] ?? '');
                 $base_title_sanitized = sanitize_title_to_base_name($raw_title_input);
@@ -140,7 +223,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                      // Sanitization is handled by sanitize_title_to_base_name
                      // Check if the title already exists
                      if (!globalQuestionTitleExists($pdo, $base_title_sanitized)) {
-                          $new_gq_id = addGlobalQuestion($pdo, $q_text, $base_title_sanitized);
+                          // Pass session role for permission check in DAL
+                          $new_gq_id = addGlobalQuestion($pdo, $q_text, $base_title_sanitized, $session_role);
                           if ($new_gq_id !== false) {
                                $success = true;
                                $message = "Global question added successfully (Internal Title: '{$base_title_sanitized}').";
@@ -155,12 +239,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                 }
                 break;
 
-            case 'update_global_question':
+            case 'update_global_question': // Already checked $can_manage_global_questions
                 // item_id here refers to global_question_id
                 $q_text_edit = trim($_POST['edit_question_text'] ?? '');
                 if ($item_id && !empty($q_text_edit)) {
-                    // Call the data access function (to be created)
-                    if (updateGlobalQuestionText($pdo, $item_id, $q_text_edit)) {
+                    // Call the data access function, passing session role for permission check
+                    if (updateGlobalQuestionText($pdo, $item_id, $q_text_edit, $session_role)) {
                         $success = true;
                         $message = "Global question text updated successfully.";
                         $message_type = 'success';
@@ -172,16 +256,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                 }
                 break;
 
-
-                break;
-
-            case 'delete_global_question':
+            case 'delete_global_question': // Already checked $can_manage_global_questions
                 // item_id here refers to global_question_id
                 $base_title_to_delete = null;
                 if ($item_id) {
                     $base_title_to_delete = getGlobalQuestionTitleById($pdo, $item_id);
                     if ($base_title_to_delete) {
-                        if (deleteGlobalQuestion($pdo, $item_id)) { // Handles deleting from global_questions and site_questions
+                        // Pass session role for permission check in DAL
+                        if (deleteGlobalQuestion($pdo, $item_id, $session_role)) {
                             $success = true;
                             $column_deleted = delete_question_column($pdo, $base_title_to_delete);
                             $display_name = htmlspecialchars(format_base_name_for_display($base_title_to_delete));
@@ -200,17 +282,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                 }
                 break;
 
-            case 'assign_site_question':
-                // Check if the action is relevant for the currently selected site
-                if ($selected_config_site_id === null || !$posted_site_id || $posted_site_id != $selected_config_site_id) {
-                    $message = "Invalid or mismatched site ID for assigning question.";
-                    break;
-                }
+            case 'assign_site_question': // Permission already checked
                 // Use $global_question_id_assign from the dropdown
-                if ($selected_config_site_id && $global_question_id_assign) {
+                // $posted_site_id is the site context the form was submitted under
+                if ($posted_site_id && $global_question_id_assign) {
                     // Check if already assigned (shouldn't happen if dropdown is correct, but good failsafe)
-                    if (!in_array($global_question_id_assign, $assigned_question_ids)) {
-                        if (assignQuestionToSite($pdo, $selected_config_site_id, $global_question_id_assign, 1)) { // Assign as active by default
+                    // Need to refetch assigned IDs based on $posted_site_id for this check
+                    $current_assigned_ids = array_column(getSiteQuestionsAssigned($pdo, $posted_site_id) ?: [], 'global_question_id');
+                    if (!in_array($global_question_id_assign, $current_assigned_ids)) {
+                        // Pass session context for permission check in DAL
+                        if (assignQuestionToSite($pdo, $posted_site_id, $global_question_id_assign, 1, $session_role, $is_site_admin, $session_site_id)) { // Assign as active by default
                             $success = true;
                             $message = "Question assigned to site.";
                             $message_type = 'success';
@@ -224,19 +305,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                 }
                 break;
 
-            case 'remove_site_question':
+            case 'remove_site_question': // Permission already checked
                  // item_id here refers to global_question_id
-                if ($selected_config_site_id === null || !$posted_site_id || $posted_site_id != $selected_config_site_id) {
-                    $message = "Invalid or mismatched site ID for removing question.";
-                    break;
-                }
-                if ($selected_config_site_id && $item_id) {
+                 // $posted_site_id is the site context the form was submitted under
+                if ($posted_site_id && $item_id) {
                     // Need site_question_id (PK) for removal and reordering
-                    $site_q_id_to_remove = $site_questions_lookup[$item_id]['site_question_id'] ?? null;
+                    // Refetch lookup based on $posted_site_id
+                    $current_site_questions_lookup = [];
+                    $current_site_questions_data = getSiteQuestionsAssigned($pdo, $posted_site_id) ?: [];
+                    foreach ($current_site_questions_data as $sq) {
+                         $site_question_pk = $sq['site_question_id'] ?? $sq['id'] ?? null;
+                         if (isset($sq['global_question_id']) && $site_question_pk !== null) {
+                             $current_site_questions_lookup[$sq['global_question_id']] = ['site_question_id' => $site_question_pk];
+                         }
+                    }
+                    $site_q_id_to_remove = $current_site_questions_lookup[$item_id]['site_question_id'] ?? null;
 
-                    if ($site_q_id_to_remove && removeQuestionFromSite($pdo, $site_q_id_to_remove, $selected_config_site_id)) {
+                    // Pass session context for permission check in DAL
+                    if ($site_q_id_to_remove && removeQuestionFromSite($pdo, $site_q_id_to_remove, $posted_site_id, $session_role, $is_site_admin, $session_site_id)) {
                         // Reorder remaining items for the site
-                        if (reorder_items($pdo, 'site_questions', 'display_order', 'site_id', $selected_config_site_id)) {
+                        if (reorder_items($pdo, 'site_questions', 'display_order', 'site_id', $posted_site_id)) {
                             $success = true;
                             $message = "Question unassigned & remaining reordered.";
                             $message_type = 'success';
@@ -250,16 +338,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                 }
                 break;
 
-            case 'toggle_site_question': // Renamed action for clarity
+            case 'toggle_site_question': // Permission already checked
                  // item_id here refers to global_question_id
-                if ($selected_config_site_id === null || !$posted_site_id || $posted_site_id != $selected_config_site_id) {
-                    $message = "Invalid or mismatched site ID for toggling question status.";
-                    break;
-                }
-                if ($selected_config_site_id && $item_id) {
+                 // $posted_site_id is the site context the form was submitted under
+                if ($posted_site_id && $item_id) {
                      // toggleSiteQuestionActive function expects site_question_id (PK)
-                     $site_q_id_to_toggle = $site_questions_lookup[$item_id]['site_question_id'] ?? null;
-                    if ($site_q_id_to_toggle && toggleSiteQuestionActive($pdo, $site_q_id_to_toggle, $selected_config_site_id)) {
+                     // Refetch lookup based on $posted_site_id
+                     $current_site_questions_lookup = [];
+                     $current_site_questions_data = getSiteQuestionsAssigned($pdo, $posted_site_id) ?: [];
+                     foreach ($current_site_questions_data as $sq) {
+                          $site_question_pk = $sq['site_question_id'] ?? $sq['id'] ?? null;
+                          if (isset($sq['global_question_id']) && $site_question_pk !== null) {
+                              $current_site_questions_lookup[$sq['global_question_id']] = ['site_question_id' => $site_question_pk];
+                          }
+                     }
+                     $site_q_id_to_toggle = $current_site_questions_lookup[$item_id]['site_question_id'] ?? null;
+
+                    // Pass session context for permission check in DAL
+                    if ($site_q_id_to_toggle && toggleSiteQuestionActive($pdo, $site_q_id_to_toggle, $posted_site_id, $session_role, $is_site_admin, $session_site_id)) {
                         $success = true;
                         $message = "Question status toggled.";
                         $message_type = 'success';
@@ -269,18 +365,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                 }
                 break;
 
-            case 'reorder_site_question': // Consolidated reorder action
+            case 'reorder_site_question': // Permission already checked
                  // item_id here refers to global_question_id
-                if ($selected_config_site_id === null || !$posted_site_id || $posted_site_id != $selected_config_site_id) {
-                    $message = "Invalid or mismatched site ID for reordering question.";
-                    break;
-                }
+                 // $posted_site_id is the site context the form was submitted under
                 $direction = filter_input(INPUT_POST, 'direction', FILTER_SANITIZE_STRING); // Get direction ('up' or 'down')
-                if ($selected_config_site_id && $item_id && ($direction === 'up' || $direction === 'down')) {
+                if ($posted_site_id && $item_id && ($direction === 'up' || $direction === 'down')) {
                     // Retrieve the site_question_id (PK) from the lookup array
-                    $site_q_id_to_move = $site_questions_lookup[$item_id]['site_question_id'] ?? null;
+                    // Refetch lookup based on $posted_site_id
+                    $current_site_questions_lookup = [];
+                    $current_site_questions_data = getSiteQuestionsAssigned($pdo, $posted_site_id) ?: [];
+                    foreach ($current_site_questions_data as $sq) {
+                         $site_question_pk = $sq['site_question_id'] ?? $sq['id'] ?? null;
+                         if (isset($sq['global_question_id']) && $site_question_pk !== null) {
+                             $current_site_questions_lookup[$sq['global_question_id']] = ['site_question_id' => $site_question_pk];
+                         }
+                    }
+                    $site_q_id_to_move = $current_site_questions_lookup[$item_id]['site_question_id'] ?? null;
 
-                    if ($site_q_id_to_move && reorder_items($pdo, 'site_questions', 'display_order', 'site_id', $selected_config_site_id, $site_q_id_to_move, $direction)) {
+                    if ($site_q_id_to_move && reorder_items($pdo, 'site_questions', 'display_order', 'site_id', $posted_site_id, $site_q_id_to_move, $direction)) {
                         $success = true;
                         $message = "Question reordered.";
                         $message_type = 'success';
@@ -289,54 +391,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                     $message = "Invalid site/item ID or direction for reorder.";
                 }
                 break;
-        }
+        } // End switch ($action)
 
-        // Set flash message if an action was processed
-        if (in_array($action, ['add_global_question', 'delete_global_question', 'assign_site_question',
-                              'remove_site_question', 'toggle_site_question', 'reorder_site_question'])) {
-            $_SESSION['flash_message'] = $message;
-            $_SESSION['flash_type'] = $message_type;
-
-            // The main configurations.php script will handle the redirect after this panel finishes processing.
-            // We just need to ensure the flash message is set.
-        } else {
-             // If action wasn't one of the main ones, or failed early, set flash anyway
-             $_SESSION['flash_message'] = $message;
-             $_SESSION['flash_type'] = $message_type;
-             // No redirect here, allow page to render with the error message
-        }
+        // Set flash message based on outcome
+        $_SESSION['flash_message'] = $message;
+        $_SESSION['flash_type'] = $message_type;
 
     } catch (PDOException $e) {
         $_SESSION['flash_message'] = "Database error processing question action '{$action}'. Details logged.";
         $_SESSION['flash_type'] = 'error';
-        error_log("PDOException in questions_panel.php: " . $e->getMessage());
+        error_log("PDOException in questions_panel.php action '{$action}': " . $e->getMessage());
     } catch (Exception $e) {
         $_SESSION['flash_message'] = "General error processing question action '{$action}'. Details logged.";
-
         $_SESSION['flash_type'] = 'error';
-        error_log("Exception in questions_panel.php: " . $e->getMessage());
+        error_log("Exception in questions_panel.php action '{$action}': " . $e->getMessage());
     }
 
-    // Regenerate CSRF token after successful POST processing to prevent reuse
+    // Regenerate CSRF token after any POST processing (success or fail)
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+
+    // Let configurations.php handle the redirect
 
 } // End of POST handling block
 // --- END: Handle POST Actions for Questions ---
 
 // --- START: Display Flash Messages ---
-if (isset($_SESSION['flash_message'])) {
-    echo '<div class="message-area message-' . htmlspecialchars($_SESSION['flash_type']) . '">' . htmlspecialchars($_SESSION['flash_message']) . '</div>';
-    unset($_SESSION['flash_message']);
-    unset($_SESSION['flash_type']);
-}
+// Flash messages set during POST are now handled by configurations.php before header output
+// We might still have panel-specific errors from data fetching (GET request)
+// if (isset($_SESSION['flash_message'])) {
+//     echo '<div class="message-area message-' . htmlspecialchars($_SESSION['flash_type']) . '">' . htmlspecialchars($_SESSION['flash_message']) . '</div>';
+//     unset($_SESSION['flash_message']);
+//     unset($_SESSION['flash_type']);
+// }
 ?>
 
 
 <!-- 1a. Edit Global Question Form (Conditional) -->
-<?php if ($view_state === 'edit_global_question' && $edit_question_data): ?>
+<?php if ($view_state === 'edit_global_question' && $edit_question_data && $can_manage_global_questions): ?>
 <div class="admin-form-container form-section" class="border border-primary border-2 p-3 mb-4">
     <h4 class="form-section-title">Edit Global Question Text</h4>
-    <form method="POST" action="configurations.php?tab=questions<?php echo $selected_config_site_id ? '&amp;site_id='.$selected_config_site_id : ''; ?>">
+    <form method="POST" action="configurations.php?tab=questions<?php echo $selected_config_site_id ? '&site_id='.$selected_config_site_id : ''; ?>">
         <input type="hidden" name="action" value="update_global_question">
         <input type="hidden" name="submitted_tab" value="questions"> <!-- Added -->
         <input type="hidden" name="item_id" value="<?php echo $edit_question_data['id']; ?>">
@@ -359,7 +453,7 @@ if (isset($_SESSION['flash_message'])) {
             <button type="submit" class="btn btn-primary">
                 <i class="fas fa-save"></i> Save Changes
             </button>
-            <a href="configurations.php?tab=questions<?php echo $selected_config_site_id ? '&amp;site_id='.$selected_config_site_id : ''; ?>" class="btn btn-outline">Cancel</a>
+            <a href="configurations.php?tab=questions<?php echo $selected_config_site_id ? '&site_id='.$selected_config_site_id : ''; ?>" class="btn btn-outline">Cancel</a>
         </div>
     </form>
 </div>
@@ -378,10 +472,11 @@ if (isset($_SESSION['flash_message'])) {
 <div class="settings-section">
     <h3 class="settings-section-title">Question Management</h3>
 
-    <!-- 1. Add New Global Question Form -->
+    <!-- 1. Add New Global Question Form (Admin/Director Only) -->
+    <?php if ($can_manage_global_questions): ?>
     <div class="admin-form-container form-section">
         <h4 class="form-section-title">Add New Global Question</h4>
-        <form method="POST" action="configurations.php?tab=questions<?php echo $selected_config_site_id ? '&amp;site_id='.$selected_config_site_id : ''; ?>">
+        <form method="POST" action="configurations.php?tab=questions<?php echo $selected_config_site_id ? '&site_id='.$selected_config_site_id : ''; ?>">
             <input type="hidden" name="action" value="add_global_question">
             <input type="hidden" name="submitted_tab" value="questions"> <!-- Added -->
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
@@ -407,6 +502,7 @@ if (isset($_SESSION['flash_message'])) {
             </div>
         </form>
     </div>
+    <?php endif; // End $can_manage_global_questions check ?>
 
     <!-- 2. Available Global Questions & Assignment -->
     <div class="content-section">
@@ -417,7 +513,9 @@ if (isset($_SESSION['flash_message'])) {
                     <tr>
                         <th>Question Text</th>
                         <th>Question Title</th>
+                        <?php if ($can_manage_global_questions): ?>
                         <th>Global Action</th>
+                        <?php endif; ?>
                     </tr>
                 </thead>
                 <tbody>
@@ -426,14 +524,15 @@ if (isset($_SESSION['flash_message'])) {
                             <tr>
                                 <td><?php echo htmlspecialchars($gq['question_text']); ?></td>
                                 <td><code><?php echo htmlspecialchars($gq['question_title']); ?></code></td>
+                                <?php if ($can_manage_global_questions): ?>
                                 <td class="actions-cell">
                                     <!-- Edit Globally Link -->
-                                    <a href="configurations.php?tab=questions&view=edit_global_question&edit_item_id=<?php echo $gq['id']; ?><?php echo $selected_config_site_id ? '&amp;site_id='.$selected_config_site_id : ''; ?>" class="btn btn-outline btn-sm" title="Edit Question Text">
+                                    <a href="configurations.php?tab=questions&view=edit_global_question&edit_item_id=<?php echo $gq['id']; ?><?php echo $selected_config_site_id ? '&site_id='.$selected_config_site_id : ''; ?>" class="btn btn-outline btn-sm" title="Edit Question Text">
                                         <i class="fas fa-edit"></i>
                                     </a>
 
                                     <!-- Delete Globally Form -->
-                                    <form method="POST" action="configurations.php?tab=questions<?php echo $selected_config_site_id ? '&amp;site_id='.$selected_config_site_id : ''; ?>"
+                                    <form method="POST" action="configurations.php?tab=questions<?php echo $selected_config_site_id ? '&site_id='.$selected_config_site_id : ''; ?>"
                                           class="d-inline-block"
                                           onsubmit="return confirm('WARNING: Deleting globally will remove this question for ALL sites and DELETE the corresponding data column [q_<?php echo htmlspecialchars($gq['question_title']); ?>] from check-ins. This cannot be undone. Proceed?');">
                                        <input type="hidden" name="action" value="delete_global_question">
@@ -448,19 +547,21 @@ if (isset($_SESSION['flash_message'])) {
                                         </button>
                                     </form>
                                 </td>
+                                <?php endif; // End $can_manage_global_questions check ?>
                             </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <tr><td colspan="3" class="text-center">No global questions defined yet.</td></tr>
+                        <tr><td colspan="<?php echo $can_manage_global_questions ? 3 : 2; ?>" class="text-center">No global questions defined yet.</td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>
         </div>
 
-        <?php if ($selected_config_site_id !== null): // Only show assignment if a site is selected ?>
+        <?php // Show assignment form only if user can manage the selected site AND a site is selected
+              if ($can_manage_selected_site_questions && $selected_config_site_id !== null): ?>
             <div class="admin-form-container form-section" class="mt-4">
                 <h4 class="form-section-title">Assign Question to <?php echo htmlspecialchars($site_name); ?></h4>
-                <form method="POST" action="configurations.php?tab=questions&amp;site_id=<?php echo $selected_config_site_id; ?>">
+                <form method="POST" action="configurations.php?tab=questions&site_id=<?php echo $selected_config_site_id; ?>">
                     <input type="hidden" name="action" value="assign_site_question">
                     <input type="hidden" name="submitted_tab" value="questions"> <!-- Added -->
                     <input type="hidden" name="site_id" value="<?php echo $selected_config_site_id; ?>">
@@ -495,9 +596,9 @@ if (isset($_SESSION['flash_message'])) {
                     </div>
                 </form>
             </div>
-        <?php else: ?>
-            <p class="mt-4">Select a site from the dropdown above to manage its assigned questions.</p>
-        <?php endif; ?>
+            <?php elseif ($selected_config_site_id === null && $can_manage_global_questions): ?>
+                 <p class="mt-4">Select a site from the dropdown above to manage its assigned questions.</p>
+            <?php endif; // End $can_manage_selected_site_questions check ?>
     </div> <!-- End Section 2 -->
 
 
@@ -511,8 +612,11 @@ if (isset($_SESSION['flash_message'])) {
                         <tr>
                             <th style="width: 5rem;">Order</th>
                             <th>Question Text</th>
+                            <th>Question Title</th> <!-- Added Title -->
                             <th style="width: 6.25rem;">Status</th>
+                            <?php if ($can_manage_selected_site_questions): ?>
                             <th style="width: 9.375rem;">Site Actions</th>
+                            <?php endif; ?>
                         </tr>
                     </thead>
                     <tbody>
@@ -527,47 +631,53 @@ if (isset($_SESSION['flash_message'])) {
                                 <tr>
                                     <td class="actions-cell">
                                         <!-- Reordering buttons -->
-                                        <?php if (!$is_first): ?>
-                                            <form method="POST" action="configurations.php?tab=questions&amp;site_id=<?php echo $selected_config_site_id; ?>" class="d-inline-block">
-                                                <input type="hidden" name="action" value="reorder_site_question">
-                                                <input type="hidden" name="submitted_tab" value="questions"> <!-- Added -->
-                                                <input type="hidden" name="item_id" value="<?php echo $global_id; ?>"> <!-- Pass global_id -->
-                                                <input type="hidden" name="direction" value="up">
-                                                <input type="hidden" name="site_id" value="<?php echo $selected_config_site_id; ?>">
-                                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
-                                                <button type="submit" class="btn btn-outline btn-sm" title="Move Up">
-                                                    <i class="fas fa-arrow-up"></i>
-                                                </button>
-                                            </form>
-                                        <?php else: ?>
-                                            <span class="d-inline-block" style="width: 1.875rem;"></span> <!-- Placeholder for alignment -->
-                                        <?php endif; ?>
+                                        <?php if ($can_manage_selected_site_questions): ?>
+                                            <?php if (!$is_first): ?>
+                                                <form method="POST" action="configurations.php?tab=questions&site_id=<?php echo $selected_config_site_id; ?>" class="d-inline-block">
+                                                    <input type="hidden" name="action" value="reorder_site_question">
+                                                    <input type="hidden" name="submitted_tab" value="questions"> <!-- Added -->
+                                                    <input type="hidden" name="item_id" value="<?php echo $global_id; ?>"> <!-- Pass global_id -->
+                                                    <input type="hidden" name="direction" value="up">
+                                                    <input type="hidden" name="site_id" value="<?php echo $selected_config_site_id; ?>">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
+                                                    <button type="submit" class="btn btn-outline btn-sm" title="Move Up">
+                                                        <i class="fas fa-arrow-up"></i>
+                                                    </button>
+                                                </form>
+                                            <?php else: ?>
+                                                <span class="d-inline-block" style="width: 1.875rem;"></span> <!-- Placeholder for alignment -->
+                                            <?php endif; ?>
 
-                                        <?php if (!$is_last): ?>
-                                            <form method="POST" action="configurations.php?tab=questions&amp;site_id=<?php echo $selected_config_site_id; ?>" class="d-inline-block">
-                                                <input type="hidden" name="action" value="reorder_site_question">
-                                                <input type="hidden" name="submitted_tab" value="questions"> <!-- Added -->
-                                                <input type="hidden" name="item_id" value="<?php echo $global_id; ?>"> <!-- Pass global_id -->
-                                                <input type="hidden" name="direction" value="down">
-                                                <input type="hidden" name="site_id" value="<?php echo $selected_config_site_id; ?>">
-                                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
-                                                <button type="submit" class="btn btn-outline btn-sm" title="Move Down">
-                                                    <i class="fas fa-arrow-down"></i>
-                                                </button>
-                                            </form>
+                                            <?php if (!$is_last): ?>
+                                                <form method="POST" action="configurations.php?tab=questions&site_id=<?php echo $selected_config_site_id; ?>" class="d-inline-block">
+                                                    <input type="hidden" name="action" value="reorder_site_question">
+                                                    <input type="hidden" name="submitted_tab" value="questions"> <!-- Added -->
+                                                    <input type="hidden" name="item_id" value="<?php echo $global_id; ?>"> <!-- Pass global_id -->
+                                                    <input type="hidden" name="direction" value="down">
+                                                    <input type="hidden" name="site_id" value="<?php echo $selected_config_site_id; ?>">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
+                                                    <button type="submit" class="btn btn-outline btn-sm" title="Move Down">
+                                                        <i class="fas fa-arrow-down"></i>
+                                                    </button>
+                                                </form>
+                                            <?php else: ?>
+                                                 <span class="d-inline-block" style="width: 1.875rem;"></span> <!-- Placeholder for alignment -->
+                                            <?php endif; ?>
                                         <?php else: ?>
-                                             <span class="d-inline-block" style="width: 1.875rem;"></span> <!-- Placeholder for alignment -->
+                                             <?php echo htmlspecialchars($sq['display_order']); // Show order number if cannot reorder ?>
                                         <?php endif; ?>
                                     </td>
                                     <td><?php echo htmlspecialchars($sq['question_text']); ?></td>
+                                    <td><code><?php echo htmlspecialchars($sq['question_title']); ?></code></td> <!-- Added Title Display -->
                                     <td>
                                         <span class="status-badge <?php echo $is_active ? 'status-active' : 'status-inactive'; ?>">
                                             <?php echo $is_active ? 'Active' : 'Inactive'; ?>
                                         </span>
                                     </td>
+                                    <?php if ($can_manage_selected_site_questions): ?>
                                     <td class="actions-cell">
                                         <!-- Toggle Active/Inactive -->
-                                        <form method="POST" action="configurations.php?tab=questions&amp;site_id=<?php echo $selected_config_site_id; ?>" class="d-inline-block">
+                                        <form method="POST" action="configurations.php?tab=questions&site_id=<?php echo $selected_config_site_id; ?>" class="d-inline-block">
                                             <input type="hidden" name="action" value="toggle_site_question">
                                             <input type="hidden" name="submitted_tab" value="questions"> <!-- Added -->
                                             <input type="hidden" name="item_id" value="<?php echo $global_id; ?>"> <!-- Pass global_id -->
@@ -579,7 +689,7 @@ if (isset($_SESSION['flash_message'])) {
                                         </form>
 
                                         <!-- Unassign from Site -->
-                                        <form method="POST" action="configurations.php?tab=questions&amp;site_id=<?php echo $selected_config_site_id; ?>" class="d-inline-block" onsubmit="return confirm('Unassign this question from <?php echo htmlspecialchars($site_name); ?>?');">
+                                        <form method="POST" action="configurations.php?tab=questions&site_id=<?php echo $selected_config_site_id; ?>" class="d-inline-block" onsubmit="return confirm('Unassign this question from <?php echo htmlspecialchars($site_name); ?>?');">
                                             <input type="hidden" name="action" value="remove_site_question">
                                             <input type="hidden" name="submitted_tab" value="questions"> <!-- Added -->
                                             <input type="hidden" name="item_id" value="<?php echo $global_id; ?>"> <!-- Pass global_id -->
@@ -590,15 +700,22 @@ if (isset($_SESSION['flash_message'])) {
                                             </button>
                                         </form>
                                     </td>
+                                    <?php endif; // End $can_manage_selected_site_questions check ?>
                                 </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
-                            <tr><td colspan="4" class="text-center">No questions assigned to this site yet.</td></tr>
+                            <tr><td colspan="<?php echo $can_manage_selected_site_questions ? 5 : 4; ?>" class="text-center">No questions assigned to this site yet.</td></tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
             </div>
         </div> <!-- End Section 3 -->
+     <?php else: ?>
+         <?php if ($can_manage_global_questions): // Show message only if admin/director hasn't selected a site ?>
+             <p>Select a site from the dropdown above to manage its assigned questions.</p>
+         <?php else: // Site admin with no valid site selected ?>
+             <p>Cannot display assigned questions. No valid site selected or accessible.</p>
+         <?php endif; ?>
     <?php endif; // End check for selected site for assigned list ?>
 
 </div> <!-- End settings-section -->

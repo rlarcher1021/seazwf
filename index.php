@@ -82,7 +82,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     } else {
         try {
             // Prepare SQL statement to prevent SQL injection - Added LEFT JOIN for department slug
-            $sql = "SELECT u.id, u.username, u.password_hash, u.role, u.site_id, u.department_id, u.full_name, d.slug AS department_slug
+            $sql = "SELECT u.id, u.username, u.password_hash, u.role, u.site_id, u.department_id, u.full_name, u.is_site_admin, d.slug AS department_slug
                     FROM users u
                     LEFT JOIN departments d ON u.department_id = d.id
                     WHERE LOWER(u.username) = LOWER(:username) AND u.is_active = TRUE AND u.deleted_at IS NULL";
@@ -129,6 +129,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     // Store department ID and the newly fetched department SLUG
                     $_SESSION['department_id'] = isset($user['department_id']) && $user['department_id'] !== null ? (int)$user['department_id'] : null;
                     $_SESSION['department_slug'] = $user['department_slug'] ?? null; // Store the slug, will be null if no department or no slug
+                    $_SESSION['is_site_admin'] = isset($user['is_site_admin']) ? (int)$user['is_site_admin'] : 0; // Store site admin status (0 or 1)
 
                     $_SESSION['last_login'] = time(); // Store login time
 
@@ -356,6 +357,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <div id="google_translate_element"></div>
             </div>
 
+<div class="client-links text-center" style="margin-bottom: 15px; font-size: 14px;">
+                <p class="mb-0">Are you a client? <a href="client_login.php">Login here</a> or <a href="client_register.php">Register here</a>.</p>
+            </div>
             <div class="copyright">
                 © <?php echo date("Y"); ?> Arizona@Work - Southeastern Arizona. All Rights Reserved.
             </div>

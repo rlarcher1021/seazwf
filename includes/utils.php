@@ -293,6 +293,35 @@ function display_flash_messages(string $key, string $default_type = 'info'): voi
 }
 
 /**
+ * Displays and clears ALL flash messages stored in the session.
+ * Iterates through all keys in $_SESSION['flash_messages'].
+ */
+function display_all_flash_messages(): void
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    if (!empty($_SESSION['flash_messages']) && is_array($_SESSION['flash_messages'])) {
+        foreach ($_SESSION['flash_messages'] as $key => $flash_message) {
+            if (is_array($flash_message) && isset($flash_message['message'])) {
+                $message = htmlspecialchars($flash_message['message'], ENT_QUOTES, 'UTF-8');
+                $type = htmlspecialchars($flash_message['type'] ?? 'info', ENT_QUOTES, 'UTF-8'); // Default to 'info'
+
+                // Use Bootstrap 4 alert classes
+                echo "<div class='alert alert-{$type} alert-dismissible fade show' role='alert'>";
+                echo $message;
+                // Bootstrap 4 close button
+                echo '<button type="button" class="close" data-dismiss="alert" aria-label="Close">';
+                echo '<span aria-hidden="true">&times;</span>';
+                echo '</button>';
+                echo "</div>";
+            }
+        }
+        // Clear all messages after displaying
+        unset($_SESSION['flash_messages']);
+    }
+}
+/**
  * Checks if the current user's active role is 'Director' (case-insensitive).
  * Uses active_role to respect impersonation.
  *

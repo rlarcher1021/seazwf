@@ -210,7 +210,7 @@ include 'includes/header.php';
         </div>
 
         <?php // Department filter shown only for Director and Finance ?>
-        <?php if ($currentUserRole === 'Director' || $currentUserRole === 'Finance'): ?>
+        <?php if (strtolower($currentUserRole) === 'director' || strtolower($currentUserRole) === 'finance'): ?>
         <div class="col-md-3">
             <label for="filter_department_id" class="form-label">Department</label>
             <select class="form-select" id="filter_department_id" name="department_id">

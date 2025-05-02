@@ -385,56 +385,37 @@ function getCheckinCountByFilters(PDO $pdo, $site_filter_id, ?string $start_date
 
 
 /**
- * Fetches paginated check-in data based on site and date filters, including dynamic question columns.
- * IMPORTANT: $active_question_columns MUST contain validated, prefixed column names.
+ * Fetches paginated check-in data based on site and date filters, including associated dynamic question answers.
  *
  * @param PDO $pdo The PDO database connection object.
  * @param int|string|null $site_filter_id The specific site ID, 'all', or null.
  * @param string|null $start_date Start date string (YYYY-MM-DD) or null.
  * @param string|null $end_date End date string (YYYY-MM-DD) or null.
- * @param array $active_question_columns Array of validated, prefixed question column names (e.g., ['q_needs_assistance']).
  * @param int $limit Number of records per page.
  * @param int $offset Starting record offset.
- * @return array An array of check-in data rows, or empty array on failure.
+ * @return array An array of check-in data rows, each including a 'dynamic_answers' sub-array, or empty array on failure.
  */
-function getCheckinsByFiltersPaginated(PDO $pdo, $site_filter_id, ?string $start_date, ?string $end_date, array $active_question_columns, int $limit, int $offset): array
+function getCheckinsByFiltersPaginated(PDO $pdo, $site_filter_id, ?string $start_date, ?string $end_date, int $limit, int $offset): array
 {
-    // Build dynamic SELECT part safely
-    $dynamic_select_sql = "";
-    if (!empty($active_question_columns)) {
-        $safe_dynamic_cols = [];
-        foreach ($active_question_columns as $col) {
-            if (preg_match('/^q_[a-z0-9_]+$/', $col) && strlen($col) <= 64) {
-                $safe_dynamic_cols[] = "`ci`.`" . $col . "`"; // Qualify with table alias
-            } else {
-                error_log("WARNING getCheckinsByFiltersPaginated: Skipping invalid column name in dynamic select: '{$col}'");
-            }
-        }
-        if (!empty($safe_dynamic_cols)) {
-            $dynamic_select_sql = ", " . implode(", ", $safe_dynamic_cols);
-        }
-    }
+    // --- Step 1: Fetch Paginated Core Check-in Data ---
+    $sql_checkins = "SELECT
+                        ci.id, ci.first_name, ci.last_name, ci.check_in_time, ci.client_email,
+                        s.name as site_name, sn.staff_name as notified_staff
+                    FROM
+                        check_ins ci
+                    JOIN
+                        sites s ON ci.site_id = s.id
+                    LEFT JOIN
+                        staff_notifications sn ON ci.notified_staff_id = sn.id"; // Assuming staff_notifications table exists
 
-    // Base SQL
-    $sql = "SELECT
-                ci.id, ci.first_name, ci.last_name, ci.check_in_time, ci.client_email,
-                s.name as site_name, sn.staff_name as notified_staff
-                {$dynamic_select_sql}
-            FROM
-                check_ins ci
-            JOIN
-                sites s ON ci.site_id = s.id
-            LEFT JOIN
-                staff_notifications sn ON ci.notified_staff_id = sn.id"; // Assuming staff_notifications table exists
-
-    // Build WHERE clause and params
-    $params = [];
+    // Build WHERE clause and params for check-ins
+    $params_checkins = [];
     $where_clauses = [];
 
     // Site Filter
     if ($site_filter_id !== 'all' && is_numeric($site_filter_id) && $site_filter_id > 0) {
         $where_clauses[] = "ci.site_id = :site_id_filter";
-        $params[':site_id_filter'] = (int)$site_filter_id;
+        $params_checkins[':site_id_filter'] = (int)$site_filter_id;
     } elseif ($site_filter_id !== 'all' && $site_filter_id !== null) {
         error_log("getCheckinsByFiltersPaginated: Invalid site_filter_id provided: " . print_r($site_filter_id, true));
         return [];
@@ -443,46 +424,100 @@ function getCheckinsByFiltersPaginated(PDO $pdo, $site_filter_id, ?string $start
     // Date Filters
     if (!empty($start_date) && ($start_timestamp = strtotime($start_date)) !== false) {
         $where_clauses[] = "ci.check_in_time >= :start_date";
-        $params[':start_date'] = date('Y-m-d 00:00:00', $start_timestamp);
+        $params_checkins[':start_date'] = date('Y-m-d 00:00:00', $start_timestamp);
     }
     if (!empty($end_date) && ($end_timestamp = strtotime($end_date)) !== false) {
         $where_clauses[] = "ci.check_in_time <= :end_date";
-        $params[':end_date'] = date('Y-m-d 23:59:59', $end_timestamp);
+        $params_checkins[':end_date'] = date('Y-m-d 23:59:59', $end_timestamp);
     }
 
     if (!empty($where_clauses)) {
-        $sql .= " WHERE " . implode(" AND ", $where_clauses);
+        $sql_checkins .= " WHERE " . implode(" AND ", $where_clauses);
     }
 
-    // Add ORDER BY and LIMIT/OFFSET
-    $sql .= " ORDER BY ci.check_in_time DESC LIMIT :limit OFFSET :offset";
-    $params[':limit'] = $limit;
-    $params[':offset'] = $offset;
+    // Add ORDER BY and LIMIT/OFFSET for check-ins
+    $sql_checkins .= " ORDER BY ci.check_in_time DESC LIMIT :limit OFFSET :offset";
+    $params_checkins[':limit'] = $limit;
+    $params_checkins[':offset'] = $offset;
+
+    $paginated_checkins = [];
+    $checkin_ids = [];
 
     try {
-        $stmt = $pdo->prepare($sql);
-        if (!$stmt) {
-            error_log("ERROR getCheckinsByFiltersPaginated: Prepare failed. PDO Error: " . implode(" | ", $pdo->errorInfo()));
+        $stmt_checkins = $pdo->prepare($sql_checkins);
+        if (!$stmt_checkins) {
+            error_log("ERROR getCheckinsByFiltersPaginated (Checkins Query): Prepare failed. PDO Error: " . implode(" | ", $pdo->errorInfo()));
             return [];
         }
 
-        // Bind parameters (including limit/offset)
-        foreach ($params as $key => &$val) {
-             $type = PDO::PARAM_STR; // Default to string
+        // Bind parameters for check-ins query
+        foreach ($params_checkins as $key => &$val) {
+             $type = PDO::PARAM_STR;
              if ($key === ':site_id_filter' || $key === ':limit' || $key === ':offset') {
                  $type = PDO::PARAM_INT;
              }
-             $stmt->bindValue($key, $val, $type);
+             $stmt_checkins->bindValue($key, $val, $type);
         }
-        unset($val); // Break reference
+        unset($val);
 
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $stmt_checkins->execute();
+        $paginated_checkins = $stmt_checkins->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        if (empty($paginated_checkins)) {
+            return []; // No check-ins found for this page
+        }
+
+        // Extract IDs for the next query
+        $checkin_ids = array_column($paginated_checkins, 'id');
 
     } catch (PDOException $e) {
-        error_log("EXCEPTION in getCheckinsByFiltersPaginated: " . $e->getMessage() . " | SQL: " . $sql);
+        error_log("EXCEPTION in getCheckinsByFiltersPaginated (Checkins Query): " . $e->getMessage() . " | SQL: " . $sql_checkins);
         return [];
     }
+
+    // --- Step 2: Fetch Answers for the Paginated Check-in IDs ---
+    $answers_by_checkin_id = [];
+    if (!empty($checkin_ids)) {
+        $placeholders = implode(',', array_fill(0, count($checkin_ids), '?'));
+        $sql_answers = "SELECT ca.check_in_id, gq.question_title, ca.answer
+                        FROM checkin_answers ca
+                        JOIN global_questions gq ON ca.question_id = gq.id
+                        WHERE ca.check_in_id IN ({$placeholders})";
+
+        try {
+            $stmt_answers = $pdo->prepare($sql_answers);
+            if (!$stmt_answers) {
+                error_log("ERROR getCheckinsByFiltersPaginated (Answers Query): Prepare failed. PDO Error: " . implode(" | ", $pdo->errorInfo()));
+                // Continue without answers, but log the error
+            } else {
+                $stmt_answers->execute($checkin_ids);
+                $answer_results = $stmt_answers->fetchAll(PDO::FETCH_ASSOC);
+
+                // Group answers by check_in_id
+                foreach ($answer_results as $answer_row) {
+                    $cid = $answer_row['check_in_id'];
+                    if (!isset($answers_by_checkin_id[$cid])) {
+                        $answers_by_checkin_id[$cid] = [];
+                    }
+                    // Use question_title as the key for the answer
+                    $answers_by_checkin_id[$cid][$answer_row['question_title']] = $answer_row['answer'];
+                }
+            }
+        } catch (PDOException $e) {
+            error_log("EXCEPTION in getCheckinsByFiltersPaginated (Answers Query): " . $e->getMessage() . " | SQL: " . $sql_answers);
+            // Continue without answers if this query fails
+        }
+    }
+
+    // --- Step 3: Combine Check-in Data with Answers ---
+    $final_results = [];
+    foreach ($paginated_checkins as $checkin) {
+        // Add the dynamic answers array (empty if no answers found or query failed)
+        $checkin['dynamic_answers'] = $answers_by_checkin_id[$checkin['id']] ?? [];
+        $final_results[] = $checkin;
+    }
+
+    return $final_results;
 }
 
 
@@ -815,5 +850,69 @@ function getCheckinDataForExport(PDO $pdo, ?int $site_filter_id, string $start_d
 // function getCheckinById(PDO $pdo, int $checkin_id): ?array { ... }
 // function getCheckinAnswers(PDO $pdo, int $checkin_id): array { ... }
 // function saveCheckinAnswer(PDO $pdo, int $checkin_id, string $question_column, string $answer): bool { ... } // Likely not needed if saving all at once
+
+/**
+ * Saves answers to dynamic questions for a specific check-in.
+ * Assumes the checkin_answers table exists with columns: check_in_id, question_id, answer.
+ *
+ * @param PDO $pdo The PDO database connection object.
+ * @param int $checkinId The ID of the check-in record.
+ * @param array $answers An associative array where keys are question_id and values are the answers ('Yes' or 'No').
+ * @return bool True on success, false on failure.
+ */
+function saveCheckinAnswers(PDO $pdo, int $checkinId, array $answers): bool
+{
+    if (empty($answers)) {
+        return true; // Nothing to save
+    }
+
+    // Use ON DUPLICATE KEY UPDATE to handle potential re-submissions or edge cases gracefully.
+    $sql = "INSERT INTO checkin_answers (check_in_id, question_id, answer) VALUES (:check_in_id, :question_id, :answer)
+            ON DUPLICATE KEY UPDATE answer = VALUES(answer)";
+
+    try {
+        $stmt = $pdo->prepare($sql);
+        if (!$stmt) {
+            error_log("ERROR saveCheckinAnswers: Prepare failed. PDO Error: " . implode(" | ", $pdo->errorInfo()));
+            return false;
+        }
+
+        // Use a transaction for atomicity: all answers save or none do.
+        $pdo->beginTransaction();
+
+        foreach ($answers as $questionId => $answer) {
+            // Basic validation for question ID and answer format
+            if (!is_numeric($questionId) || !in_array($answer, ['Yes', 'No'], true)) {
+                 error_log("WARNING saveCheckinAnswers: Invalid data skipped for checkin ID {$checkinId}. Question ID: {$questionId}, Answer: {$answer}");
+                 continue; // Skip invalid entries, but don't fail the whole batch unless execute fails
+            }
+
+            $params = [
+                ':check_in_id' => $checkinId,
+                ':question_id' => (int)$questionId,
+                ':answer' => $answer
+            ];
+
+            if (!$stmt->execute($params)) {
+                // Log specific error for the failed execution
+                error_log("ERROR saveCheckinAnswers: Execute failed for checkin ID {$checkinId}, question ID {$questionId}. PDO Error: " . implode(" | ", $stmt->errorInfo()));
+                $pdo->rollBack(); // Rollback the transaction on any failure
+                return false;
+            }
+        }
+
+        // If all executions succeeded, commit the transaction
+        $pdo->commit();
+        return true;
+
+    } catch (PDOException $e) {
+        error_log("EXCEPTION in saveCheckinAnswers for checkin ID {$checkinId}: " . $e->getMessage());
+        // Ensure rollback if an exception occurs during the transaction
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        return false;
+    }
+}
 
 ?>

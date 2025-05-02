@@ -153,7 +153,7 @@ include 'includes/header.php';
 ?>
 
 <div class="container mt-4">
-    <h1><?php echo $pageTitle; ?></h1>
+    <!--<h1><?php echo $pageTitle; ?></h1>-->
     <hr>
 
     <!-- Display Flash Messages -->

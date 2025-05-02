@@ -760,4 +760,75 @@ function softDeleteBudget(PDO $pdo, int $budget_id): bool
     }
 }
 // function updateBudget(...) { ... }
+/**
+ * Fetches distinct fiscal year start dates from non-deleted budgets.
+ * Orders by year descending.
+ *
+ * @param PDO $pdo Database connection object.
+ * @return array List of distinct fiscal year start dates (YYYY-MM-DD) or empty array on failure.
+ */
+function getDistinctFiscalYears(PDO $pdo): array
+{
+    try {
+        // Select distinct fiscal_year_start and extract the year part for ordering
+        // Order by the year part descending to show recent years first
+        $sql = "SELECT DISTINCT fiscal_year_start 
+                FROM budgets 
+                WHERE deleted_at IS NULL AND fiscal_year_start IS NOT NULL
+                ORDER BY YEAR(fiscal_year_start) DESC, fiscal_year_start DESC"; 
+        $stmt = $pdo->query($sql);
+        // Fetch just the date strings
+        return $stmt->fetchAll(PDO::FETCH_COLUMN, 0); 
+    } catch (PDOException $e) {
+        error_log("Error fetching distinct fiscal years: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Fetches budgets relevant to the specified user based on their role.
+ * - 'azwk_staff' or 'outside_staff': Fetches only budgets directly assigned to their user_id.
+ * - 'director' or 'administrator': Fetches all non-deleted budgets.
+ * Returns only id and name, ordered by name.
+ *
+ * @param PDO $pdo Database connection object.
+ * @param int $user_id The ID of the user.
+ * @param string $role The active role of the user.
+ * @return array List of budgets (id, name) or empty array on failure/no budgets.
+ */
+function getBudgetsForUser(PDO $pdo, int $user_id, string $role): array
+{
+    if ($user_id <= 0 || empty($role)) {
+        return [];
+    }
+
+    try {
+        $sql = "SELECT id, name 
+                FROM budgets 
+                WHERE deleted_at IS NULL";
+
+        $params = [];
+
+        // Filter by user_id for staff roles
+        if (in_array($role, ['azwk_staff', 'outside_staff'])) {
+            $sql .= " AND user_id = :user_id";
+            $params[':user_id'] = $user_id;
+        } elseif (!in_array($role, ['director', 'administrator'])) {
+            // If role is unrecognized and not staff, return empty to be safe
+             error_log("getBudgetsForUser: Unrecognized role '{$role}' for user {$user_id}. Returning no budgets.");
+            return [];
+        }
+        // Directors/Admins get all non-deleted budgets (no additional WHERE clause needed)
+
+        $sql .= " ORDER BY name ASC";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    } catch (PDOException $e) {
+        error_log("Error fetching budgets for user ID ($user_id), role ($role): " . $e->getMessage());
+        return [];
+    }
+}
 // function softDeleteBudget(...) { ... }

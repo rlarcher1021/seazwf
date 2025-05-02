@@ -33,6 +33,7 @@ require_once __DIR__ . '/includes/auth_functions.php'; // Uses $pdo
 require_once __DIR__ . '/data_access/allocation_data_api.php'; // Uses $pdo
 require_once __DIR__ . '/data_access/forum_data_api.php'; // Uses $pdo
 require_once __DIR__ . '/handlers/report_handler.php'; // Uses $pdo, auth_functions, error_handler
+require_once __DIR__ . '/handlers/forum_handler.php'; // Uses $pdo, auth_functions, error_handler, includes/data_access/forum_data.php
 
 // --- Global Error Handling ---
 // Set a top-level exception handler to catch unhandled errors
@@ -370,9 +371,47 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
         }
         break;
 
-    // --- Route: Create Forum Post ---
+    // --- Route: Forum Posts ---
     case '/forum/posts':
-        if ($requestMethod === 'POST') {
+        // --- GET: Read All Forum Posts ---
+        if ($requestMethod === 'GET') {
+            // --- Authentication ---
+            $apiKeyData = authenticateApiKey($pdo);
+            if ($apiKeyData === false) { /* Error handled within */ }
+
+            // --- Authorization ---
+            $requiredPermission = "read:all_forum_posts"; // Permission required for this endpoint
+            if (!checkApiKeyPermission($requiredPermission, $apiKeyData)) {
+                /* Error handled within */
+                sendJsonError(403, "Permission denied. API key requires the '{$requiredPermission}' permission.", "AUTH_FORBIDDEN"); // Explicit fallback
+            }
+
+            // --- Endpoint Logic: Call Handler ---
+            try {
+                $queryParams = $_GET;
+                $result = handleGetAllForumPosts($pdo, $apiKeyData, $queryParams); // Call the handler function
+
+                // Send success response
+                header('Content-Type: application/json; charset=utf-8');
+                http_response_code(200);
+                echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+
+            } catch (InvalidArgumentException $e) {
+                // Handle bad request errors (400) from the handler
+                sendJsonError(400, $e->getMessage(), 'BAD_REQUEST');
+            } catch (RuntimeException $e) {
+                // Handle internal server errors (500) from the handler
+                error_log("API Runtime Error (GET /forum/posts): " . $e->getMessage());
+                sendJsonError(500, 'An internal error occurred while fetching forum posts.', 'FORUM_FETCH_ERROR');
+            } catch (Exception $e) {
+                // Catch any other unexpected errors
+                error_log("API Unexpected Error (GET /forum/posts): " . $e->getMessage());
+                sendJsonError(500, 'An unexpected error occurred.', 'UNEXPECTED_ERROR');
+            }
+            exit; // Stop script execution
+
+        // --- POST: Create Forum Post ---
+        } elseif ($requestMethod === 'POST') {
             // --- Authentication ---
             $apiKeyData = authenticateApiKey($pdo); // Pass $pdo
             if ($apiKeyData === false) {
@@ -477,9 +516,53 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
 
         } else {
             // Method not allowed for this route
-            sendJsonError(405, "Method Not Allowed. Only POST is supported for /forum/posts.", "METHOD_NOT_ALLOWED");
+            sendJsonError(405, "Method Not Allowed. Only GET and POST are supported for /forum/posts.", "METHOD_NOT_ALLOWED");
         }
-        break;
+        break; // End case '/forum/posts'
+
+    // --- Route: Recent Forum Posts ---
+    case '/forum/posts/recent':
+        if ($requestMethod === 'GET') {
+            // --- Authentication ---
+            $apiKeyData = authenticateApiKey($pdo);
+            if ($apiKeyData === false) { /* Error handled within */ }
+
+            // --- Authorization ---
+            $requiredPermission = "read:recent_forum_posts"; // Permission for this endpoint
+            if (!checkApiKeyPermission($requiredPermission, $apiKeyData)) {
+                sendJsonError(403, "Permission denied. API key requires the '{$requiredPermission}' permission.", "AUTH_FORBIDDEN");
+            }
+
+            // --- Endpoint Logic: Call Handler ---
+            try {
+                $queryParams = $_GET;
+                // Call the new handler function from forum_handler.php
+                $result = handleGetRecentForumPosts($pdo, $apiKeyData, $queryParams);
+
+                // Send success response (directly returning the array of posts)
+                header('Content-Type: application/json; charset=utf-8');
+                http_response_code(200);
+                echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+
+            } catch (InvalidArgumentException $e) {
+                // Handle bad request errors (400) from the handler (e.g., invalid limit)
+                sendJsonError(400, $e->getMessage(), 'BAD_REQUEST');
+            } catch (RuntimeException $e) {
+                // Handle internal server errors (500) from the handler
+                error_log("API Runtime Error (GET /forum/posts/recent): " . $e->getMessage());
+                sendJsonError(500, 'An internal error occurred while fetching recent forum posts.', 'RECENT_FORUM_FETCH_ERROR');
+            } catch (Exception $e) {
+                // Catch any other unexpected errors
+                error_log("API Unexpected Error (GET /forum/posts/recent): " . $e->getMessage());
+                sendJsonError(500, 'An unexpected error occurred.', 'UNEXPECTED_ERROR');
+            }
+            exit; // Stop script execution
+
+        } else {
+            // Method not allowed for this route
+            sendJsonError(405, "Method Not Allowed. Only GET is supported for /forum/posts/recent.", "METHOD_NOT_ALLOWED");
+        }
+        break; // End case '/forum/posts/recent'
 
     // Add more cases here for future endpoints in Phase 2
     // case '/checkins':

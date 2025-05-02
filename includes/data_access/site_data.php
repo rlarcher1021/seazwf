@@ -51,17 +51,35 @@ function getSiteConfigurationValue(PDO $pdo, int $site_id, string $config_key): 
  * @param PDO $pdo The PDO database connection object.
  * @return array An array of active sites [ ['id' => ..., 'name' => ...], ... ] or empty array on failure.
  */
-function getAllActiveSites(PDO $pdo): array
+function getAllActiveSites(PDO $pdo, ?string $session_role = null, ?int $session_site_id = null): array
 {
+    $sql = "SELECT id, name FROM sites WHERE is_active = TRUE";
+    $params = [];
+
+    // Apply site filtering based on role
+    if ($session_role && $session_role !== 'administrator' && $session_site_id !== null) {
+        // Directors and Site Admins only see their active site
+        $sql .= " AND id = :session_site_id";
+        $params[':session_site_id'] = $session_site_id;
+    } elseif ($session_role && $session_role !== 'administrator' && $session_site_id === null) {
+         // Non-admin without a site context shouldn't see any sites in this context
+         error_log("WARNING getAllActiveSites: Non-admin role '{$session_role}' called without a session_site_id. Returning empty.");
+         return [];
+    }
+    // Administrators see all active sites (no additional WHERE clause)
+
+    $sql .= " ORDER BY name ASC";
+
     try {
-        $stmt = $pdo->query("SELECT id, name FROM sites WHERE is_active = TRUE ORDER BY name ASC");
-        if (!$stmt) {
-             error_log("ERROR getAllActiveSites: Query failed. PDO Error: " . implode(" | ", $pdo->errorInfo()));
+        $stmt = $pdo->prepare($sql);
+         if (!$stmt) {
+             error_log("ERROR getAllActiveSites: Prepare failed. Role: {$session_role}, SiteID: {$session_site_id}. PDO Error: " . implode(" | ", $pdo->errorInfo()));
              return [];
-        }
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+         }
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     } catch (PDOException $e) {
-        error_log("EXCEPTION in getAllActiveSites: " . $e->getMessage());
+        error_log("EXCEPTION in getAllActiveSites (Role: {$session_role}, SiteID: {$session_site_id}): " . $e->getMessage());
         return [];
     }
 }
@@ -180,29 +198,68 @@ function getSiteCheckinConfigFlags(PDO $pdo, int $site_id): array
 
 
 /**
+ * Fetches all sites (id and name), ordered by name.
+ * Used primarily for populating dropdown lists where all sites are needed.
+ *
+ * @param PDO $pdo The PDO database connection object.
+ * @return array An array of all sites [ ['id' => ..., 'name' => ...], ... ] or empty array on failure.
+ */
+function getAllSites(PDO $pdo): array
+{
+    $sql = "SELECT id, name FROM sites ORDER BY name ASC";
+    try {
+        $stmt = $pdo->query($sql); // Simple query, no parameters needed
+        if (!$stmt) {
+             error_log("ERROR getAllSites: Query failed. PDO Error: " . implode(" | ", $pdo->errorInfo()));
+             return [];
+        }
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    } catch (PDOException $e) {
+        error_log("EXCEPTION in getAllSites: " . $e->getMessage());
+        return [];
+    }
+}
+/**
  * Fetches all sites (id, name, is_active), ordered by name.
  * Used for the configuration page dropdown.
  *
  * @param PDO $pdo The PDO database connection object.
  * @return array An array of all sites or empty array on failure.
  */
-function getAllSitesWithStatus(PDO $pdo): array
+function getAllSitesWithStatus(PDO $pdo, ?string $session_role = null, ?int $session_site_id = null): array
 {
+    $sql = "SELECT id, name, is_active FROM sites";
+    $params = [];
+
+    // Apply site filtering based on role
+    if ($session_role && $session_role !== 'administrator' && $session_site_id !== null) {
+        // Directors and Site Admins only see their assigned site
+        $sql .= " WHERE id = :session_site_id";
+        $params[':session_site_id'] = $session_site_id;
+    } elseif ($session_role && $session_role !== 'administrator' && $session_site_id === null) {
+         // Non-admin without a site context shouldn't see any sites
+         error_log("WARNING getAllSitesWithStatus: Non-admin role '{$session_role}' called without a session_site_id. Returning empty.");
+         return [];
+    }
+     // Administrators see all sites (no WHERE clause needed unless we add soft delete later)
+
+    $sql .= " ORDER BY name ASC";
+
     try {
-        $stmt = $pdo->query("SELECT id, name, is_active FROM sites ORDER BY name ASC");
-        if (!$stmt) {
-             error_log("ERROR getAllSitesWithStatus: Query failed. PDO Error: " . implode(" | ", $pdo->errorInfo()));
+        $stmt = $pdo->prepare($sql);
+         if (!$stmt) {
+             error_log("ERROR getAllSitesWithStatus: Prepare failed. Role: {$session_role}, SiteID: {$session_site_id}. PDO Error: " . implode(" | ", $pdo->errorInfo()));
              return [];
-        }
-        // Cast is_active to int for consistency if needed, though FETCH_ASSOC usually returns strings from DB
+         }
+        $stmt->execute($params);
         $sites = $stmt->fetchAll(PDO::FETCH_ASSOC);
         foreach ($sites as &$site) { // Use reference to modify in place
              $site['is_active'] = (int)$site['is_active'];
         }
         unset($site); // Break reference
-        return $sites;
+        return $sites ?: [];
     } catch (PDOException $e) {
-        error_log("EXCEPTION in getAllSitesWithStatus: " . $e->getMessage());
+        error_log("EXCEPTION in getAllSitesWithStatus (Role: {$session_role}, SiteID: {$session_site_id}): " . $e->getMessage());
         return [];
     }
 }
@@ -247,10 +304,17 @@ function getSiteDetailsById(PDO $pdo, int $site_id): ?array
  * @param int $site_id The ID of the site to update.
  * @param int $is_active The new active status (1 for active, 0 for inactive).
  * @param string $email_desc The new email collection description.
+ * @param string $session_role The role of the user performing the action.
  * @return bool True on success, false on failure.
  */
-function updateSiteStatusAndDesc(PDO $pdo, int $site_id, int $is_active, string $email_desc): bool
+function updateSiteStatusAndDesc(PDO $pdo, int $site_id, int $is_active, string $email_desc, string $session_role): bool
 {
+    // Permission Check: Only administrators can update site status and description directly
+    if ($session_role !== 'administrator') {
+        error_log("PERMISSION DENIED: User role '{$session_role}' attempted to update status/desc for site ID {$site_id}.");
+        return false;
+    }
+
     $sql = "UPDATE sites SET is_active = :is_active, email_collection_desc = :email_desc WHERE id = :site_id";
     try {
         $stmt = $pdo->prepare($sql);
@@ -282,10 +346,26 @@ function updateSiteStatusAndDesc(PDO $pdo, int $site_id, int $is_active, string 
  * @param int $site_id The ID of the site.
  * @param string $config_key The configuration key (e.g., 'allow_email_collection').
  * @param mixed $config_value The configuration value (will be cast appropriately if needed).
+ * @param string $session_role The role of the user performing the action.
+ * @param int $is_site_admin The site admin status of the user (1 or 0).
+ * @param int|null $session_site_id The user's assigned site ID.
  * @return bool True on success, false on failure.
  */
-function upsertSiteConfiguration(PDO $pdo, int $site_id, string $config_key, $config_value): bool
+function upsertSiteConfiguration(PDO $pdo, int $site_id, string $config_key, $config_value, string $session_role, int $is_site_admin, ?int $session_site_id): bool
 {
+    // Permission Check
+    $can_upsert = false;
+    if ($session_role === 'administrator' || $session_role === 'director') {
+        $can_upsert = true; // Admins/Directors can modify the selected site's config
+    } elseif ($is_site_admin === 1 && $site_id === $session_site_id) {
+        $can_upsert = true; // Site Admins can modify their own site's config
+    }
+
+    if (!$can_upsert) {
+        error_log("PERMISSION DENIED: User (Role: {$session_role}, SiteAdmin: {$is_site_admin}, SessionSite: {$session_site_id}) attempted to upsert config key '{$config_key}' for site {$site_id}.");
+        return false;
+    }
+
     // Basic validation
     if (empty(trim($config_key))) {
         error_log("ERROR upsertSiteConfiguration: Config key cannot be empty.");

@@ -20,6 +20,18 @@ AddDefaultCharset UTF-8
 RewriteEngine On
 RewriteBase /
 
+# Rule 0: Explicitly allow direct access to kiosk QR check-in handler
+RewriteRule ^kiosk/qr_checkin\.php$ - [L]
+
+# --- START: Disable Script Execution in Uploads Directory ---
+# Forbid access to common script extensions within /assets/uploads/
+<IfModule mod_rewrite.c>
+    RewriteEngine On # Ensure RewriteEngine is On
+    RewriteCond %{REQUEST_URI} ^/assets/uploads/.*\.(php|php[3-7]|phtml|pl|py|cgi|asp|aspx)$ [NC]
+    RewriteRule .* - [F,L] # F=Forbidden, L=Last rule
+</IfModule>
+# --- END: Disable Script Execution in Uploads Directory ---
+
 # Force HTTPS
 RewriteCond %{HTTPS} !=on
 RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
@@ -41,15 +53,18 @@ RewriteRule ^includes/ - [F,L]
 # Rule 1: Allow direct access to existing files/folders in the assets directory FIRST
 RewriteRule ^assets/ - [L]
 
+# Rule 2: Explicitly route kiosk QR check-in to its PHP handler (Moved up)
+RewriteRule ^kiosk/qr_checkin\.php/?$ kiosk/qr_checkin.php [L]
+
 # ---- START: API ROUTING RULES (Ensure these are before the general fallback) ----
-# Rule 2: Route API calls to the API entry point
+# Rule 3: Route API calls to the API entry point
 RewriteRule ^api/v1/?$ api/v1/index.php [L]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^api/v1/(.*)$ api/v1/index.php?request=$1 [L,QSA]
 # ---- END: API ROUTING RULES ----
 
-# Rule 3: If the request is NOT for an existing file and NOT for an existing directory (and not API),
+# Rule 4: If the request is NOT for an existing file and NOT for an existing directory (and not API),
 # then route the request to the main site index.php
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
@@ -67,7 +82,7 @@ RewriteRule ^(.*)$ index.php?url=$1 [L,QSA] # Route everything else to index.php
     Header set X-Content-Type-Options "nosniff"
     
     # Content Security Policy (Updated for Google Translate & Assets - Review if API needs connect-src)
-  Header set Content-Security-Policy "default-src 'self'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com https://translate.googleapis.com *.gstatic.com https://stackpath.bootstrapcdn.com; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://translate.google.com https://translate.googleapis.com https://translate-pa.googleapis.com https://cdn.jsdelivr.net *.google.com *.gstatic.com https://stackpath.bootstrapcdn.com https://code.jquery.com; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; img-src 'self' data: https://*.google.com https://*.gstatic.com https://translate.googleapis.com; connect-src 'self' https://translate.googleapis.com; frame-src 'self' https://translate.google.com;"
+  Header set Content-Security-Policy "default-src 'self'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com https://translate.googleapis.com *.gstatic.com https://stackpath.bootstrapcdn.com; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://translate.google.com https://translate.googleapis.com https://translate-pa.googleapis.com https://cdn.jsdelivr.net *.google.com *.gstatic.com https://stackpath.bootstrapcdn.com https://code.jquery.com https://unpkg.com; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; img-src 'self' data: https://*.google.com https://*.gstatic.com https://translate.googleapis.com; connect-src 'self' https://translate.googleapis.com; frame-src 'self' https://translate.google.com;"
    
     # Prevent clickjacking
     Header set X-Frame-Options "SAMEORIGIN"

@@ -88,10 +88,17 @@ function getAllGlobalAds(PDO $pdo): array
  * @param string|null $ad_text Text content (for text ads).
  * @param string|null $image_path_db Path to image as stored in DB (for image ads).
  * @param int $is_active 1 for active, 0 for inactive.
+ * @param string $session_role The role of the user performing the action.
  * @return int|false The new global ad ID on success, false on failure.
  */
-function addGlobalAd(PDO $pdo, string $ad_type, ?string $ad_title, ?string $ad_text, ?string $image_path_db, int $is_active): int|false
+function addGlobalAd(PDO $pdo, string $ad_type, ?string $ad_title, ?string $ad_text, ?string $image_path_db, int $is_active, string $session_role): int|false
 {
+    // Permission Check: Only administrators can add global ads
+    if ($session_role !== 'administrator') {
+        error_log("PERMISSION DENIED: User role '{$session_role}' attempted to add a global ad.");
+        return false;
+    }
+
     $sql = "INSERT INTO global_ads (ad_type, ad_title, ad_text, image_path, is_active, created_at, updated_at)
             VALUES (:type, :title, :text, :image, :active, NOW(), NOW())";
     try {
@@ -150,10 +157,17 @@ function getGlobalAdImagePath(PDO $pdo, int $global_ad_id): ?string
  *
  * @param PDO $pdo PDO connection object.
  * @param int $global_ad_id The ID of the global ad to delete.
+ * @param string $session_role The role of the user performing the action.
  * @return bool True on success, false on failure.
  */
-function deleteGlobalAd(PDO $pdo, int $global_ad_id): bool
+function deleteGlobalAd(PDO $pdo, int $global_ad_id, string $session_role): bool
 {
+    // Permission Check: Only administrators can delete global ads
+    if ($session_role !== 'administrator') {
+        error_log("PERMISSION DENIED: User role '{$session_role}' attempted to delete global ad ID {$global_ad_id}.");
+        return false;
+    }
+
     // Consider deleting related site_ads entries first if FK constraints exist or desired
     // try { $pdo->prepare("DELETE FROM site_ads WHERE global_ad_id = :gid")->execute([':gid' => $global_ad_id]); } catch (PDOException $e) { /* Log */ }
 
@@ -180,10 +194,17 @@ function deleteGlobalAd(PDO $pdo, int $global_ad_id): bool
  *
  * @param PDO $pdo PDO connection object.
  * @param int $global_ad_id The ID of the global ad.
+ * @param string $session_role The role of the user performing the action.
  * @return bool True on success, false on failure.
  */
-function toggleGlobalAdActive(PDO $pdo, int $global_ad_id): bool
+function toggleGlobalAdActive(PDO $pdo, int $global_ad_id, string $session_role): bool
 {
+    // Permission Check: Only administrators can toggle global ads
+    if ($session_role !== 'administrator') {
+        error_log("PERMISSION DENIED: User role '{$session_role}' attempted to toggle global ad ID {$global_ad_id}.");
+        return false;
+    }
+
     $sql = "UPDATE global_ads SET is_active = NOT is_active WHERE id = :id";
     try {
         $stmt = $pdo->prepare($sql);
@@ -236,10 +257,17 @@ function getGlobalAdById(PDO $pdo, int $global_ad_id): ?array
  * @param string|null $ad_text Text content (for text ads).
  * @param string|null $image_path_to_save Path to image as stored in DB (null if deleting/text ad).
  * @param int $is_active 1 for active, 0 for inactive.
+ * @param string $session_role The role of the user performing the action.
  * @return bool True on success, false on failure.
  */
-function updateGlobalAd(PDO $pdo, int $global_ad_id, string $ad_type, ?string $ad_title, ?string $ad_text, ?string $image_path_to_save, int $is_active): bool
+function updateGlobalAd(PDO $pdo, int $global_ad_id, string $ad_type, ?string $ad_title, ?string $ad_text, ?string $image_path_to_save, int $is_active, string $session_role): bool
 {
+    // Permission Check: Only administrators can update global ads
+    if ($session_role !== 'administrator') {
+        error_log("PERMISSION DENIED: User role '{$session_role}' attempted to update global ad ID {$global_ad_id}.");
+        return false;
+    }
+
     $sql = "UPDATE global_ads SET
                 ad_type = :type,
                 ad_title = :title,
@@ -281,10 +309,26 @@ function updateGlobalAd(PDO $pdo, int $global_ad_id, string $ad_type, ?string $a
  * @param int $site_id The ID of the site.
  * @param int $global_ad_id The ID of the global ad.
  * @param int $is_active 1 if active, 0 if inactive for this site.
+ * @param string $session_role The role of the user performing the action.
+ * @param int $is_site_admin The site admin status of the user (1 or 0).
+ * @param int|null $session_site_id The user's assigned site ID.
  * @return bool True on success, false on failure (e.g., already assigned).
  */
-function assignAdToSite(PDO $pdo, int $site_id, int $global_ad_id, int $is_active): bool
+function assignAdToSite(PDO $pdo, int $site_id, int $global_ad_id, int $is_active, string $session_role, int $is_site_admin, ?int $session_site_id): bool
 {
+    // Permission Check
+    $can_assign = false;
+    if ($session_role === 'administrator' || $session_role === 'director') {
+        $can_assign = true;
+    } elseif ($is_site_admin === 1 && $site_id === $session_site_id) {
+        $can_assign = true;
+    }
+
+    if (!$can_assign) {
+        error_log("PERMISSION DENIED: User (Role: {$session_role}, SiteAdmin: {$is_site_admin}, SessionSite: {$session_site_id}) attempted to assign ad {$global_ad_id} to site {$site_id}.");
+        return false;
+    }
+
     try {
         $pdo->beginTransaction();
         // Get max display order
@@ -333,12 +377,29 @@ function assignAdToSite(PDO $pdo, int $site_id, int $global_ad_id, int $is_activ
  *
  * @param PDO $pdo PDO connection object.
  * @param int $site_ad_id The ID of the record in the site_ads table.
- * @param int $site_id The ID of the site (for verification).
+ * @param int $site_id The ID of the site (for verification and permission check).
+ * @param string $session_role The role of the user performing the action.
+ * @param int $is_site_admin The site admin status of the user (1 or 0).
+ * @param int|null $session_site_id The user's assigned site ID.
  * @return bool True on success, false on failure.
  */
-function removeAdFromSite(PDO $pdo, int $site_ad_id, int $site_id): bool
+function removeAdFromSite(PDO $pdo, int $site_ad_id, int $site_id, string $session_role, int $is_site_admin, ?int $session_site_id): bool
 {
+    // Permission Check
+    $can_remove = false;
+    if ($session_role === 'administrator' || $session_role === 'director') {
+        $can_remove = true;
+    } elseif ($is_site_admin === 1 && $site_id === $session_site_id) {
+        $can_remove = true;
+    }
+
+    if (!$can_remove) {
+        error_log("PERMISSION DENIED: User (Role: {$session_role}, SiteAdmin: {$is_site_admin}, SessionSite: {$session_site_id}) attempted to remove site_ad {$site_ad_id} from site {$site_id}.");
+        return false;
+    }
+
      try {
+        // We still verify site_id in the query for data integrity
         $stmt = $pdo->prepare("DELETE FROM site_ads WHERE id = :id AND site_id = :sid");
          if (!$stmt) {
              error_log("ERROR removeAdFromSite: Prepare failed for ID {$site_ad_id}. PDO Error: " . implode(" | ", $pdo->errorInfo()));
@@ -360,13 +421,30 @@ function removeAdFromSite(PDO $pdo, int $site_ad_id, int $site_id): bool
  *
  * @param PDO $pdo PDO connection object.
  * @param int $site_ad_id The ID of the record in the site_ads table.
- * @param int $site_id The ID of the site (for verification).
+ * @param int $site_id The ID of the site (for verification and permission check).
+ * @param string $session_role The role of the user performing the action.
+ * @param int $is_site_admin The site admin status of the user (1 or 0).
+ * @param int|null $session_site_id The user's assigned site ID.
  * @return bool True on success, false on failure.
  */
-function toggleSiteAdActive(PDO $pdo, int $site_ad_id, int $site_id): bool
+function toggleSiteAdActive(PDO $pdo, int $site_ad_id, int $site_id, string $session_role, int $is_site_admin, ?int $session_site_id): bool
 {
+    // Permission Check
+    $can_toggle = false;
+    if ($session_role === 'administrator' || $session_role === 'director') {
+        $can_toggle = true;
+    } elseif ($is_site_admin === 1 && $site_id === $session_site_id) {
+        $can_toggle = true;
+    }
+
+    if (!$can_toggle) {
+        error_log("PERMISSION DENIED: User (Role: {$session_role}, SiteAdmin: {$is_site_admin}, SessionSite: {$session_site_id}) attempted to toggle active status for site_ad {$site_ad_id} on site {$site_id}.");
+        return false;
+    }
+
     $sql = "UPDATE site_ads SET is_active = NOT is_active WHERE id = :id AND site_id = :sid";
     try {
+        // We still verify site_id in the query for data integrity
         $stmt = $pdo->prepare($sql);
          if (!$stmt) {
              error_log("ERROR toggleSiteAdActive: Prepare failed for ID {$site_ad_id}. PDO Error: " . implode(" | ", $pdo->errorInfo()));

@@ -30,10 +30,10 @@ $log_filename = 'error_log'; // The name of your log file
 
 // 1. Check in the SAME directory as alerts.php (likely /public_html/)
 $current_dir_path = __DIR__ . "/" . $log_filename;
-error_log("Alerts Debug: Checking current directory path: " . $current_dir_path);
+// error_log("Alerts Debug: Checking current directory path: " . $current_dir_path);
 if (is_file($current_dir_path) && is_readable($current_dir_path)) {
     $log_file_path = $current_dir_path;
-    error_log("Alerts Debug: Found log file in current directory.");
+    // error_log("Alerts Debug: Found log file in current directory.");
 }
 
 // 2. Check in the PARENT directory of alerts.php (if it wasn't in the current one)
@@ -73,7 +73,7 @@ if (empty($log_file_path)) {
     error_log("Alerts ERROR: Log file '{$log_filename}' not found in common locations (__DIR__ or parent) or via ini_get.");
     // $log_error variable will be set later in the script based on empty $log_file_path
 } else {
-     error_log("Alerts INFO: Determined log file path: " . $log_file_path);
+     // error_log("Alerts INFO: Determined log file path: " . $log_file_path);
 }
 
 
@@ -165,7 +165,7 @@ require_once 'includes/header.php';
     <!-- Display Flash Messages -->
     <?php if ($flash_message): ?>
         <div class="message-area message-<?php echo htmlspecialchars($flash_type); ?>">
-            <?php echo $flash_message; // Should already be safe or escaped before setting in session ?>
+            <?php echo htmlspecialchars($flash_message, ENT_QUOTES, 'UTF-8'); ?>
         </div>
     <?php endif; ?>
 
