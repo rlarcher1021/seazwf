@@ -641,13 +641,8 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 .tabs {
     display: flex; border-bottom: 1px solid var(--color-border); margin-bottom: 1.5rem; flex-wrap: wrap;
 }
-.tab {
-    padding: 0.75rem 1.5rem; font-weight: 500; cursor: pointer; transition: all 0.2s;
-    border-bottom: 3px solid transparent; color: var(--color-gray); margin-bottom: -1px;
-    text-align: center; white-space: nowrap;
-}
 .tab:hover { background-color: rgba(244, 245, 247, 0.5); color: var(--color-dark-gray); }
-.tab.active { color: var(--color-primary); border-bottom-color: var(--color-primary); font-weight: 600; }
+
 
 
 /* --- Toggle Switch (Used in Configurations) --- */
@@ -1998,4 +1993,60 @@ body.checkin-page {
     background-color: #e9ecef; /* Bootstrap's default disabled background color */
     opacity: 0.8; /* Slightly faded */
     cursor: not-allowed; /* Indicate non-interactive */
+}
+/* Custom Styling for Bootstrap nav-tabs to match configuration tabs */
+
+/* Style the overall container like the old .tabs */
+.nav-tabs {
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 1.5rem;
+}
+
+/* Style the links to look like the old .tab */
+/* Remove default Bootstrap borders and apply custom styles */
+.nav-tabs .nav-link {
+  border: none;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  margin-bottom: -1px; /* Overlap container border */
+  position: relative; /* Needed for pseudo-element */
+
+  /* Apply styles inferred from original .tab */
+  padding: 0.75rem 1.5rem;
+  font-weight: 500;
+  color: var(--color-gray);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+  white-space: nowrap;
+  background-color: transparent; /* Ensure no background */
+}
+
+/* Hover state - match old .tab:hover */
+.nav-tabs .nav-link:hover,
+.nav-tabs .nav-link:focus {
+  border-color: transparent transparent transparent; /* Override default hover border */
+  background-color: rgba(244, 245, 247, 0.5);
+  color: var(--color-dark-gray);
+  isolation: isolate;
+}
+
+/* Active state text/font - match old .tab.active */
+.nav-tabs .nav-link.active,
+.nav-tabs .nav-item.show .nav-link {
+  color: var(--color-primary);
+  font-weight: 600;
+  background-color: transparent; /* Ensure no background */
+  border-color: transparent transparent transparent; /* Override default active border */
+}
+
+/* Active state indicator line (using pseudo-element) */
+.nav-tabs .nav-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 1.5rem; /* Match horizontal padding */
+  right: 1.5rem; /* Match horizontal padding */
+  height: 3px;
+  background-color: var(--color-primary);
 }

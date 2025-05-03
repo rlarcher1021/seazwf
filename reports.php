@@ -3,7 +3,7 @@
  * File: reports.php
  * Path: /reports.php
  * Created: 2024-08-01 13:00:00 MST
-
+ * 
  * Updated: 2025-04-08 - Corrected dynamic column name handling for reports.
  * Description: Provides reporting capabilities for check-in data.
  */
@@ -261,18 +261,25 @@ require_once 'includes/header.php';
                  <?php endif; ?>
             </div>
 
-            <!-- Bootstrap Tabs Navigation -->
-            <ul class="nav nav-tabs mt-3" id="reportTabs" role="tablist">
+            <!-- Custom Tab Navigation (Styled like Configurations) -->
+            <!-- Standard Bootstrap Tab Navigation -->
+            <ul class="nav nav-tabs" id="reportTabs" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <a class="nav-link active" id="checkin-tab" data-toggle="tab" href="#checkin-reports" role="tab" aria-controls="checkin-reports" aria-selected="true">Check-in Reports</a>
+                    <a class="nav-link active" id="checkin-reports-tab" data-toggle="tab" href="#checkin-reports-pane" role="tab" aria-controls="checkin-reports-pane" aria-selected="true">Check-in Reports</a>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <a class="nav-link" id="allocation-tab" data-toggle="tab" href="#allocation-reports" role="tab" aria-controls="allocation-reports" aria-selected="false">Allocation Reports</a>
+                    <a class="nav-link" id="allocations-reports-tab" data-toggle="tab" href="#allocation-reports-pane" role="tab" aria-controls="allocation-reports-pane" aria-selected="false">Allocations Reports</a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link" id="custom-report-builder-tab" data-toggle="tab" href="#custom-report-builder-pane" role="tab" aria-controls="custom-report-builder-pane" aria-selected="false">Custom Report Builder</a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link" id="checkin-data-tab" data-toggle="tab" href="#checkin-data-pane" role="tab" aria-controls="checkin-data-pane" aria-selected="false">Check-in Data</a>
                 </li>
             </ul>
             <div class="tab-content" id="reportTabContent">
-                <!-- Check-in Reports Tab Pane -->
-                <div class="tab-pane fade show active" id="checkin-reports" role="tabpanel" aria-labelledby="checkin-tab">
+                <!-- Check-in Reports Tab Pane (Filters) -->
+                <div class="tab-pane fade show active" id="checkin-reports-pane" role="tabpanel" aria-labelledby="checkin-reports-tab">
 
                     <!-- Display Errors -->
              <?php if ($report_error_message): ?>
@@ -310,6 +317,30 @@ require_once 'includes/header.php';
                 </form>
             </div>
 
+            <!-- Chart Section -->
+            <div class="content-section">
+                <h2 class="section-title">Visualizations</h2>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="chart-container" style="position: relative; height:300px; width:100%">
+                             <canvas id="reportCheckinsChart"></canvas>
+                        </div>
+                        <p class="text-center small mt-1">Check-ins Over Time (Placeholder)</p>
+                    </div>
+                    <div class="col-md-6">
+                         <div class="chart-container" style="position: relative; height:300px; width:100%">
+                            <canvas id="reportQuestionsChart"></canvas>
+                         </div>
+                         <p class="text-center small mt-1">Question Responses (Yes Count)</p>
+                    </div>
+                </div>
+            </div>
+             <!-- End Chart Section -->
+
+        </div> <!-- End Check-in Reports Tab Pane (Filters & Charts) -->
+
+        <!-- Custom Report Builder Tab Pane -->
+        <div class="tab-pane fade" id="custom-report-builder-pane" role="tabpanel" aria-labelledby="custom-report-builder-tab">
             <!-- Custom Report Builder Section -->
             <?php if ($user_can_select_sites): // Show only to Admin/Director ?>
             <div class="content-section" id="custom-report-builder">
@@ -377,7 +408,10 @@ require_once 'includes/header.php';
                 </div>
             </div>
             <?php endif; ?>
+        </div> <!-- End Custom Report Builder Tab Pane -->
 
+        <!-- Check-in Data Tab Pane -->
+        <div class="tab-pane fade" id="checkin-data-pane" role="tabpanel" aria-labelledby="checkin-data-tab">
             <!-- Report Data Table Section -->
             <div class="content-section">
                  <h2 class="section-title">Check-in Data
@@ -473,12 +507,10 @@ require_once 'includes/header.php';
 
                  </div> <!-- /.table-container -->
             </div> <!-- /.content-section -->
-
-
-                </div> <!-- End Check-in Reports Tab Pane -->
+        </div> <!-- End Check-in Data Tab Pane -->
 
                 <!-- Allocation Reports Tab Pane -->
-                <div class="tab-pane fade" id="allocation-reports" role="tabpanel" aria-labelledby="allocation-tab">
+                <div class="tab-pane fade" id="allocation-reports-pane" role="tabpanel" aria-labelledby="allocations-reports-tab">
                     <div class="content-section">
                         <h2 class="section-title">Allocation Reports</h2>
 
@@ -1000,7 +1032,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
 // --- Allocation Report Logic ---
-    const allocationTab = document.getElementById('allocation-tab');
+    const allocationTab = document.getElementById('allocations-reports-tab'); // Corrected ID
     const allocationFiltersForm = document.getElementById('allocation-filters'); // Container for filters
     const applyAllocFiltersBtn = document.getElementById('apply-allocation-filters-btn');
     const resetAllocFiltersBtn = document.getElementById('reset-allocation-filters-btn');
