@@ -384,7 +384,6 @@ function getAllForumPosts(PDO $pdo, int $page = 1, int $limit = 25): array
         return $result; // Return default empty result on error
     }
 }
-?>
 /**
  * Fetches the most recent non-deleted forum posts, joining topic and user information.
  *
