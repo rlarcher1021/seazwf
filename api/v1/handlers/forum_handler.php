@@ -67,7 +67,6 @@ function handleGetAllForumPosts(PDO $pdo, array $apiKeyData, array $queryParams)
     return $response;
 }
 
-?>
 /**
  * Handles GET requests for /api/v1/forum/posts/recent.
  * Fetches a list of the most recent non-deleted forum posts.

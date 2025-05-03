@@ -31,7 +31,7 @@ if (!isset($pdo) || !($pdo instanceof PDO)) {
 
 require_once __DIR__ . '/includes/auth_functions.php'; // Uses $pdo
 require_once __DIR__ . '/data_access/allocation_data_api.php'; // Uses $pdo
-require_once __DIR__ . '/data_access/forum_data_api.php'; // Uses $pdo
+// require_once __DIR__ . '/data_access/forum_data_api.php'; // REMOVED: Included conditionally or by specific handlers (e.g., POST /forum/posts) to avoid redeclaration errors.
 require_once __DIR__ . '/handlers/report_handler.php'; // Uses $pdo, auth_functions, error_handler
 require_once __DIR__ . '/handlers/forum_handler.php'; // Uses $pdo, auth_functions, error_handler, includes/data_access/forum_data.php
 

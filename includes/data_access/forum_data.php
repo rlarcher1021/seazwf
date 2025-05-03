@@ -335,19 +335,17 @@ function checkForumPermissions(string $requiredRole, ?string $userRole): bool {
  */
 function getAllForumPosts(PDO $pdo, int $page = 1, int $limit = 25): array
 {
-error_log("Entering getAllForumPosts with page: " . $page . ", limit: " . $limit); // DEBUG LOG
-    // Sanitize pagination parameters
-    $page = max(1, $page);
-    $limit = max(1, $limit);
+// Sanitize pagination parameters
+$page = max(1, $page);
+$limit = max(1, $limit);
     $offset = ($page - 1) * $limit;
 
     $result = ['posts' => [], 'total_count' => 0];
 
     try {
-error_log("Preparing posts query..."); // DEBUG LOG
-        // Query to get the paginated posts
-        $sqlPosts = "SELECT
-                        p.id AS post_id,
+// Query to get the paginated posts
+$sqlPosts = "SELECT
+                p.id AS post_id,
                         p.content,
                         p.created_at,
                         p.topic_id,
@@ -370,24 +368,19 @@ error_log("Preparing posts query..."); // DEBUG LOG
         $stmtPosts->bindParam(':limit', $limit, PDO::PARAM_INT);
         $stmtPosts->bindParam(':offset', $offset, PDO::PARAM_INT);
         $stmtPosts->execute();
-error_log("Posts query executed successfully. Found " . count($result['posts']) . " posts for this page."); // DEBUG LOG
         $result['posts'] = $stmtPosts->fetchAll(PDO::FETCH_ASSOC);
 
-error_log("Preparing count query..."); // DEBUG LOG
         // Query to get the total count of non-deleted posts
         $sqlCount = "SELECT COUNT(*) FROM forum_posts -- WHERE is_deleted = 0"; // is_deleted column not found
         $stmtCount = $pdo->query($sqlCount);
         if ($stmtCount) {
-error_log("Count query executed successfully. Total count: " . $result['total_count']); // DEBUG LOG
             $result['total_count'] = (int)$stmtCount->fetchColumn();
         }
 
-        error_log("Exiting getAllForumPosts successfully."); // DEBUG LOG
         return $result;
 
     } catch (PDOException $e) {
-        // Log the full exception details for better debugging
-        error_log("PDOException in getAllForumPosts: " . $e->getMessage() . "\nTrace: " . $e->getTraceAsString()); // DEBUG LOG
+        error_log("Error fetching all forum posts: " . $e->getMessage()); // Restore original error log
         return $result; // Return default empty result on error
     }
 }
