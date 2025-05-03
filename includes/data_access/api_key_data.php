@@ -129,17 +129,17 @@ class ApiKeyData {
         // error_log("ApiKeyData::createApiKey - Permissions encoded to JSON: " . $permissionsJson); // DEBUG Removed
 
 
-        // Correcting: Use 'name' for description, 'api_key_hash' for hash column, insert revoked_at = NULL
-        $sql = "INSERT INTO api_keys (name, key_hash, associated_permissions, associated_user_id, associated_site_id, created_at, revoked_at)
-                VALUES (:name, :key_hash, :permissions, :user_id, :site_id, NOW(), NULL)"; // Changed api_key_hash to key_hash
+        // Correcting: Use 'name' for description, 'api_api_key_hash' for hash column, insert revoked_at = NULL
+        $sql = "INSERT INTO api_keys (name, api_key_hash, associated_permissions, associated_user_id, associated_site_id, created_at, revoked_at)
+                VALUES (:name, :api_key_hash, :permissions, :user_id, :site_id, NOW(), NULL)"; // Changed api_api_key_hash to api_key_hash
 
         try {
             $stmt = $pdo->prepare($sql);
-            // error_log("ApiKeyData::createApiKey - SQL prepared successfully (using name, api_key_hash, revoked_at)."); // DEBUG Removed
+            // error_log("ApiKeyData::createApiKey - SQL prepared successfully (using name, api_api_key_hash, revoked_at)."); // DEBUG Removed
 
             // Bind parameters
             $stmt->bindParam(':name', $name);
-            $stmt->bindParam(':key_hash', $hashedKey); // Changed :api_key_hash to :key_hash
+            $stmt->bindParam(':api_key_hash', $hashedKey); // Changed :api_api_key_hash to :api_key_hash
             $stmt->bindParam(':permissions', $permissionsJson);
             $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT|PDO::PARAM_NULL);
             $stmt->bindParam(':site_id', $siteId, PDO::PARAM_INT|PDO::PARAM_NULL);
@@ -223,10 +223,10 @@ class ApiKeyData {
 
          // We need to fetch potential matches first, as we don't know the hash yet.
          // This is inefficient but necessary without storing the key itself.
-         // Correcting: Check revoked_at IS NULL and select 'api_key_hash' for hash
-         $sql_fetch = "SELECT id, key_hash, associated_permissions, associated_user_id, associated_site_id
+         // Correcting: Check revoked_at IS NULL and select 'api_api_key_hash' for hash
+         $sql_fetch = "SELECT id, api_key_hash, associated_permissions, associated_user_id, associated_site_id
                        FROM api_keys
-                       WHERE revoked_at IS NULL"; // Changed api_key_hash to key_hash
+                       WHERE revoked_at IS NULL"; // Changed api_api_key_hash to api_key_hash
 
          try {
              $stmt_fetch = $pdo->query($sql_fetch);
@@ -235,8 +235,8 @@ class ApiKeyData {
 
              $validKeyData = false;
              foreach ($activeKeys as $keyRecord) {
-                 // Verify against the 'key_hash' column
-                 if (isset($keyRecord['key_hash']) && password_verify($apiKey, $keyRecord['key_hash'])) { // Changed api_key_hash to key_hash
+                 // Verify against the 'api_key_hash' column
+                 if (isset($keyRecord['api_key_hash']) && password_verify($apiKey, $keyRecord['api_key_hash'])) { // Changed api_api_key_hash to api_key_hash
                      // error_log("ApiKeyData::validateApiKey - Key match found for ID: " . $keyRecord['id']); // DEBUG Removed
                      $validKeyData = [
                          'id' => $keyRecord['id'],

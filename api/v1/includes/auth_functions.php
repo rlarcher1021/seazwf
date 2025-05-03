@@ -33,7 +33,7 @@ function authenticateApiKey(PDO $pdo): array|false
     try {
         // Using PDO as an example, adjust if using mysqli
         // Fetch associated IDs needed for scoped permissions
-        $stmt = $pdo->prepare("SELECT id, key_hash, associated_permissions, associated_user_id, associated_site_id FROM api_keys WHERE is_active = 1");
+        $stmt = $pdo->prepare("SELECT id, api_key_hash, associated_permissions, associated_user_id, associated_site_id FROM api_keys WHERE is_active = 1");
         // If performance becomes an issue with many keys, add a WHERE clause
         // that filters by a non-sensitive part of the key if possible, or implement caching.
         // For now, fetching all active keys and verifying in PHP is acceptable for moderate loads.
@@ -42,7 +42,7 @@ function authenticateApiKey(PDO $pdo): array|false
 
         foreach ($keys as $keyRecord) {
             // 3. Verify the provided key against the stored hash
-            if (password_verify($apiKey, $keyRecord['key_hash'])) {
+            if (password_verify($apiKey, $keyRecord['api_key_hash'])) {
                 // Key is valid and active, return relevant data
                 // Update last_used_at timestamp (optional, consider performance impact)
                  try {
