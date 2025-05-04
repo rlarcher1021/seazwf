@@ -340,7 +340,7 @@ function getClientById(PDO $pdo, int $clientId): ?array
  * Intended for API use.
  *
  * @param PDO $pdo The PDO database connection object.
- * @param array $params Associative array of search parameters. Allowed keys: 'name', 'email', 'qr_identifier'.
+ * @param array $params Associative array of search parameters. Allowed keys: 'firstName', 'lastName', 'name', 'email', 'qr_identifier'.
  * @param int $page The current page number (1-based).
  * @param int $limit The number of items per page.
  * @return array An array containing 'total_count' (int) and 'clients' (array of client data), or ['total_count' => 0, 'clients' => []] on error.
@@ -353,13 +353,22 @@ function searchClientsApi(PDO $pdo, array $params, int $page, int $limit): array
     $executeParams = [];
 
     // Build WHERE clause based on parameters
-    if (!empty($params['name'])) {
-        // Use unique placeholders for the same value
+    // Prioritize firstName AND lastName search if both are provided
+    if (!empty($params['firstName']) && !empty($params['lastName'])) {
+        $whereConditions[] = "(first_name LIKE :firstName AND last_name LIKE :lastName)";
+        $executeParams[':firstName'] = '%' . trim($params['firstName']) . '%';
+        $executeParams[':lastName'] = '%' . trim($params['lastName']) . '%';
+        // If first/last name are provided, ignore the generic 'name' parameter if present
+        unset($params['name']);
+    } elseif (!empty($params['name'])) {
+        // Fallback to old 'name' search only if firstName AND lastName are not both provided
         $whereConditions[] = "(first_name LIKE :name1 OR last_name LIKE :name2)";
         $nameValue = '%' . trim($params['name']) . '%';
         $executeParams[':name1'] = $nameValue;
-        $executeParams[':name2'] = $nameValue; // Bind the same value to the second placeholder
+        $executeParams[':name2'] = $nameValue;
     }
+
+    // Add other conditions (email, qr_identifier) regardless of name search type
     if (!empty($params['email'])) {
         $whereConditions[] = "email = :email";
         $executeParams[':email'] = trim($params['email']);

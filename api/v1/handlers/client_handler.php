@@ -85,7 +85,9 @@ function handleSearchClients(PDO $pdo, array $requestQueryParams, array $apiKeyD
 
     // 1. Parse and Validate Query Parameters (Permission check moved to index.php router)
     // Refined check for required parameters
-    $hasName = !empty($requestQueryParams['name']);
+    $hasName = !empty($requestQueryParams['name']); // Keep for potential fallback/other uses, though not primary focus
+    $hasFirstName = !empty($requestQueryParams['firstName']);
+    $hasLastName = !empty($requestQueryParams['lastName']);
     $hasValidEmail = !empty($requestQueryParams['email']) && filter_var(trim($requestQueryParams['email']), FILTER_VALIDATE_EMAIL);
     $hasQr = !empty($requestQueryParams['qr_identifier']);
 
@@ -95,14 +97,25 @@ function handleSearchClients(PDO $pdo, array $requestQueryParams, array $apiKeyD
         return;
     }
 
-    // Require at least one valid search filter
-    if (!$hasName && !$hasValidEmail && !$hasQr) {
-        sendJsonError(400, "Bad Request: At least one valid search filter (name, email, or qr_identifier) is required.", 'MISSING_FILTER');
+    // Require at least one valid search filter (firstName AND lastName counts as one logical filter)
+    $hasAnyFilter = $hasName || $hasValidEmail || $hasQr || ($hasFirstName && $hasLastName); // Focus on the AND case for first/last name
+    // Note: Cases with only firstName or only lastName are not explicitly handled as required filters per instructions.
+
+    if (!$hasAnyFilter) {
+        // Updated error message to reflect new options
+        sendJsonError(400, "Bad Request: At least one valid search filter (name, email, qr_identifier, or both firstName and lastName) is required.", 'MISSING_FILTER');
         return;
     }
 
     // Populate params based on valid filters found
     $params = [];
+    if ($hasFirstName) { // Prioritize firstName/lastName if provided
+        $params['firstName'] = trim($requestQueryParams['firstName']);
+    }
+    if ($hasLastName) { // Prioritize firstName/lastName if provided
+        $params['lastName'] = trim($requestQueryParams['lastName']);
+    }
+    // Include other filters if they are also present (though the DAL will prioritize first/last name AND logic)
     if ($hasName) {
         $params['name'] = trim($requestQueryParams['name']);
     }

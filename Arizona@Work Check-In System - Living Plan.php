@@ -1,6 +1,6 @@
 Arizona@Work Check-In System - Living Project Plan
-Version: 1.52
-Date: 2025-05-03
+Version: 1.53
+Date: 2025-05-04
 (This Living Plan document is the "Single Source of Truth". User Responsibility: Maintain locally, provide current code, request plan updates. Developer (AI) Responsibility: Use plan/code context, focus on single tasks, provide code, assist plan updates.)
 1. Project Goal:
 Develop a web-based check-in and tracking system for Arizona@Work sites. Implement role-based access control (RBAC) using User Roles (including a site-scoped administrative capability via is_site_admin flag) in combination with Department assignments to manage feature access for staff. Incorporate a comprehensive Budget tracking module. Develop a secure API layer to enable programmatic access for external systems (e.g., AI agents) and future features, with initial endpoints and the reports endpoint tested and verified. Implement a parallel client check-in system featuring client accounts (associated with a primary site), profile management using dynamic site-specific questions, QR code check-in via authenticated kiosks (where key answers are copied to the check-in record), and an option for continued anonymous manual check-in (also using dynamic site-specific questions), aimed at improving data quality and check-in efficiency.
@@ -14,8 +14,7 @@ azwk_staff (assigned to an AZ@Work Department): Permissions as defined previousl
 azwk_staff (assigned to the Finance Department): Permissions as defined previously (Web UI - Budget: Add Admin allocations, Edit Staff fin_* fields, Edit Admin all fields, Delete Admin allocations, see all columns). Access to other standard staff features. Can also have is_site_admin=true (granting additional site-scoped admin powers) or future outreach assignments.
 outside_staff: Role exists, permissions TBC. Likely no budget access.
 director: Permissions as defined previously (Web UI - Budget: Full Budget Setup, Add/Edit Staff allocations staff fields, Void allocations, see all columns). Multi-site access potentially scoped by site_context. Likely 1 user. Access to other standard staff features, potentially site configuration and client editing.
-administrator: System-wide configuration, user management. Full access. Can grant/revok
-e Site Administrator privileges. Has access to the API Keys tab in Configurations.
+administrator: System-wide configuration, user management. Full access. Can grant/revoke Site Administrator privileges. Has access to the API Keys tab in Configurations.
 Client Users: Clients will have separate accounts (see Section 7, clients table) and log in via a distinct Client Portal, not the staff login system. They have no operational roles or permissions within the staff application context.
 3. Authentication System:
 Staff/Admin Web UI:
@@ -98,7 +97,27 @@ Auth Required: Yes. Permission Needed: read:recent_forum_posts. Endpoint impleme
 Query Parameters: limit=10 (default, optional).
 Response (200 OK): JSON with an array of recent forum post objects.
 Error Responses: 401, 403.
-Defined API Permissions: The current list of permissions that can be assigned to API keys via the Admin UI includes: read:checkin_data, create:checkin_note, read:budget_allocations, create:forum_post, read:all_forum_posts, read:recent_forum_posts, generate:reports, read:all_checkin_data, read:site_checkin_data, read:all_allocation_data, read:own_allocation_data.
+Fetch Client Details:
+Method: GET
+Path: /clients/{client_id}
+Auth Required: Yes. Permission Needed: read:client_data. Endpoint implemented and verified.
+Response (200 OK): JSON object of the specific client record.
+Response (400 Bad Request): Invalid client ID format.
+Response (401 Unauthorized): Missing/invalid API Key.
+Response (403 Forbidden): API Key lacks required permission.
+Response (404 Not Found): If client ID does not exist.
+Response (500 Internal Server Error).
+Query Clients:
+Method: GET
+Path: /clients
+Auth Required: Yes. Permission Needed: read:client_data. Endpoint implemented and verified.
+Query Parameters (Optional but at least one search filter required): name={name}, email={email}, qr_identifier={qr_identifier}, page=1, limit=50.
+Response (200 OK): JSON object containing an array of client objects and pagination details.
+Response (400 Bad Request): Missing required search filter, or invalid parameter format.
+Response (401 Unauthorized): Missing/invalid API Key.
+Response (403 Forbidden): API Key lacks required permission.
+Response (500 Internal Server Error).
+Defined API Permissions: The current list of permissions that can be assigned to API keys via the Admin UI includes: read:checkin_data, create:checkin_note, read:budget_allocations, create:forum_post, read:all_forum_posts, read:recent_forum_posts, generate:reports, read:all_checkin_data, read:site_checkin_data, read:all_allocation_data, read:own_allocation_data, read:client_data.
 6. Page Specifications & Functionality (Web UI):
 General: Ongoing UI Refactoring for consistency. Standardize on Soft Deletes (deleted_at) for relevant data. Use Bootstrap v4.5.2 (CSS and JS) consistently.
 Staff/Admin Pages:
@@ -127,7 +146,7 @@ NEW - Kiosk Handlers:
 kiosk_manual_handler.php (PHP handler): Receives manual data, validates input, creates basic check_ins record, saves dynamic answers to checkin_answers, includes AI enrollment logic, triggers standard notifications, redirects.
 Includes: header.php, footer.php, modals/ (staff modals). Client portal needs separate styling. JS in footer/assets. New JS for QR scanning, dynamic question loading, and API key management.
 7. Database Schema (MySQL):
-(Structure based on v1.51, with api_keys table corrected based on SQL execution. AUTO_INCREMENT/details omitted. Standard indexes assumed. FK relationships described.)
+(Structure based on v1.52, with api_keys table corrected based on SQL execution. AUTO_INCREMENT/details omitted. Standard indexes assumed. FK relationships described.)
 ai_resume, ai_resume_logs, ai_resume_val: Unchanged from v1.37.
 api_keys: (Modified to reflect actual schema after SQL execution)
 Comments: Stores API keys and associated permissions/metadata.
@@ -144,29 +163,29 @@ revoked_at (DATETIME NULL DEFAULT NULL COMMENT 'Timestamp when the key was revok
 Indexes: PRIMARY, idx_api_keys_revoked_at (revoked_at), api_key_hash_UNIQUE (implicit from UNIQUE constraint), fk_api_keys_user_idx (associated_user_id), fk_api_keys_site_idx (associated_site_id).
 Foreign Keys: associated_user_id -> users(id) ON DELETE SET NULL, associated_site_id -> sites(id) ON DELETE SET NULL.
 budgets, budget_allocations: Unchanged from v1.37.
-check_ins: (Modified previously) Includes client_id (FK) and q_veteran, q_age, q_interviewing populated from client_answers during QR check-in. Unchanged from v1.51 schema details.
+check_ins: (Modified previously) Includes client_id (FK) and q_veteran, q_age, q_interviewing populated from client_answers during QR check-in. Unchanged from v1.52 schema details.
 checkin_notes: Unchanged from v1.37.
-client_answers: Stores client answers to site-specific dynamic questions (client_id FK, question_id FK). Unchanged from v1.51 schema details.
-checkin_answers: Stores manual check-in answers to site-specific dynamic questions (checkin_id FK, question_id FK). Unchanged from v1.51 schema details.
-client_profile_audit_log: Logs changes to client profile fields (client_id FK, changed_by_user_id FK). Unchanged from v1.51 schema details.
-clients: Stores client account info (site_id FK, client_qr_identifier, email_preference_jobs). Unchanged from v1.51 schema details.
+client_answers: Stores client answers to site-specific dynamic questions (client_id FK, question_id FK). Unchanged from v1.52 schema details.
+checkin_answers: Stores manual check-in answers to site-specific dynamic questions (checkin_id FK, question_id FK). Unchanged from v1.52 schema details.
+client_profile_audit_log: Logs changes to client profile fields (client_id FK, changed_by_user_id FK). Unchanged from v1.52 schema details.
+clients: Stores client account info (site_id FK, client_qr_identifier, email_preference_jobs). Unchanged from v1.52 schema details.
 departments: Unchanged from v1.37.
 finance_department_access: Unchanged from v1.37.
 forum_categories, forum_posts, forum_topics: Unchanged from v1.37 (posts table used by new API endpoints).
 global_ads, global_questions, grants, sites, site_ads, site_configurations, site_questions, staff_notifications: Unchanged from v1.37.
-users: (Modified previously) Includes is_site_admin flag. Unchanged from v1.51 schema details.
+users: (Modified previously) Includes is_site_admin flag. Unchanged from v1.52 schema details.
 vendors: Unchanged from v1.37.
 (Future Table) user_outreach_sites: (See Section 14) Linking table for users assigned to multiple sites.
 8. File Management Structure:
 Root: budget_settings.php, budgets.php, index.php (staff entry point/main public page), checkins.php (Kiosk Interface), kiosk_manual_handler.php, client_register.php, client_login.php, client_editor.php (Staff Client Edit UI), reports.php (Modified - UI).
 ajax_handlers/: vendor_handler.php, get_site_questions.php, ajax_allocation_handler.php, ajax_get_budgets.php, ajax_handlers/api_keys_handler.php (New).
-api/v1/: API entry point (index.php - Modified), includes, handlers (api/v1/handlers/forum_handler.php - New), data access. openapi.yaml (Modified).
+api/v1/: API entry point (index.php - Modified), includes, handlers (api/v1/handlers/forum_handler.php - New, api/v1/handlers/client_handler.php - New), data access (includes/data_access/client_data.php - Modified). openapi.yaml (Modified).
 budget_settings_panels/: Include files for budget tabs.
 client_portal/: Contains profile.php (Primary Client Page), qr_code.php, services.php, potentially includes specific to client view.
 config/: DB connection, constants.
 includes/: Header, footer, modals (staff), helper functions. May need separate client includes.
-config_panels/: Include files for system configuration page. (questions_panel.php, ads_panel.php, site_settings_panel.php, includes/config_panels/api_keys_panel.php - New).
-data_access/: PHP classes/functions for DB interaction (DAL). Includes client_data.php, checkin_data.php, question_data.php, user_data.php, site_data.php, ad_data.php, audit_log_data.php, includes/data_access/api_key_data.php (New), includes/data_access/forum_data.php (Modified).
+config_panels/: Include files for system configuration page. (questions_panel.php, ads_panel.php, site_settings_panel.php, includes/config_panels/api_keys_panel.php - Modified).
+data_access/: PHP classes/functions for DB interaction (DAL). Includes client_data.php (Modified), checkin_data.php, question_data.php, user_data.php, site_data.php, ad_data.php, audit_log_data.php, includes/data_access/api_key_data.php (Modified), includes/data_access/forum_data.php (Modified).
 kiosk/: Contains qr_checkin handler logic.
 assets/: CSS, JS, images.
 css/main.css: Custom styles (Modified for reports tabs). May need client.css.
@@ -194,7 +213,7 @@ Transactional Email Sending Capability required for future password reset functi
 Critical: Server-side validation of the kiosk role session on the /kiosk/qr_checkin handler is the primary mechanism preventing unauthorized QR check-ins. Kiosk session site_id is used for manual check-in question context.
 Strict Role+Department+is_site_admin flag permissions enforced server-side for Staff Web UI actions. Administrator role strictly enforced for API Keys tab access.
 API Key + Associated Permissions enforced server-side for API actions. Authentication handling for missing headers and revoked keys has been improved.
-Server-side validation for all form submissions (Client registration, Client profile, Manual Kiosk, Staff forms, Client Editor, API Key creation, Forum Post via API) and API inputs. Validate dynamic question IDs against the site. Validate selected API permissions against the defined list. Validate topic_id for forum posts.
+Server-side validation for all form submissions (Client registration, Client profile, Manual Kiosk, Staff forms, Client Editor, API Key creation, Forum Post via API) and API inputs. Validate dynamic question IDs against the site. Validate selected API permissions against the defined list. Validate topic_id for forum posts. Validate search filter parameters for /clients endpoint.
 CSRF protection implemented on all Web UI forms and relevant AJAX handlers (Staff UI confirmed; ensure for Client Portal/Editor forms and API Key handler too).
 Use of prepared statements (PDO or MySQLi) for all database queries.
 Secure password hashing (password_hash) for both users and clients tables, and for API keys (api_key_hash).
@@ -232,13 +251,16 @@ Admin UI for API Key Management: Implemented as a tab in configurations.php allo
 API Endpoints for Reading Forum Posts: Implemented GET /api/v1/forum/posts (Read All, paginated) and GET /api/v1/forum/posts/recent (Read Recent, limited), requiring permissions read:all_forum_posts and read:recent_forum_posts respectively. Updated Admin UI permission list and API documentation. Found and fixed a SQLSTATE error in getRecentForumPosts. (COMPLETED)
 Fixed API Authentication Errors: Investigated and fixed 500 Internal Server Error occurring when API requests were made without an Authorization header or with a revoked API key. These scenarios now correctly return 401 Unauthorized. (COMPLETED)
 Fixed Undefined Function Error: Investigated and fixed Call to undefined function checkTopicExists() error on the POST /api/v1/forum/posts endpoint by implementing the missing validation function. (COMPLETED)
-Current Status: Core Staff-side features (Budget module, most API endpoints, User/Site Admin) are largely functional. Client Account / QR Check-in / Service Info system is functional. Administrator tools for API Key Management are implemented and tested. Reports UI is refactored with new tabs. API Forum Read endpoints are implemented and permission enforcement is tested and verified, including fixes for authentication errors. Security reviews conducted, with specific follow-up actions deferred to near deployment.
+Completed Tasks Since v1.52:
+Implemented and Tested Client Lookup API Endpoints: Implemented GET /api/v1/clients (List/Search) and GET /api/v1/clients/{client_id} (Fetch Specific). Defined read:client_data permission and added to Admin UI. Successfully tested endpoint functionality, permission enforcement (200 OK with permission, 403 Forbidden without, 401 Unauthorized without header or with revoked key), and filtering on /clients (including confirming previous fixes for 400/403/401 errors and parameter parsing/validation). (COMPLETED)
+Fixed API Permission Checking Logic for JSON Array Permissions: Investigated and fixed the issue where permissions stored as JSON array strings in api_keys.permissions were not being correctly parsed, causing 403 errors. Authentication logic updated to handle JSON arrays and fallback formats. (COMPLETED)
+Current Status: Core Staff-side features (Budget module, most API endpoints, User/Site Admin) are largely functional. Client Account / QR Check-in / Service Info system is functional. Administrator tools for API Key Management are implemented and tested. API Forum Read endpoints are implemented and tested. Client Lookup API endpoints are implemented and tested. Multiple API authentication and endpoint-specific bugs found and fixed during testing are resolved. Reports UI is refactored with new tabs. Security reviews conducted, with specific follow-up actions deferred to near deployment.
 Known Issues: None critical identified that are not already listed as pending actions.
 Required User Action:
 Perform system backup before any further major development or deployment.
-Review and approve this Living Plan v1.52.
+Review and approve this Living Plan v1.53.
 Configure production API key(s) when ready for deployment (related to API usage, e.g., n8n).
-Ensure all test API keys created during the recent testing phase have been revoked.
+Ensure all test API keys created during the recent testing phases have been revoked.
 Required Developer Action (Next Focus):
 Refinements to existing Staff UI modules as needed or if critical bugs arise (ongoing/as needed).
 (Deferred to near Deployment):
@@ -265,11 +287,15 @@ Notifications/Alerts enhancements (Staff & potentially Client).
 User Profile Picture Uploads (Staff).
 Refine Site Admin client edit permissions (e.g., consider allowing username/email edits with safeguards) - Note: This might be partially covered by existing client_editor.php functionality but could warrant further review.
 Enhance Audit Logging (e.g., cover more areas, provide UI for viewing logs).
+Implement User Lookup API Endpoints: Add GET /users/{user_id} and GET /users endpoints.
+Implement Site Information API Endpoints: Add GET /sites/{site_id} and GET /sites endpoints.
+Implement AI Resume/Validation Status API Endpoints: Add GET /ai/resumes/{resume_id}, GET /ai/validation/{validation_id}, GET /ai/resumes, and GET /ai/validation endpoints.
+Implement Specific Budget/Grant/Vendor Lookup API Endpoints: Add GET /budgets/{budget_id}, GET /grants/{grant_id}, and GET /vendors/{vendor_id} endpoints.
 15. Implementation Plan & Process:
-Use Living Plan v1.52 as Single Source of Truth.
-Priority: 1) Ensure testing of all newly completed features (API Key Admin UI, Forum Read API endpoints, Reports UI) is fully completed and satisfactory. 2) Address Staff UI refinements as needed or if critical bugs arise. 3) Address the deferred Security Items (Upload Dir Hardening, XSS, FK Errors) just prior to final deployment. 4) Implement features from Section 14 based on future prioritization.
+Use Living Plan v1.53 as Single Source of Truth.
+Priority: 1) Ensure testing of all newly completed features (Client Lookup API endpoints) is fully completed and satisfactory (already done based on user confirmation). 2) Address Staff UI refinements as needed or if critical bugs arise. 3) Address the deferred Security Items (Upload Dir Hardening, XSS, FK Errors) just prior to final deployment. 4) Implement features from Section 14 based on future prioritization (e.g., User Lookup API, Site Info API, etc.).
 Focus AI Developer on manageable tasks from the "Required Developer Action (Next Focus)" list above, implemented iteratively in order when not working on deferred security items.
 Prioritize backend logic then UI for new features.
-Require clear code comments, especially around permission logic (Role, Dept, is_site_admin, API Key), session checks, data handling (including QR->check_ins logic and audit logging), and security measures.
+Require clear code comments, especially around permission logic (Role, Dept, is_site_admin, API Key), session checks, data handling (including QR->check_ins logic, audit logging, and parameter validation), and security measures.
 User (Robert) responsible for providing context, testing, reporting results, and requesting plan updates.
 PM (AI) responsible for plan maintenance, context, task breakdown based on the plan.

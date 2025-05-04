@@ -1207,10 +1207,24 @@ paths:
         - name: name
           in: query
           required: false
-          description: Filter clients by first or last name (case-insensitive substring match).
+          description: Filter clients by first OR last name (case-insensitive substring match). For an AND search on both first and last name, use the 'firstName' and 'lastName' parameters instead.
           schema:
             type: string
           example: "Doe"
+        - name: firstName # New parameter
+          in: query
+          required: false
+          description: Filter clients by first name (substring match). Use with lastName for AND search.
+          schema:
+            type: string
+          example: "John"
+        - name: lastName # New parameter
+          in: query
+          required: false
+          description: Filter clients by last name (substring match). Use with firstName for AND search.
+          schema:
+            type: string
+          example: "Smith"
         - name: email
           in: query
           required: false

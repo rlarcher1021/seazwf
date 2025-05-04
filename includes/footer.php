@@ -471,6 +471,9 @@ jQuery(document).ready(function($) { // Use jQuery wrapper
     const csrfToken = csrfTokenMeta.attr('content');
     let chatHistory = []; // Array to hold message objects { sender: '...', text: '...' }
 
+    // Initialize markdown-it
+    const markdownit = window.markdownit();
+
     // --- Storage Keys ---
     const historyKey = 'aiChatHistory';
     const stateKey = 'aiChatState';
@@ -572,8 +575,18 @@ jQuery(document).ready(function($) { // Use jQuery wrapper
         // Create the message element
         const messageElement = $('<div></div>').addClass(messageClass);
 
-        // Use .text() for all message types to prevent XSS
-        messageElement.text(text);
+        // Render Markdown for AI messages, use text for others to prevent XSS
+        if (sender === 'ai') {
+            try {
+                const renderedHtml = markdownit.render(text);
+                messageElement.html(renderedHtml); // Use .html() for rendered Markdown
+            } catch (e) {
+                console.error('[Chat] Error during markdownit.render:', e); // Keep error log
+                messageElement.text(`Error rendering Markdown: ${text}`); // Fallback
+            }
+        } else {
+            messageElement.text(text); // Use .text() for user and error messages
+        }
 
         messagesContainer.append(messageElement);
         messagesContainer.scrollTop(messagesContainer[0].scrollHeight); // Scroll to bottom
