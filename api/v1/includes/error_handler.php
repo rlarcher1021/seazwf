@@ -29,6 +29,7 @@ function sendJsonError(int $statusCode, string $message, ?string $errorCode = nu
     }
 
     // Output JSON
+    ob_clean(); // Clear any previous output buffer
     echo json_encode(['error' => $errorBody], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 
     // Terminate script

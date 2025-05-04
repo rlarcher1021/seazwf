@@ -22,6 +22,8 @@ require_once __DIR__ . '/../includes/error_handler.php'; // Provides sendJsonErr
  */
 function handleGetClientById(PDO $pdo, array $requestPathParams, array $apiKeyData): void
 {
+    header('Content-Type: application/json; charset=utf-8'); // Set header early
+
     // 1. Extract and Validate Client ID (Permission check moved to index.php router)
     if (!isset($requestPathParams['client_id'])) {
          sendJsonError(400, "Bad Request: Missing client_id path parameter.", 'INVALID_INPUT');
@@ -39,13 +41,22 @@ function handleGetClientById(PDO $pdo, array $requestPathParams, array $apiKeyDa
 
         if ($client) {
             // 4. Send Success Response
-            header('Content-Type: application/json; charset=utf-8');
             http_response_code(200);
             // Ensure sensitive data like password_hash is not included
             unset($client['password_hash']);
-            echo json_encode($client, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+            try {
+                ob_clean(); // Clear any previous output buffer
+                echo json_encode($client, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+                exit; // Terminate script after successful JSON output
+            } catch (JsonException $e) {
+                error_log("JSON Encode Error in handleGetClientById for client ID {$clientId}: " . $e->getMessage());
+                // Don't call sendJsonError here if headers might already be sent, just log.
+                // A partially sent response might already exist. Best effort is to log.
+                // If header wasn't sent yet, sendJsonError could be used, but safer to just log.
+            }
         } else {
             // 5. Send Not Found Response
+            // Header already set at the top
             sendJsonError(404, "Not Found: Client with ID {$clientId} not found.", 'RESOURCE_NOT_FOUND');
         }
     } catch (PDOException $e) {
@@ -70,6 +81,8 @@ function handleGetClientById(PDO $pdo, array $requestPathParams, array $apiKeyDa
  */
 function handleSearchClients(PDO $pdo, array $requestQueryParams, array $apiKeyData): void
 {
+    header('Content-Type: application/json; charset=utf-8'); // Set header early
+
     // 1. Parse and Validate Query Parameters (Permission check moved to index.php router)
     $params = [];
     $filtersProvided = false;
@@ -144,12 +157,19 @@ function handleSearchClients(PDO $pdo, array $requestQueryParams, array $apiKeyD
             'clients' => $clients,
         ];
 
-        header('Content-Type: application/json; charset=utf-8');
         http_response_code(200);
-        echo json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        try {
+            ob_clean(); // Clear any previous output buffer
+            echo json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+            exit; // Terminate script after successful JSON output
+        } catch (JsonException $e) {
+             error_log("JSON Encode Error in handleSearchClients: " . $e->getMessage());
+             // Don't call sendJsonError here if headers might already be sent, just log.
+        }
 
     } catch (PDOException $e) {
         // 6. Handle Database Errors
+        // Header already set at the top
         error_log("Database Error in handleSearchClients: " . $e->getMessage());
         sendJsonError(500, "Internal Server Error: Could not perform client search.", 'DB_ERROR');
     } catch (Exception $e) {
