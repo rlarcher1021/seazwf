@@ -354,8 +354,11 @@ function searchClientsApi(PDO $pdo, array $params, int $page, int $limit): array
 
     // Build WHERE clause based on parameters
     if (!empty($params['name'])) {
-        $whereConditions[] = "(first_name LIKE :name OR last_name LIKE :name)";
-        $executeParams[':name'] = '%' . trim($params['name']) . '%';
+        // Use unique placeholders for the same value
+        $whereConditions[] = "(first_name LIKE :name1 OR last_name LIKE :name2)";
+        $nameValue = '%' . trim($params['name']) . '%';
+        $executeParams[':name1'] = $nameValue;
+        $executeParams[':name2'] = $nameValue; // Bind the same value to the second placeholder
     }
     if (!empty($params['email'])) {
         $whereConditions[] = "email = :email";
