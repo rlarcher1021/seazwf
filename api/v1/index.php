@@ -91,13 +91,17 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
     // --- Authentication ---
     $apiKeyData = authenticateApiKey($pdo); // Pass $pdo
     if ($apiKeyData === false) {
-        // Error response handled within authenticateApiKey (it calls sendJsonError and exits)
+        // Explicitly handle authentication failure here, as authenticateApiKey doesn't always exit.
+        sendJsonError(401, "Authentication failed. Invalid or missing API Key.", "AUTH_FAILED");
+        exit;
     }
 
     // --- Authorization ---
     $requiredPermission = "read:checkin_data"; // As per Living Plan
     if (!checkApiKeyPermission($requiredPermission, $apiKeyData)) {
-        // Error response handled within checkApiKeyPermission (it calls sendJsonError and exits)
+        // If permission check fails, send 403 Forbidden
+        sendJsonError(403, "Permission denied. API key requires the '{$requiredPermission}' permission.", "AUTH_FORBIDDEN");
+        exit;
     }
 
     // --- Endpoint Logic: Fetch Check-in Data ---
@@ -147,13 +151,17 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
     // --- Authentication ---
     $apiKeyData = authenticateApiKey($pdo); // Pass $pdo
     if ($apiKeyData === false) {
-        // Error response handled within authenticateApiKey (it calls sendJsonError and exits)
+        // Explicitly handle authentication failure here.
+        sendJsonError(401, "Authentication failed. Invalid or missing API Key.", "AUTH_FAILED");
+        exit;
     }
 
     // --- Authorization ---
     $requiredPermission = "create:checkin_note"; // As per Living Plan
     if (!checkApiKeyPermission($requiredPermission, $apiKeyData)) {
-        // Error response handled within checkApiKeyPermission (it calls sendJsonError and exits)
+        // If permission check fails, send 403 Forbidden
+        sendJsonError(403, "Permission denied. API key requires the '{$requiredPermission}' permission.", "AUTH_FORBIDDEN");
+        exit;
     }
 
     // --- Endpoint Logic: Add Check-in Note ---
@@ -238,16 +246,17 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
     // --- Authentication ---
     $apiKeyData = authenticateApiKey($pdo); // Pass $pdo
     if ($apiKeyData === false) {
-        // authenticateApiKey should call sendJsonError(401, ...) and exit if failed
-        // If it returns false without exiting, handle it here:
+        // Explicitly handle authentication failure here.
          sendJsonError(401, "Authentication failed. Invalid or missing API Key.", "AUTH_FAILED");
+         exit; // Ensure exit after sending error
     }
 
     // --- Authorization (Base Permission) ---
     $requiredPermission = "generate:reports"; // As per Living Plan
     if (!checkApiKeyPermission($requiredPermission, $apiKeyData)) {
-        // checkApiKeyPermission returns false if permission missing
+        // If permission check fails, send 403 Forbidden
         sendJsonError(403, "Permission denied. API key requires the '{$requiredPermission}' permission.", "AUTH_FORBIDDEN");
+        exit; // Ensure exit after sending error
     }
 
     // --- Endpoint Logic (Call Handler) ---
@@ -292,15 +301,17 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
                  // 1. Authentication
             $apiKeyData = authenticateApiKey($pdo); // Pass $pdo
             if ($apiKeyData === false) {
-                // Assuming authenticateApiKey calls sendJsonError and exits on failure
-                // If not, uncomment below:
-                // sendJsonError(401, "Authentication required. Invalid or missing API Key.", "AUTH_FAILED");
+                // Explicitly handle authentication failure here.
+                sendJsonError(401, "Authentication failed. Invalid or missing API Key.", "AUTH_FAILED");
+                exit;
             }
 
             // 2. Authorization
             $requiredPermission = "read:example"; // Placeholder permission
             if (!checkApiKeyPermission($requiredPermission, $apiKeyData)) {
+                // If permission check fails, send 403 Forbidden
                 sendJsonError(403, "Permission denied. API key does not have the required '{$requiredPermission}' permission.", "AUTH_FORBIDDEN");
+                exit; // Ensure exit after sending error
             }
 
             // 3. Placeholder Success Response (No actual logic in Phase 1)
@@ -325,17 +336,17 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
             // --- Authentication ---
             $apiKeyData = authenticateApiKey($pdo); // Pass $pdo
             if ($apiKeyData === false) {
-                // Assuming authenticateApiKey calls sendJsonError on failure and exits.
-                // If not, uncomment below:
-                // sendJsonError(401, "Authentication failed. Invalid or missing API Key.", "AUTH_FAILED");
+                // Explicitly handle authentication failure here.
+                sendJsonError(401, "Authentication failed. Invalid or missing API Key.", "AUTH_FAILED");
+                exit;
             }
 
             // --- Authorization ---
             $requiredPermission = "read:budget_allocations"; // As per Living Plan
             if (!checkApiKeyPermission($requiredPermission, $apiKeyData)) {
-                // Assuming checkApiKeyPermission calls sendJsonError on failure and exits.
-                // If not, uncomment below:
-                // sendJsonError(403, "Permission denied. API key does not have the required '{$requiredPermission}' permission.", "AUTH_FORBIDDEN");
+                // If permission check fails, send 403 Forbidden
+                sendJsonError(403, "Permission denied. API key does not have the required '{$requiredPermission}' permission.", "AUTH_FORBIDDEN");
+                exit; // Ensure exit after sending error
             }
 
             // --- Endpoint Logic: Query Allocations ---
@@ -377,13 +388,18 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
         if ($requestMethod === 'GET') {
             // --- Authentication ---
             $apiKeyData = authenticateApiKey($pdo);
-            if ($apiKeyData === false) { /* Error handled within */ }
+            if ($apiKeyData === false) {
+                // Explicitly handle authentication failure here.
+                sendJsonError(401, "Authentication failed. Invalid or missing API Key.", "AUTH_FAILED");
+                exit;
+            }
 
             // --- Authorization ---
             $requiredPermission = "read:all_forum_posts"; // Permission required for this endpoint
             if (!checkApiKeyPermission($requiredPermission, $apiKeyData)) {
-                /* Error handled within */
-                sendJsonError(403, "Permission denied. API key requires the '{$requiredPermission}' permission.", "AUTH_FORBIDDEN"); // Explicit fallback
+                // If permission check fails, send 403 Forbidden
+                sendJsonError(403, "Permission denied. API key requires the '{$requiredPermission}' permission.", "AUTH_FORBIDDEN");
+                exit; // Ensure exit after sending error
             }
 
             // --- Endpoint Logic: Call Handler ---
@@ -415,13 +431,17 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
             // --- Authentication ---
             $apiKeyData = authenticateApiKey($pdo); // Pass $pdo
             if ($apiKeyData === false) {
-                // Error handled within authenticateApiKey
+                // Explicitly handle authentication failure here.
+                sendJsonError(401, "Authentication failed. Invalid or missing API Key.", "AUTH_FAILED");
+                exit;
             }
 
             // --- Authorization ---
             $requiredPermission = "create:forum_post"; // As per Living Plan
             if (!checkApiKeyPermission($requiredPermission, $apiKeyData)) {
-                // Error handled within checkApiKeyPermission
+                // If permission check fails, send 403 Forbidden
+                sendJsonError(403, "Permission denied. API key requires the '{$requiredPermission}' permission.", "AUTH_FORBIDDEN");
+                exit; // Ensure exit after sending error
             }
 
             // --- Endpoint Logic: Create Forum Post ---
@@ -525,12 +545,18 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
         if ($requestMethod === 'GET') {
             // --- Authentication ---
             $apiKeyData = authenticateApiKey($pdo);
-            if ($apiKeyData === false) { /* Error handled within */ }
+            if ($apiKeyData === false) {
+                // Explicitly handle authentication failure here.
+                sendJsonError(401, "Authentication failed. Invalid or missing API Key.", "AUTH_FAILED");
+                exit;
+            }
 
             // --- Authorization ---
             $requiredPermission = "read:recent_forum_posts"; // Permission for this endpoint
             if (!checkApiKeyPermission($requiredPermission, $apiKeyData)) {
+                // If permission check fails, send 403 Forbidden
                 sendJsonError(403, "Permission denied. API key requires the '{$requiredPermission}' permission.", "AUTH_FORBIDDEN");
+                exit; // Ensure exit after sending error
             }
 
             // --- Endpoint Logic: Call Handler ---
