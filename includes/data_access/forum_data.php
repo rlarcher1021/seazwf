@@ -498,21 +498,21 @@ function createForumPostApi(PDO $pdo, int $topicId, string $content, int $apiKey
  * @param int $postId The ID of the new last post.
  * @return bool True on success, false on failure.
  */
-function updateTopicLastPost(PDO $pdo, int $topicId, int $postId): bool
+function updateTopicLastPost(PDO $pdo, int $topicId, int $creatorId): bool
 {
     try {
-        // Update the topic's last post information
-        // NOTE: Assumes 'last_post_id' column exists based on task instructions,
-        // even though it wasn't in the provided schema dump.
+        // Update the topic's last post timestamp and user ID directly using the provided creatorId
         $stmtUpdateTopic = $pdo->prepare(
-            "UPDATE forum_topics SET last_post_at = NOW(), last_post_id = :post_id
+            "UPDATE forum_topics SET last_post_at = NOW(), last_post_user_id = :creator_id
              WHERE id = :topic_id"
         );
-        $stmtUpdateTopic->bindParam(':post_id', $postId, PDO::PARAM_INT);
+        // Bind the provided creatorId. PDO::PARAM_INT handles null correctly if $creatorId is null (though unlikely in this context).
+        $stmtUpdateTopic->bindParam(':creator_id', $creatorId, PDO::PARAM_INT);
         $stmtUpdateTopic->bindParam(':topic_id', $topicId, PDO::PARAM_INT);
         return $stmtUpdateTopic->execute();
     } catch (PDOException $e) {
-        error_log("Error updating topic last post (Topic: $topicId, Post: $postId): " . $e->getMessage());
+        // Update error log to reflect the change in parameters
+        error_log("Error updating topic last post (Topic: $topicId, Creator: $creatorId): " . $e->getMessage());
         return false;
     }
 }

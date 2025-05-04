@@ -485,7 +485,7 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
                 }
 
                 // 4. Update Topic Last Post Timestamp (Pass $pdo)
-                if (!updateTopicLastPost($pdo, $topicId, $newPostId)) {
+                if (!updateTopicLastPost($pdo, $topicId, $apiKeyId)) {
                     $pdo->rollBack();
                     // Error logged within updateTopicLastPost
                     // Let exception handler catch and log
