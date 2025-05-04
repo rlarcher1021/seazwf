@@ -476,7 +476,7 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
                 }
 
                 // 3. Insert Post (Pass $pdo)
-                $newPostId = createForumPost($pdo, $topicId, $postBody, $apiKeyId);
+                $newPostId = createForumPostApi($pdo, $topicId, $postBody, $apiKeyId); // Corrected function call
                 if ($newPostId === false) {
                     $pdo->rollBack();
                     // Error logged within createForumPost
