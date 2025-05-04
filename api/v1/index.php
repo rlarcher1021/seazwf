@@ -34,6 +34,7 @@ require_once __DIR__ . '/data_access/allocation_data_api.php'; // Uses $pdo
 // require_once __DIR__ . '/data_access/forum_data_api.php'; // REMOVED: Included conditionally or by specific handlers (e.g., POST /forum/posts) to avoid redeclaration errors.
 require_once __DIR__ . '/handlers/report_handler.php'; // Uses $pdo, auth_functions, error_handler
 require_once __DIR__ . '/handlers/forum_handler.php'; // Uses $pdo, auth_functions, error_handler, includes/data_access/forum_data.php
+require_once __DIR__ . '/handlers/client_handler.php'; // Uses $pdo, auth_functions, error_handler
 
 // --- Global Error Handling ---
 // Set a top-level exception handler to catch unhandled errors
@@ -292,6 +293,60 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
     }
 
     exit; // Crucial: Stop script execution after handling the request
+
+// --- Route: Get Client by ID ---
+} elseif ($requestMethod === 'GET' && preg_match('#^/clients/(\d+)$#', $routePath, $matches)) {
+    $clientId = (int)$matches[1];
+
+    // Validate ID format
+    if ($clientId <= 0) {
+         sendJsonError(400, 'Invalid Client ID format. ID must be a positive integer.', 'INVALID_ID_FORMAT');
+    }
+
+    // --- Authentication ---
+    $apiKeyData = authenticateApiKey($pdo);
+    if ($apiKeyData === false) {
+        sendJsonError(401, "Authentication failed. Invalid or missing API Key.", "AUTH_FAILED");
+        exit;
+    }
+
+    // --- Authorization ---
+    $requiredPermission = "read:client_data"; // Permission required
+    if (!checkApiKeyPermission($requiredPermission, $apiKeyData)) {
+        sendJsonError(403, "Permission denied. API key requires the '{$requiredPermission}' permission.", "AUTH_FORBIDDEN");
+        exit;
+    }
+
+    // --- Endpoint Logic (Call Handler) ---
+    try {
+        // Prepare parameters for the handler
+        $pathParams = ['client_id' => $clientId];
+
+        // Call the handler function from client_handler.php
+        $clientData = handleGetClientById($pdo, $apiKeyData, $pathParams); // Pass path params
+
+        // Handler should return data or throw exception (or call sendJsonError for 404)
+        // If handler returns data, send success response
+        header('Content-Type: application/json; charset=utf-8');
+        http_response_code(200);
+        echo json_encode($clientData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+
+    } catch (InvalidArgumentException $e) {
+        // Handle bad request errors (400) or not found (404) from the handler
+        $statusCode = $e->getCode() === 404 ? 404 : 400;
+        $errorCode = $statusCode === 404 ? 'NOT_FOUND' : 'BAD_REQUEST';
+        sendJsonError($statusCode, $e->getMessage(), $errorCode);
+    } catch (RuntimeException $e) {
+        // Handle internal server errors (500) from the handler
+        error_log("API Runtime Error (GET /clients/{$clientId}): " . $e->getMessage());
+        sendJsonError(500, 'An internal error occurred while fetching client data.', 'CLIENT_FETCH_ERROR');
+    } catch (Exception $e) {
+        // Catch any other unexpected errors during handler execution
+        error_log("API Unexpected Error (GET /clients/{$clientId}): " . $e->getMessage());
+        sendJsonError(500, 'An unexpected error occurred processing the client request.', 'UNEXPECTED_CLIENT_ERROR');
+    }
+
+    exit; // Crucial: Stop script execution
 
 } else {
      // --- Fallback to switch for non-parameterized routes ---
@@ -608,6 +663,56 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
             sendJsonError(405, "Method Not Allowed. Only GET is supported for /forum/posts/recent.", "METHOD_NOT_ALLOWED");
         }
         break; // End case '/forum/posts/recent'
+
+    // --- Route: Search Clients ---
+    case '/clients':
+        if ($requestMethod === 'GET') {
+            // --- Authentication ---
+            $apiKeyData = authenticateApiKey($pdo);
+            if ($apiKeyData === false) {
+                sendJsonError(401, "Authentication failed. Invalid or missing API Key.", "AUTH_FAILED");
+                exit;
+            }
+
+            // --- Authorization ---
+            $requiredPermission = "read:client_data"; // Permission required
+            if (!checkApiKeyPermission($requiredPermission, $apiKeyData)) {
+                sendJsonError(403, "Permission denied. API key requires the '{$requiredPermission}' permission.", "AUTH_FORBIDDEN");
+                exit;
+            }
+
+            // --- Endpoint Logic (Call Handler) ---
+            try {
+                // Get query parameters
+                $queryParams = $_GET;
+
+                // Call the handler function from client_handler.php
+                $clientResult = handleSearchClients($pdo, $apiKeyData, $queryParams);
+
+                // Send success response
+                header('Content-Type: application/json; charset=utf-8');
+                http_response_code(200);
+                echo json_encode($clientResult, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+
+            } catch (InvalidArgumentException $e) {
+                // Handle bad request errors (400) from the handler
+                sendJsonError(400, $e->getMessage(), 'BAD_REQUEST');
+            } catch (RuntimeException $e) {
+                // Handle internal server errors (500) from the handler
+                error_log("API Runtime Error (GET /clients): " . $e->getMessage());
+                sendJsonError(500, 'An internal error occurred while searching clients.', 'CLIENT_SEARCH_ERROR');
+            } catch (Exception $e) {
+                // Catch any other unexpected errors during handler execution
+                error_log("API Unexpected Error (GET /clients): " . $e->getMessage());
+                sendJsonError(500, 'An unexpected error occurred processing the client search request.', 'UNEXPECTED_CLIENT_SEARCH_ERROR');
+            }
+            exit; // Stop script execution
+
+        } else {
+            // Method not allowed for this route
+            sendJsonError(405, "Method Not Allowed. Only GET is supported for /clients.", "METHOD_NOT_ALLOWED");
+        }
+        break; // End case '/clients'
 
     // Add more cases here for future endpoints in Phase 2
     // case '/checkins':

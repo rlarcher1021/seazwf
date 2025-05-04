@@ -86,7 +86,8 @@ class ApiKeyData {
             'read:checkin_data', 'create:checkin_note', 'read:budget_allocations',
             'create:forum_post', 'read:all_forum_posts', 'read:recent_forum_posts', 'generate:reports',
             'read:all_checkin_data', 'read:site_checkin_data',
-            'read:all_allocation_data', 'read:own_allocation_data'
+            'read:all_allocation_data', 'read:own_allocation_data',
+            'read:client_data' // Added permission for client data read access
             // Add any other valid permissions here
         ];
 

@@ -354,71 +354,109 @@ require_once 'includes/header.php'; // Includes session_start() if not already s
 
              <!-- Main Configuration Area with Tabs -->
              <div class="admin-settings">
-                 <!-- Tab Links -->
-                 <div class="tabs">
+                 <!-- Tab Links (Bootstrap 4 Nav Tabs) -->
+                 <ul class="nav nav-tabs" id="configTabs" role="tablist">
                      <?php
                      $tabs_config = [
                          'site-settings' => 'Site Settings',
-                         'questions' => 'Questions', // Consolidated tab
+                         'questions' => 'Questions',
                          'notifiers' => 'Email Notifiers',
                          'ads-management' => 'Ads Management',
                          'departments' => 'Departments',
-                         'api-keys' => 'API Keys' // Added API Keys tab
+                         'api-keys' => 'API Keys'
                      ];
 
-                     // Filter tabs for Site Admins (remove 'departments')
+                     // Filter tabs for Site Admins
                      if ($is_site_admin === 1) {
                          unset($tabs_config['departments']);
                      }
+                     // Filter API Keys tab for non-admins
+                     if ($session_role !== 'administrator') {
+                         unset($tabs_config['api-keys']);
+                     }
 
-                     // Determine base URL for tabs (without site_id initially)
-                     $base_tab_url = 'configurations.php?tab=';
+                     // Define tabs that require a site ID
+                     $site_specific_tabs = ['site-settings', 'questions', 'notifiers', 'ads-management', 'api-keys'];
 
                      foreach ($tabs_config as $tab_id => $tab_name):
-                         // --- Role Check for API Keys Tab ---
-                         if ($tab_id === 'api-keys' && $session_role !== 'administrator') {
-                             continue; // Skip rendering this tab if not admin
-                         }
-                         // --- End Role Check ---
-                         $tab_url = $base_tab_url . urlencode($tab_id);
-                         // Define tabs that require a site ID
-                         $site_specific_tabs = ['site-settings', 'questions', 'notifiers', 'ads-management', 'api-keys']; // Added api-keys
-
-                         // Add site_id only if required by the tab and a site is selected
-                         if (in_array($tab_id, $site_specific_tabs) && $selected_config_site_id !== null) {
-                             $tab_url .= '&site_id=' . $selected_config_site_id;
-                         }
-                         $is_active = ($active_tab === $tab_id) ? 'active' : '';
-
-                         // Disable site-specific tabs if no site is selected
+                         $pane_id = 'config-' . $tab_id . '-pane'; // Consistent pane ID
+                         $is_active = ($active_tab === $tab_id);
                          $is_disabled = !$selected_config_site_id && in_array($tab_id, $site_specific_tabs);
-                         $disabled_class = $is_disabled ? 'disabled' : '';
-                         $link_attributes = $is_disabled ? 'onclick="return false;" class="disabled"' : 'href="' . htmlspecialchars($tab_url) . '"';
+
+                         $link_classes = 'nav-link';
+                         if ($is_active) $link_classes .= ' active';
+                         if ($is_disabled) $link_classes .= ' disabled';
+
+                         $link_attributes = 'id="config-' . $tab_id . '-tab" ';
+                         $link_attributes .= 'class="' . $link_classes . '" ';
+                         $link_attributes .= 'role="tab" ';
+                         $link_attributes .= 'aria-controls="' . $pane_id . '" ';
+                         $link_attributes .= 'aria-selected="' . ($is_active ? 'true' : 'false') . '" ';
+
+                         if ($is_disabled) {
+                             $link_attributes .= 'href="#" tabindex="-1" aria-disabled="true"';
+                         } else {
+                             // Construct URL carefully, adding site_id only when needed and selected
+                             $tab_url = 'configurations.php?tab=' . urlencode($tab_id);
+                             if (in_array($tab_id, $site_specific_tabs) && $selected_config_site_id !== null) {
+                                 $tab_url .= '&site_id=' . $selected_config_site_id;
+                             }
+                             $link_attributes .= 'href="' . htmlspecialchars($tab_url) . '" ';
+                             // Add data-toggle only for non-disabled tabs that actually switch content via JS
+                             // Since we reload the page, data-toggle might not be strictly needed, but it's standard Bootstrap
+                             // $link_attributes .= 'data-toggle="tab" '; // Removed as page reloads handle content switching
+                         }
                      ?>
-                         <a <?php echo $link_attributes; ?> class="tab <?php echo $is_active; ?> <?php echo $disabled_class; ?>" data-tab="<?php echo $tab_id; ?>">
-                             <?php echo htmlspecialchars($tab_name); ?>
-                         </a>
+                         <li class="nav-item" role="presentation">
+                             <a <?php echo $link_attributes; ?>>
+                                 <?php echo htmlspecialchars($tab_name); ?>
+                             </a>
+                         </li>
                      <?php endforeach; ?>
-                 </div>
+                 </ul>
 
                  <!-- Tab Content Area - Output Panel Content -->
-                 <div id="tab-content">
+                 <!-- Tab Content Area (Bootstrap 4 Tab Panes) -->
+                 <div class="tab-content" id="configTabContent">
                      <?php
-                     // Output the panel content that was buffered earlier (if any)
-                     // This ensures panel HTML is only displayed on GET requests after the header
-                     // If $panel_output is empty (e.g., due to missing site ID on GET, or file not found), nothing is echoed.
-                     // --- Role Check for API Keys Panel Output ---
-                     // Only output the panel content if it's not the API Keys tab OR if it is the API Keys tab AND the user is an admin.
-                     if (!($active_tab === 'api-keys' && $session_role !== 'administrator')) {
-                          echo $panel_output;
-                     } elseif ($active_tab === 'api-keys' && $session_role !== 'administrator') {
-                          // Optionally display an access denied message here if needed,
-                          // but the tab link shouldn't be visible anyway due to the check above.
-                          // echo "<div class='message-area message-error'>Access Denied.</div>";
+                     // Only output the content for the *active* tab pane
+                     // The $panel_output variable already contains the correct content based on $active_tab
+                     // We just need to wrap it correctly.
+                     $pane_id = 'config-' . $active_tab . '-pane';
+                     $tab_link_id = 'config-' . $active_tab . '-tab';
+
+                     // Determine if the panel content should be shown
+                     $show_panel = true;
+                     if ($active_tab === 'api-keys' && $session_role !== 'administrator') {
+                         $show_panel = false; // Don't show API keys panel to non-admins
                      }
-                     // --- End Role Check ---
+                     // Also check if a site ID was required but missing
+                     $requires_site_id_for_active = in_array($active_tab, ['site-settings', 'questions', 'notifiers', 'ads-management', 'api-keys']);
+                     if ($requires_site_id_for_active && $selected_config_site_id === null) {
+                         // Don't show panel content, flash message should already be set
+                         if (empty($panel_output)) { // If no site selected, panel_output might be empty
+                             $show_panel = false;
+                         }
+                     }
+
+                     if ($show_panel && !empty($panel_output)):
                      ?>
-                 </div> <!-- End #tab-content -->
+                         <div class="tab-pane fade show active" id="<?php echo $pane_id; ?>" role="tabpanel" aria-labelledby="<?php echo $tab_link_id; ?>">
+                             <?php echo $panel_output; // Output the buffered panel content ?>
+                         </div>
+                     <?php elseif ($active_tab === 'api-keys' && $session_role !== 'administrator'): ?>
+                         <div class="tab-pane fade show active" id="<?php echo $pane_id; ?>" role="tabpanel" aria-labelledby="<?php echo $tab_link_id; ?>">
+                             <div class='message-area message-error'>Access Denied. API Key management requires Administrator privileges.</div>
+                         </div>
+                     <?php else: // Placeholder if no content is shown for the active tab ?>
+                         <div class="tab-pane fade show active" id="<?php echo $pane_id; ?>" role="tabpanel" aria-labelledby="<?php echo $tab_link_id; ?>">
+                             <?php if (empty($flash_message) && empty($config_error)): // Avoid duplicate messages ?>
+                                 <p class="text-muted p-3">Select a site or configuration option to view content.</p>
+                             <?php endif; ?>
+                             <?php // Panel output might be empty due to missing site ID, flash message handles user feedback ?>
+                         </div>
+                     <?php endif; ?>
+                 </div> <!-- End #configTabContent -->
              </div> <!-- End .admin-settings -->
 
 <?php // Conditionally add API Keys JS to footer scripts for administrators ?>

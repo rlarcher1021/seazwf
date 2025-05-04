@@ -104,6 +104,7 @@ function getClientAnswers(PDO $pdo, int $clientId): array
 
 /**
  * Searches for clients based on a search term, respecting user roles and site permissions.
+ * (Used by Staff UI Client Editor)
  *
  * @param PDO $pdo The PDO database connection object.
  * @param string $searchTerm The term to search for in first_name, last_name, or username.
@@ -283,7 +284,7 @@ function updateClientProfileFields(PDO $pdo, int $clientId, array $dataToUpdate)
         return false;
     }
 
-    $sql = "UPDATE clients SET " . implode(', ', $setClauses) . " WHERE id = :client_id";
+    $sql = "UPDATE clients SET " . implode(', ', $setClauses) . " WHERE id = :client_id AND deleted_at IS NULL"; // Ensure we don't update deleted clients
 
     try {
         $stmt = $pdo->prepare($sql);
@@ -301,9 +302,129 @@ function updateClientProfileFields(PDO $pdo, int $clientId, array $dataToUpdate)
 }
 
 
-// Add other client-related data access functions here later if needed...
-// e.g., function getClientById(PDO $pdo, int $clientId): ?array { ... } // Essentially getClientDetailsForEditing['profile']
-// e.g., function findClientByUsernameOrEmail(PDO $pdo, string $identifier): ?array { ... }
-// e.g., function verifyClientPassword(PDO $pdo, int $clientId, string $password): bool { ... }
+/**
+ * Retrieves a single client by their ID, excluding deleted clients.
+ * Intended for API use.
+ *
+ * @param PDO $pdo The PDO database connection object.
+ * @param int $clientId The ID of the client to retrieve.
+ * @return array|null An associative array of the client's data (id, first_name, last_name, email, site_id, client_qr_identifier, email_preference_jobs) or null if not found or on error.
+ */
+function getClientById(PDO $pdo, int $clientId): ?array
+{
+    $sql = "SELECT id, first_name, last_name, email, site_id, client_qr_identifier, email_preference_jobs
+            FROM clients
+            WHERE id = :client_id AND deleted_at IS NULL";
+
+    try {
+        $stmt = $pdo->prepare($sql);
+        if (!$stmt) {
+            error_log("ERROR getClientById: Prepare failed for client ID {$clientId}. PDO Error: " . implode(" | ", $pdo->errorInfo()));
+            return null;
+        }
+
+        $stmt->bindParam(':client_id', $clientId, PDO::PARAM_INT);
+        $stmt->execute();
+        $client = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $client ?: null; // Return the client array or null if fetch returned false
+
+    } catch (PDOException $e) {
+        error_log("EXCEPTION in getClientById for client ID {$clientId}: " . $e->getMessage());
+        return null;
+    }
+}
+
+/**
+ * Searches for clients based on various parameters with pagination, excluding deleted clients.
+ * Intended for API use.
+ *
+ * @param PDO $pdo The PDO database connection object.
+ * @param array $params Associative array of search parameters. Allowed keys: 'name', 'email', 'qr_identifier'.
+ * @param int $page The current page number (1-based).
+ * @param int $limit The number of items per page.
+ * @return array An array containing 'total_items' (int) and 'clients' (array of client data), or ['total_items' => 0, 'clients' => []] on error.
+ */
+function searchClientsApi(PDO $pdo, array $params, int $page, int $limit): array
+{
+    $selectFields = "id, first_name, last_name, email, site_id, client_qr_identifier, email_preference_jobs";
+    $baseSql = "FROM clients WHERE deleted_at IS NULL";
+    $whereConditions = [];
+    $executeParams = [];
+
+    // Build WHERE clause based on parameters
+    if (!empty($params['name'])) {
+        $whereConditions[] = "(first_name LIKE :name OR last_name LIKE :name)";
+        $executeParams[':name'] = '%' . trim($params['name']) . '%';
+    }
+    if (!empty($params['email'])) {
+        $whereConditions[] = "email = :email";
+        $executeParams[':email'] = trim($params['email']);
+    }
+    if (!empty($params['qr_identifier'])) {
+        $whereConditions[] = "client_qr_identifier = :qr_identifier";
+        $executeParams[':qr_identifier'] = trim($params['qr_identifier']);
+    }
+
+    $whereSql = "";
+    if (!empty($whereConditions)) {
+        $whereSql = " AND " . implode(' AND ', $whereConditions);
+    }
+
+    // --- Total Count Query ---
+    $countSql = "SELECT COUNT(*) " . $baseSql . $whereSql;
+    $totalItems = 0;
+    try {
+        $countStmt = $pdo->prepare($countSql);
+        if (!$countStmt) {
+            error_log("ERROR searchClientsApi (Count): Prepare failed. PDO Error: " . implode(" | ", $pdo->errorInfo()));
+            return ['total_items' => 0, 'clients' => []];
+        }
+        $countStmt->execute($executeParams);
+        $totalItems = (int)$countStmt->fetchColumn();
+
+    } catch (PDOException $e) {
+        error_log("EXCEPTION in searchClientsApi (Count): " . $e->getMessage() . " SQL: " . $countSql);
+        return ['total_items' => 0, 'clients' => []];
+    }
+
+    // --- Data Query ---
+    $clients = [];
+    if ($totalItems > 0) {
+        $offset = ($page - 1) * $limit;
+        $dataSql = "SELECT " . $selectFields . " " . $baseSql . $whereSql . " ORDER BY last_name, first_name LIMIT :limit OFFSET :offset";
+
+        try {
+            $dataStmt = $pdo->prepare($dataSql);
+            if (!$dataStmt) {
+                error_log("ERROR searchClientsApi (Data): Prepare failed. PDO Error: " . implode(" | ", $pdo->errorInfo()));
+                // Return total count but empty client list as data fetch failed
+                return ['total_items' => $totalItems, 'clients' => []];
+            }
+
+            // Bind WHERE parameters
+            foreach ($executeParams as $key => $value) {
+                $dataStmt->bindValue($key, $value);
+            }
+            // Bind LIMIT and OFFSET parameters
+            $dataStmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $dataStmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+
+            $dataStmt->execute();
+            $clients = $dataStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        } catch (PDOException $e) {
+            error_log("EXCEPTION in searchClientsApi (Data): " . $e->getMessage() . " SQL: " . $dataSql);
+            // Return total count but empty client list as data fetch failed
+            return ['total_items' => $totalItems, 'clients' => []];
+        }
+    }
+
+    return [
+        'total_items' => $totalItems,
+        'clients' => $clients ?: [] // Ensure clients is always an array
+    ];
+}
+
 
 ?>

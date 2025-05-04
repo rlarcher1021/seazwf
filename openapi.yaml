@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
   title: Arizona@Work Check-In System API
-  description: API for interacting with the Arizona@Work Check-In System, providing access to check-ins, notes, allocations, forum posts, and reports.
-  version: 1.0.0 # Corresponds to /api/v1/
+  description: API for interacting with the Arizona@Work Check-In System, providing access to check-ins, notes, allocations, forum posts, reports, and client data.
+  version: 1.0.1 # Incremented version for client endpoint addition
 servers:
   - url: /api/v1
     description: V1 API Base Path
@@ -48,7 +48,7 @@ components:
         limit:
           type: integer
           description: The number of records requested per page.
-          example: 50
+          example: 10
         total_records:
           type: integer
           description: The total number of records matching the query.
@@ -56,7 +56,7 @@ components:
         total_pages:
           type: integer
           description: The total number of pages available.
-          example: 4
+          example: 16
       required:
         - page
         - limit
@@ -120,7 +120,7 @@ components:
               type: string
               nullable: true
               enum: ['16-18', '19-24', '25-44', '45-54', '55-64', '65+', 'Decline to Answer']
-            q_interviewing:
+            q_interviewing: # Example, add others as needed
               type: string
               nullable: true
               enum: ['Yes', 'No', 'Decline to Answer']
@@ -220,46 +220,72 @@ components:
           nullable: true
           description: Explanation of the program/service.
         # funding_* fields (DECIMAL) - Represent as number or string based on precision needs
-        funding_tuition:
+        funding_dw:
           type: number
           format: float # Or string if exact decimal precision is critical
           nullable: true
-        funding_books_supplies:
+        funding_dw_admin:
           type: number
           format: float
           nullable: true
-        funding_transportation:
+        funding_dw_sus:
           type: number
           format: float
           nullable: true
-        funding_other:
+        funding_adult:
+          type: number
+          format: float
+          nullable: true
+        funding_adult_admin:
+          type: number
+          format: float
+          nullable: true
+        funding_adult_sus:
+          type: number
+          format: float
+          nullable: true
+        funding_rr:
+          type: number
+          format: float
+          nullable: true
+        funding_h1b:
+          type: number
+          format: float
+          nullable: true
+        funding_youth_is:
+          type: number
+          format: float
+          nullable: true
+        funding_youth_os:
+          type: number
+          format: float
+          nullable: true
+        funding_youth_admin:
           type: number
           format: float
           nullable: true
         # fin_* fields
-        fin_notes:
+        fin_voucher_received:
           type: string
-          format: text
           nullable: true
-        fin_invoice_date:
-          type: string
-          format: date
-          nullable: true
-        fin_payment_date:
+        fin_accrual_date:
           type: string
           format: date
           nullable: true
-        fin_check_number:
+        fin_obligated_date:
+          type: string
+          format: date
+          nullable: true
+        fin_comments:
+          type: string
+          format: text # Changed from text to string for OpenAPI compatibility
+          nullable: true
+        fin_expense_code:
           type: string
           nullable: true
         fin_processed_by_user_id:
           type: integer
           format: int64
-          nullable: true
-          readOnly: true
-        fin_processed_at:
-          type: string
-          format: date-time
           nullable: true
           readOnly: true
         created_by_user_id:
@@ -389,6 +415,66 @@ components:
         - data
         - pagination
 
+    Client: # New Schema for Client Data
+      type: object
+      description: Represents a client record.
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique identifier for the client.
+          readOnly: true
+        first_name:
+          type: string
+          description: Client's first name.
+          example: "John"
+        last_name:
+          type: string
+          description: Client's last name.
+          example: "Doe"
+        email:
+          type: string
+          format: email
+          description: Client's email address.
+          example: "john.doe@example.com"
+        site_id:
+          type: integer
+          format: int64
+          nullable: true
+          description: ID of the client's primary associated site.
+          example: 1
+        client_qr_identifier:
+          type: string
+          format: uuid # Assuming UUID, adjust if different
+          description: Unique identifier used for the client's QR code.
+          readOnly: true
+          example: "f81d4fae-7dec-11d0-a765-00a0c91e6bf6"
+        email_preference_jobs:
+          type: boolean
+          description: Indicates if the client opted-in to receive job-related emails (true=OptIn, false=OptOut).
+          example: true
+      required:
+        - id
+        - first_name
+        - last_name
+        - email
+        - client_qr_identifier
+        - email_preference_jobs
+
+    ClientListResponse: # New Schema for List of Clients with Pagination
+      type: object
+      description: A paginated list of client records.
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Client'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+      required:
+        - data
+        - pagination
+
 paths:
   /checkins/{checkin_id}:
     get:
@@ -502,34 +588,40 @@ paths:
         - ApiKeyAuthAlternative: []
       responses:
         '201':
-          description: Note created successfully. Returns the created note object.
+          description: Note created successfully.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/CheckinNote'
         '400':
-          description: Bad Request - Invalid Check-in ID format, invalid JSON, or missing/empty note_text.
+          description: Bad Request - Invalid Check-in ID format or missing note text.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               examples:
-                invalidJson:
+                invalidId:
+                  summary: Invalid ID Format
                   value:
                     error:
-                      message: "Invalid JSON payload: Syntax error"
-                      code: "INVALID_JSON"
+                      message: "Invalid Check-in ID format. ID must be a positive integer."
+                      code: "INVALID_ID_FORMAT"
                 missingNote:
+                  summary: Missing Note Text
                   value:
                     error:
-                      message: "Missing or empty note_text."
-                      code: "MISSING_NOTE_TEXT"
+                      message: "Request body must include 'note_text'."
+                      code: "MISSING_PARAMETER"
         '401':
           description: Unauthorized - Invalid or missing API Key.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  message: "Authentication failed. Invalid or missing API Key."
+                  code: "AUTH_FAILED"
         '403':
           description: Forbidden - API Key lacks required permission.
           content:
@@ -548,8 +640,8 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 error:
-                  message: "Check-in not found for ID: 123."
-                  code: "CHECKIN_NOT_FOUND"
+                  message: "Check-in not found for ID: 456."
+                  code: "NOT_FOUND"
         '500':
           description: Internal Server Error - Database or unexpected error.
           content:
@@ -559,67 +651,57 @@ paths:
               example:
                 error:
                   message: "Database error occurred while adding check-in note."
-                  code: "DB_ERROR"
+                  code: "DB_EXECUTION_ERROR"
 
   /allocations:
     get:
       tags:
-        - Budgets & Allocations
+        - Allocations
       summary: Query Allocations
-      description: Retrieves a list of budget allocations, optionally filtered by various criteria. Supports pagination.
-      operationId: getAllocations
+      description: Retrieves a list of budget allocations based on specified filter criteria. Requires 'read:budget_allocations' permission.
+      operationId: queryAllocations
       parameters:
         - name: fiscal_year
           in: query
           required: false
-          description: Filter allocations by the fiscal year (YYYY) of the associated budget.
+          description: Filter by fiscal year (e.g., 2024).
           schema:
             type: integer
-            format: int32
-            example: 2024
         - name: grant_id
           in: query
           required: false
-          description: Filter allocations by the associated grant ID.
+          description: Filter by grant ID.
           schema:
             type: integer
-            format: int64
-            minimum: 1
         - name: department_id
           in: query
           required: false
-          description: Filter allocations by the associated department ID.
+          description: Filter by department ID.
           schema:
             type: integer
-            format: int64
-            minimum: 1
         - name: budget_id
           in: query
           required: false
-          description: Filter allocations by the specific budget ID.
+          description: Filter by budget ID.
           schema:
             type: integer
-            format: int64
-            minimum: 1
         - name: page
           in: query
           required: false
           description: Page number for pagination.
           schema:
             type: integer
-            format: int32
-            minimum: 1
             default: 1
+            minimum: 1
         - name: limit
           in: query
           required: false
           description: Number of records per page.
           schema:
             type: integer
-            format: int32
-            minimum: 1
-            maximum: 100 # As per allocation_data_api.php
             default: 50
+            minimum: 1
+            maximum: 100 # Example maximum limit
       security:
         - ApiKeyAuth: []
         - ApiKeyAuthAlternative: []
@@ -641,21 +723,25 @@ paths:
                   - data
                   - pagination
         '400':
-          description: Bad Request - Invalid format for query parameters (fiscal_year, IDs, page, limit).
+          description: Bad Request - Invalid filter parameter format.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 error:
-                  message: "Invalid query parameter format for grant_id. Must be a positive integer."
-                  code: "INVALID_QUERY_PARAM"
+                  message: "Invalid format for 'fiscal_year'. Must be an integer."
+                  code: "INVALID_PARAMETER_FORMAT"
         '401':
           description: Unauthorized - Invalid or missing API Key.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  message: "Authentication failed. Invalid or missing API Key."
+                  code: "AUTH_FAILED"
         '403':
           description: Forbidden - API Key lacks required permission.
           content:
@@ -674,16 +760,16 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 error:
-                  message: "An internal error occurred while fetching allocations."
-                  code: "ALLOCATION_FETCH_ERROR"
+                  message: "Database error occurred while querying allocations."
+                  code: "DB_EXECUTION_ERROR"
 
   /forum/posts:
     get:
       tags:
         - Forum
-      summary: List Forum Posts
-      description: Retrieves a paginated list of all non-deleted forum posts. Requires 'read:all_forum_posts' permission.
-      operationId: getForumPosts
+      summary: Read All Forum Posts
+      description: Retrieves a paginated list of all forum posts accessible to the API key. Requires 'read:all_forum_posts' permission.
+      operationId: getAllForumPosts
       parameters:
         - name: page
           in: query
@@ -691,47 +777,39 @@ paths:
           description: Page number for pagination.
           schema:
             type: integer
-            format: int32
-            minimum: 1
             default: 1
+            minimum: 1
         - name: limit
           in: query
           required: false
           description: Number of posts per page.
           schema:
             type: integer
-            format: int32
-            minimum: 1
-            maximum: 100 # Assuming a reasonable max limit
             default: 25
+            minimum: 1
+            maximum: 100
       security:
-        - ApiKeyAuth: [] # Permission 'read:all_forum_posts' required
+        - ApiKeyAuth: []
         - ApiKeyAuthAlternative: []
       responses:
         '200':
-          description: A paginated list of forum posts.
+          description: List of forum posts retrieved successfully.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ForumPostListResponse'
-        '400':
-          description: Bad Request - Invalid pagination parameters.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Invalid limit parameter. Must be a positive integer."
-                  code: "INVALID_QUERY_PARAM"
         '401':
           description: Unauthorized - Invalid or missing API Key.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  message: "Authentication failed. Invalid or missing API Key."
+                  code: "AUTH_FAILED"
         '403':
-          description: Forbidden - API Key lacks required 'read:all_forum_posts' permission.
+          description: Forbidden - API Key lacks required permission.
           content:
             application/json:
               schema:
@@ -748,16 +826,16 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 error:
-                  message: "An internal error occurred while fetching forum posts."
-                  code: "FORUM_FETCH_ERROR"
+                  message: "Database error occurred while fetching forum posts."
+                  code: "DB_EXECUTION_ERROR"
     post:
       tags:
         - Forum
       summary: Create Forum Post
-      description: Creates a new post within a specified forum topic.
+      description: Creates a new post in a specified forum topic. Requires 'create:forum_post' permission.
       operationId: createForumPost
       requestBody:
-        description: Details of the forum post to create.
+        description: The details of the forum post to create.
         required: true
         content:
           application/json:
@@ -767,11 +845,12 @@ paths:
                 topic_id:
                   type: integer
                   format: int64
-                  description: The ID of the forum topic to post in.
-                  minimum: 1
+                  description: The ID of the topic to post in.
+                  example: 5
                 post_body:
                   type: string
-                  description: The content/body of the forum post.
+                  description: The content of the forum post.
+                  example: "This is a new post created via the API."
               required:
                 - topic_id
                 - post_body
@@ -780,34 +859,40 @@ paths:
         - ApiKeyAuthAlternative: []
       responses:
         '201':
-          description: Forum post created successfully. Returns the created post object.
+          description: Forum post created successfully.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ForumPost'
+                $ref: '#/components/schemas/ForumPost' # Returns the created post object
         '400':
-          description: Bad Request - Invalid JSON, or missing/invalid topic_id or post_body.
+          description: Bad Request - Missing required fields, invalid topic ID, or invalid input format.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               examples:
-                invalidTopicId:
+                missingField:
+                  summary: Missing Field
                   value:
                     error:
-                      message: "Missing or invalid topic_id. Must be a positive integer."
+                      message: "Request body must include 'topic_id' and 'post_body'."
+                      code: "MISSING_PARAMETER"
+                invalidTopic:
+                  summary: Invalid Topic ID
+                  value:
+                    error:
+                      message: "Invalid Topic ID: 999 does not exist."
                       code: "INVALID_TOPIC_ID"
-                invalidPostBody:
-                  value:
-                    error:
-                      message: "Missing or invalid post_body. Cannot be empty."
-                      code: "INVALID_POST_BODY"
         '401':
           description: Unauthorized - Invalid or missing API Key.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  message: "Authentication failed. Invalid or missing API Key."
+                  code: "AUTH_FAILED"
         '403':
           description: Forbidden - API Key lacks required permission.
           content:
@@ -818,18 +903,18 @@ paths:
                 error:
                   message: "Permission denied. API key requires the 'create:forum_post' permission."
                   code: "AUTH_FORBIDDEN"
-        '404':
-          description: Not Found - The specified forum topic does not exist or is locked.
+        '404': # Added based on checkTopicExists fix
+          description: Not Found - The specified topic_id does not exist.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 error:
-                  message: "Forum topic not found or is locked for ID: 999."
-                  code: "TOPIC_NOT_FOUND_OR_LOCKED"
+                  message: "Topic not found for ID: 999."
+                  code: "NOT_FOUND"
         '500':
-          description: Internal Server Error - Database or unexpected error during post creation or topic update.
+          description: Internal Server Error - Database or unexpected error.
           content:
             application/json:
               schema:
@@ -837,14 +922,14 @@ paths:
               example:
                 error:
                   message: "Database error occurred while creating forum post."
-                  code: "DB_ERROR"
+                  code: "DB_EXECUTION_ERROR"
 
   /forum/posts/recent:
     get:
       tags:
         - Forum
-      summary: List Recent Forum Posts
-      description: Retrieves a list of the most recent non-deleted forum posts. Requires 'read:recent_forum_posts' permission.
+      summary: Read Recent Forum Posts
+      description: Retrieves a list of the most recent forum posts accessible to the API key. Requires 'read:recent_forum_posts' permission.
       operationId: getRecentForumPosts
       parameters:
         - name: limit
@@ -853,40 +938,38 @@ paths:
           description: Maximum number of recent posts to return.
           schema:
             type: integer
-            format: int32
-            minimum: 1
-            maximum: 50 # Assuming a reasonable max limit
             default: 10
+            minimum: 1
+            maximum: 50
       security:
-        - ApiKeyAuth: [] # Permission 'read:recent_forum_posts' required
+        - ApiKeyAuth: []
         - ApiKeyAuthAlternative: []
       responses:
         '200':
-          description: A list of recent forum posts.
+          description: List of recent forum posts retrieved successfully.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ForumPostResponse'
-        '400':
-          description: Bad Request - Invalid limit parameter.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Invalid limit parameter. Must be a positive integer."
-                  code: "INVALID_QUERY_PARAM"
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ForumPostResponse' # Use the response schema including topic/author
+                required:
+                  - data
         '401':
           description: Unauthorized - Invalid or missing API Key.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  message: "Authentication failed. Invalid or missing API Key."
+                  code: "AUTH_FAILED"
         '403':
-          description: Forbidden - API Key lacks required 'read:recent_forum_posts' permission.
+          description: Forbidden - API Key lacks required permission.
           content:
             application/json:
               schema:
@@ -903,18 +986,16 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 error:
-                  message: "An internal error occurred while fetching recent forum posts."
-                  code: "FORUM_FETCH_ERROR"
+                  message: "Database error occurred while fetching recent forum posts."
+                  code: "DB_EXECUTION_ERROR"
 
   /reports:
     get:
       tags:
         - Reports
       summary: Generate Reports
-      description: |
-        Generates different types of reports based on the 'type' parameter.
-        Requires base 'generate:reports' permission plus specific scope permissions depending on the report type and desired data access level.
-      operationId: getReports
+      description: Generates various reports based on the specified type and filters. Requires 'generate:reports' base permission, plus specific scope permissions based on the report type.
+      operationId: generateReport
       parameters:
         - name: type
           in: query
@@ -922,79 +1003,310 @@ paths:
           description: Specifies the type of report to generate.
           schema:
             type: string
-            enum: [checkin_detail, allocation_detail]
-            example: checkin_detail
+            enum: [checkin_detail, allocation_detail] # Add other report types as they are implemented
+          example: checkin_detail
         - name: start_date
           in: query
           required: false
-          description: Filter records on or after this date (YYYY-MM-DD).
+          description: Start date for the report data (YYYY-MM-DD).
           schema:
             type: string
             format: date
         - name: end_date
           in: query
           required: false
-          description: Filter records on or before this date (YYYY-MM-DD).
+          description: End date for the report data (YYYY-MM-DD).
           schema:
             type: string
             format: date
-        - name: limit
+        - name: site_id # Applicable to checkin_detail with read:all_checkin_data
           in: query
           required: false
-          description: Number of records per page for pagination.
+          description: Filter check-in reports by site ID (requires 'read:all_checkin_data' permission).
           schema:
             type: integer
-            format: int32
-            minimum: 1
-            maximum: 1000 # As per report_handler.php
-            default: 50
+        - name: department_id # Applicable to allocation_detail with read:all_allocation_data
+          in: query
+          required: false
+          description: Filter allocation reports by department ID (requires 'read:all_allocation_data' permission).
+          schema:
+            type: integer
+        - name: grant_id # Applicable to allocation_detail with read:all_allocation_data
+          in: query
+          required: false
+          description: Filter allocation reports by grant ID (requires 'read:all_allocation_data' permission).
+          schema:
+            type: integer
+        - name: budget_id # Applicable to allocation_detail with read:all_allocation_data
+          in: query
+          required: false
+          description: Filter allocation reports by budget ID (requires 'read:all_allocation_data' permission).
+          schema:
+            type: integer
+        - name: user_id # Applicable to allocation_detail with read:all_allocation_data
+          in: query
+          required: false
+          description: Filter allocation reports by budget owner user ID (requires 'read:all_allocation_data' permission).
+          schema:
+            type: integer
         - name: page
           in: query
           required: false
           description: Page number for pagination.
           schema:
             type: integer
-            format: int32
-            minimum: 1
             default: 1
-        # --- Parameters specific to checkin_detail ---
-        - name: site_id
+            minimum: 1
+        - name: limit
           in: query
           required: false
-          description: (For type=checkin_detail) Filter check-ins by site ID. Requires 'read:all_checkin_data' permission. Ignored if key only has 'read:site_checkin_data'.
+          description: Number of records per page.
           schema:
             type: integer
-            format: int64
+            default: 50
             minimum: 1
-        # --- Parameters specific to allocation_detail ---
-        - name: department_id
+            maximum: 100
+      security:
+        - ApiKeyAuth: []
+        - ApiKeyAuthAlternative: []
+      responses:
+        '200':
+          description: Report generated successfully. The structure depends on the 'type' parameter.
+          content:
+            application/json:
+              schema:
+                oneOf: # Use oneOf to indicate different possible response structures
+                  - $ref: '#/components/schemas/CheckinReportResponse' # Define this schema below
+                  - $ref: '#/components/schemas/AllocationReportResponse' # Define this schema below
+              examples:
+                checkinReportExample:
+                  summary: Example Check-in Detail Report Response
+                  value:
+                    report_type: "checkin_detail"
+                    generated_at: "2024-05-01T10:30:00Z"
+                    filters:
+                      start_date: "2024-04-01"
+                      end_date: "2024-04-30"
+                    data:
+                      - id: 101
+                        site_id: 1
+                        first_name: "Jane"
+                        last_name: "Smith"
+                        check_in_time: "2024-04-15T09:05:10Z"
+                        client_id: 55
+                        # ... other checkin fields
+                      # ... more checkin records
+                    pagination:
+                      page: 1
+                      limit: 50
+                      total_records: 75
+                      total_pages: 2
+                allocationReportExample:
+                  summary: Example Allocation Detail Report Response
+                  value:
+                    report_type: "allocation_detail"
+                    generated_at: "2024-05-01T10:35:00Z"
+                    filters:
+                      fiscal_year: 2024
+                      department_id: 2
+                    data:
+                      - id: 205
+                        budget_id: 15
+                        transaction_date: "2024-04-20"
+                        vendor_id: 8
+                        client_name: "Workshop Attendee"
+                        payment_status: "P"
+                        funding_dw: 150.00
+                        # ... other allocation fields
+                      # ... more allocation records
+                    pagination:
+                      page: 1
+                      limit: 50
+                      total_records: 30
+                      total_pages: 1
+        '400':
+          description: Bad Request - Missing 'type' parameter, invalid 'type', or invalid filter format.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missingType:
+                  summary: Missing Type Parameter
+                  value:
+                    error:
+                      message: "Required query parameter 'type' is missing."
+                      code: "MISSING_PARAMETER"
+                invalidType:
+                  summary: Invalid Report Type
+                  value:
+                    error:
+                      message: "Invalid report type specified: 'invalid_report'. Allowed types: checkin_detail, allocation_detail."
+                      code: "INVALID_PARAMETER_VALUE"
+                invalidDate:
+                  summary: Invalid Date Format
+                  value:
+                    error:
+                      message: "Invalid format for 'start_date'. Use YYYY-MM-DD."
+                      code: "INVALID_PARAMETER_FORMAT"
+        '401':
+          description: Unauthorized - Invalid or missing API Key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  message: "Authentication failed. Invalid or missing API Key."
+                  code: "AUTH_FAILED"
+        '403':
+          description: Forbidden - API Key lacks 'generate:reports' permission or required scope permission (e.g., 'read:all_checkin_data', 'read:site_checkin_data', 'read:all_allocation_data', 'read:own_allocation_data') or associated ID is missing/invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missingBasePermission:
+                  summary: Missing Base Permission
+                  value:
+                    error:
+                      message: "Permission denied. API key requires the 'generate:reports' permission."
+                      code: "AUTH_FORBIDDEN"
+                missingScopePermission:
+                  summary: Missing Scope Permission
+                  value:
+                    error:
+                      message: "Permission denied. API key requires 'read:all_checkin_data' or 'read:site_checkin_data' scope for 'checkin_detail' report."
+                      code: "AUTH_FORBIDDEN_SCOPE"
+                missingAssociatedId:
+                  summary: Missing Associated ID
+                  value:
+                    error:
+                      message: "Permission scope 'read:site_checkin_data' requires an associated_site_id on the API key."
+                      code: "AUTH_MISSING_ASSOCIATED_ID"
+        '500':
+          description: Internal Server Error - Database or unexpected error during report generation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  message: "Database error occurred while generating the report."
+                  code: "DB_EXECUTION_ERROR"
+
+  # --- NEW CLIENT ENDPOINTS ---
+  /clients:
+    get:
+      tags:
+        - Clients
+      summary: List Clients
+      description: Retrieves a paginated list of clients, optionally filtered by name, email, or QR identifier. Requires 'read:client_data' permission. Filters are applied using simple substring matching (LIKE '%value%').
+      operationId: listClients
+      parameters:
+        - name: name
           in: query
           required: false
-          description: (For type=allocation_detail) Filter allocations by department ID. Requires 'read:all_allocation_data' permission.
+          description: Filter clients by first or last name (case-insensitive substring match).
+          schema:
+            type: string
+          example: "Doe"
+        - name: email
+          in: query
+          required: false
+          description: Filter clients by email address (case-insensitive substring match).
+          schema:
+            type: string
+            format: email
+          example: "example.com"
+        - name: qr_identifier
+          in: query
+          required: false
+          description: Filter clients by their exact QR identifier.
+          schema:
+            type: string
+            format: uuid # Assuming UUID
+          example: "f81d4fae-7dec-11d0-a765-00a0c91e6bf6"
+        - name: page
+          in: query
+          required: false
+          description: Page number for pagination.
           schema:
             type: integer
-            format: int64
+            default: 1
             minimum: 1
-        - name: grant_id
+        - name: limit
           in: query
           required: false
-          description: (For type=allocation_detail) Filter allocations by grant ID. Requires 'read:all_allocation_data' permission.
+          description: Number of clients per page.
           schema:
             type: integer
-            format: int64
+            default: 10
             minimum: 1
-        - name: budget_id
-          in: query
-          required: false
-          description: (For type=allocation_detail) Filter allocations by budget ID. Requires 'read:all_allocation_data' or 'read:own_allocation_data' permission.
-          schema:
-            type: integer
-            format: int64
-            minimum: 1
-        - name: user_id
-          in: query
-          required: false
-          description: (For type=allocation_detail) Filter allocations by the budget owner's user ID. Requires 'read:all_allocation_data' permission.
+            maximum: 100
+      security:
+        - ApiKeyAuth: []
+        - ApiKeyAuthAlternative: []
+      responses:
+        '200':
+          description: A paginated list of clients retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientListResponse'
+        '400':
+          description: Bad Request - Invalid filter parameter format (e.g., non-integer page/limit).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  message: "Invalid format for 'page'. Must be a positive integer."
+                  code: "INVALID_PARAMETER_FORMAT"
+        '401':
+          description: Unauthorized - Invalid or missing API Key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  message: "Authentication failed. Invalid or missing API Key."
+                  code: "AUTH_FAILED"
+        '403':
+          description: Forbidden - API Key lacks required 'read:client_data' permission.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  message: "Permission denied. API key requires the 'read:client_data' permission."
+                  code: "AUTH_FORBIDDEN"
+        '500':
+          description: Internal Server Error - Database or unexpected error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  message: "Database error occurred while fetching client list."
+                  code: "DB_EXECUTION_ERROR"
+
+  /clients/{client_id}:
+    get:
+      tags:
+        - Clients
+      summary: Get Client by ID
+      description: Retrieves the details of a specific client by their unique ID. Requires 'read:client_data' permission.
+      operationId: getClientById
+      parameters:
+        - name: client_id
+          in: path
+          required: true
+          description: The numeric ID of the client to retrieve.
           schema:
             type: integer
             format: int64
@@ -1004,76 +1316,111 @@ paths:
         - ApiKeyAuthAlternative: []
       responses:
         '200':
-          description: Report generated successfully. The structure of the 'data' array depends on the 'type' parameter.
+          description: Client details retrieved successfully.
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    description: Array of report items (CheckinBase or Allocation objects).
-                    items:
-                      oneOf: # Indicate that items can be one of the following schemas
-                        - $ref: '#/components/schemas/CheckinBase' # Use base schema for checkin report
-                        - $ref: '#/components/schemas/Allocation'
-                  pagination:
-                    $ref: '#/components/schemas/Pagination'
-                required:
-                  - data
-                  - pagination
+                $ref: '#/components/schemas/Client'
         '400':
-          description: Bad Request - Missing/invalid 'type', invalid date/pagination format, or invalid filter parameter format.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                missingType:
-                  value:
-                    error:
-                      message: "Missing or empty 'type' query parameter."
-                      code: "BAD_REQUEST"
-                invalidDate:
-                  value:
-                    error:
-                      message: "Invalid 'start_date' format. Use YYYY-MM-DD."
-                      code: "BAD_REQUEST"
-        '401':
-          description: Unauthorized - Invalid or missing API Key.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '403':
-          description: Forbidden - API Key lacks required base permission ('generate:reports') or necessary scope permission (e.g., 'read:all_checkin_data', 'read:site_checkin_data', 'read:all_allocation_data', 'read:own_allocation_data'), or lacks required associated ID for scoped permission.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                missingBasePermission:
-                  value:
-                    error:
-                      message: "Permission denied. API key requires the 'generate:reports' permission."
-                      code: "AUTH_FORBIDDEN" # Or FORBIDDEN from handler
-                missingScopePermission:
-                  value:
-                    error:
-                      message: "Permission denied. Requires 'read:all_checkin_data' or 'read:site_checkin_data'."
-                      code: "FORBIDDEN"
-                missingAssociatedId:
-                   value:
-                     error:
-                       message: "Permission 'read:site_checkin_data' requires the API key to have an associated site ID."
-                       code: "FORBIDDEN"
-        '500':
-          description: Internal Server Error - Database or unexpected error during report generation.
+          description: Bad Request - Invalid Client ID format.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 error:
-                  message: "An internal error occurred while generating the report."
-                  code: "REPORT_GENERATION_ERROR"
+                  message: "Invalid Client ID format. ID must be a positive integer."
+                  code: "INVALID_ID_FORMAT"
+        '401':
+          description: Unauthorized - Invalid or missing API Key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  message: "Authentication failed. Invalid or missing API Key."
+                  code: "AUTH_FAILED"
+        '403':
+          description: Forbidden - API Key lacks required 'read:client_data' permission.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  message: "Permission denied. API key requires the 'read:client_data' permission."
+                  code: "AUTH_FORBIDDEN"
+        '404':
+          description: Not Found - Client with the specified ID does not exist or is deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  message: "Client not found for ID: 789."
+                  code: "NOT_FOUND"
+        '500':
+          description: Internal Server Error - Database or unexpected error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  message: "Database error occurred while fetching client data."
+                  code: "DB_EXECUTION_ERROR"
+
+# --- Helper Schemas for Report Responses ---
+components: # Add these under the main components section if not already there
+  schemas:
+    # ... existing schemas ...
+    CheckinReportResponse:
+      type: object
+      properties:
+        report_type:
+          type: string
+          enum: [checkin_detail]
+        generated_at:
+          type: string
+          format: date-time
+        filters:
+          type: object # Define specific filter properties if needed
+          additionalProperties: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CheckinFull' # Use the full checkin schema
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+      required:
+        - report_type
+        - generated_at
+        - data
+        - pagination
+
+    AllocationReportResponse:
+      type: object
+      properties:
+        report_type:
+          type: string
+          enum: [allocation_detail]
+        generated_at:
+          type: string
+          format: date-time
+        filters:
+          type: object
+          additionalProperties: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Allocation' # Use the detailed allocation schema
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+      required:
+        - report_type
+        - generated_at
+        - data
+        - pagination
+# Ensure indentation is correct if merging this back into the main components/schemas section

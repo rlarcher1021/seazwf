@@ -61,7 +61,8 @@ $allowedPermissions = [
     'read:all_checkin_data',
     'read:site_checkin_data',
     'read:all_allocation_data',
-    'read:own_allocation_data'
+    'read:own_allocation_data',
+    'read:client_data' // Added permission for client data read access
 ];
 
 ?>
@@ -155,12 +156,6 @@ $allowedPermissions = [
                             </label>
                         </div>
                     <?php endforeach; ?>
-<div class="form-check form-check-inline">
-                            <input class="form-check-input" type="checkbox" name="permissions[]" id="perm_read:recent_forum_posts" value="read:recent_forum_posts">
-                            <label class="form-check-label" for="perm_read:recent_forum_posts">
-                                read:recent_forum_posts
-                            </label>
-                        </div>
                 </fieldset>
                  <small class="form-text text-muted">Select the permissions this key will grant.</small>
             </div>
