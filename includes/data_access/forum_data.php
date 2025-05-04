@@ -460,7 +460,6 @@ function getRecentForumPosts(PDO $pdo, int $limit = 10): array
  */
 function createForumPostApi(PDO $pdo, int $topicId, string $content, int $apiKeyId)
 {
-    $pdo->beginTransaction();
     try {
         // Insert the new post, linking to the API key
         $stmtPost = $pdo->prepare(
@@ -491,11 +490,11 @@ function createForumPostApi(PDO $pdo, int $topicId, string $content, int $apiKey
         $stmtFetch->execute();
         $createdPostData = $stmtFetch->fetch(PDO::FETCH_ASSOC);
 
-        $pdo->commit();
         return $createdPostData ?: false; // Return fetched data or false if fetch failed
 
     } catch (Exception $e) {
-        $pdo->rollBack();
+        // The transaction is handled by the calling function (e.g., in api/v1/index.php)
+        // No rollback needed here, just log and return false to signal failure.
         error_log("Error creating API forum post for topic ($topicId): " . $e->getMessage());
         return false;
     }
