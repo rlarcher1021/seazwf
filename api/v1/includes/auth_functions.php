@@ -24,9 +24,12 @@ function authenticateApiKey(PDO $pdo): array|false
     }
 
     if (!$apiKey) {
-        return false; // No API key provided
+        // No API key provided in headers, send 401 Unauthorized
+        http_response_code(401);
+        header('Content-Type: application/json');
+        echo json_encode(["error" => ["code" => "AUTH_UNAUTHORIZED", "message" => "Authorization header is missing or invalid."]]);
+        exit; // Terminate script execution
     }
-
     // 2. Query the database for a matching *active* key hash
     // IMPORTANT: We fetch the HASH, not try to hash the input key here.
     // We select the hash to use with password_verify()
