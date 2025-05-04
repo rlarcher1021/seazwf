@@ -485,6 +485,25 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
                 }
 
                 // 4. Update Topic Last Post Timestamp (Pass $pdo)
+// 4. Validate API Key User Association
+                // Check if user_id exists, is not null, and is a valid integer
+                if (!isset($apiKeyData['user_id']) || $apiKeyData['user_id'] === null || !filter_var($apiKeyData['user_id'], FILTER_VALIDATE_INT)) {
+                    $pdo->rollBack(); // Rollback transaction before sending error
+                    // Log the specific error for server-side diagnostics
+                    error_log("API key user association error for key ID: {$apiKeyId}. Associated user_id ('" . ($apiKeyData['user_id'] ?? 'NULL or missing') . "') is invalid.");
+                    // Send a structured error response to the client
+                    sendJsonError(
+                        500, // Internal Server Error seems appropriate as it's a server-side configuration/data issue
+                        "API key user association error. Cannot update topic.",
+                        "API_KEY_USER_ASSOC_ERROR",
+                        ["apiKeyId" => $apiKeyId] // Include API Key ID in context if helpful
+                    );
+                    // Exit script execution after sending the error response
+                    exit;
+                }
+
+                // Renumbering the next step comment for clarity
+                // 5. Update Topic Last Post Timestamp (Pass $pdo)
                 if (!updateTopicLastPost($pdo, $topicId, $apiKeyData['user_id'])) { // Pass user_id associated with the API key
                     $pdo->rollBack();
                     // Error logged within updateTopicLastPost
