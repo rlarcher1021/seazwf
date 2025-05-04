@@ -184,6 +184,43 @@ function getPostCountByTopic(PDO $pdo, int $topicId): int
         return 0;
     }
 }
+/**
+ * Fetches a single forum post by its ID, including the author's username.
+ *
+ * @param PDO $pdo The PDO database connection object.
+ * @param int $postId The ID of the forum post to retrieve.
+ * @return array|false The post data as an associative array if found, otherwise false.
+ */
+function getForumPostById(PDO $pdo, int $postId)
+{
+    try {
+        $sql = "SELECT
+                    p.id,
+                    p.topic_id,
+                    p.content,
+                    p.created_at,
+                    p.user_id,
+                    p.created_by_api_key_id,
+                    u.username AS author_username
+                FROM
+                    forum_posts p
+                LEFT JOIN
+                    users u ON p.user_id = u.id
+                WHERE
+                    p.id = :postId";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindParam(':postId', $postId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        // fetch() returns false if no row is found, which matches the required return type
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+
+    } catch (PDOException $e) {
+        error_log("Error fetching forum post by ID ($postId): " . $e->getMessage());
+        return false; // Return false on database error
+    }
+}
 
 /**
  * Fetches basic user details by user ID.
