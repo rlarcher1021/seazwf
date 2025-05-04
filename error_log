@@ -1,1 +1,3 @@
 [04-May-2025 00:47:43 Europe/Berlin] Admin action: Error log cleared by user ID: 1
+[04-May-2025 02:04:33 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/api_keys_panel.php'. Selected Site ID = 4, Role = administrator, IsSiteAdmin = 0
+[04-May-2025 02:04:33 Europe/Berlin] DEBUG configurations.php: Before panel include. Tab='api-keys', Selected Site ID=4, Role='administrator', IsSiteAdmin=0
