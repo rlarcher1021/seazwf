@@ -84,33 +84,35 @@ function handleSearchClients(PDO $pdo, array $requestQueryParams, array $apiKeyD
     header('Content-Type: application/json; charset=utf-8'); // Set header early
 
     // 1. Parse and Validate Query Parameters (Permission check moved to index.php router)
-    $params = [];
-    $filtersProvided = false;
+    // Refined check for required parameters
+    $hasName = !empty($requestQueryParams['name']);
+    $hasValidEmail = !empty($requestQueryParams['email']) && filter_var(trim($requestQueryParams['email']), FILTER_VALIDATE_EMAIL);
+    $hasQr = !empty($requestQueryParams['qr_identifier']);
 
-    if (!empty($requestQueryParams['name'])) {
-        $params['name'] = trim($requestQueryParams['name']);
-        $filtersProvided = true;
-    }
-    if (!empty($requestQueryParams['email'])) {
-        // Basic email format check, can be enhanced
-        if (filter_var($requestQueryParams['email'], FILTER_VALIDATE_EMAIL)) {
-             $params['email'] = trim($requestQueryParams['email']);
-             $filtersProvided = true;
-        } else {
-             sendJsonError(400, "Bad Request: Invalid 'email' format provided.", 'INVALID_INPUT');
-             return;
-        }
-    }
-    if (!empty($requestQueryParams['qr_identifier'])) {
-        // Add validation if qr_identifier has a specific format (e.g., UUID)
-        $params['qr_identifier'] = trim($requestQueryParams['qr_identifier']);
-        $filtersProvided = true;
-    }
-
-    // Require at least one search filter
-    if (!$filtersProvided) {
-        sendJsonError(400, "Bad Request: At least one search filter (name, email, or qr_identifier) is required.", 'MISSING_FILTER');
+    // Check if an invalid email format was provided *if* the email parameter exists but is invalid
+    if (!empty($requestQueryParams['email']) && !$hasValidEmail) {
+        sendJsonError(400, "Bad Request: Invalid 'email' format provided.", 'INVALID_INPUT');
         return;
+    }
+
+    // Require at least one valid search filter
+    if (!$hasName && !$hasValidEmail && !$hasQr) {
+        sendJsonError(400, "Bad Request: At least one valid search filter (name, email, or qr_identifier) is required.", 'MISSING_FILTER');
+        return;
+    }
+
+    // Populate params based on valid filters found
+    $params = [];
+    if ($hasName) {
+        $params['name'] = trim($requestQueryParams['name']);
+    }
+    if ($hasValidEmail) {
+        // Use the already trimmed and validated email
+        $params['email'] = trim($requestQueryParams['email']);
+    }
+    if ($hasQr) {
+        // Add validation if qr_identifier has a specific format (e.g., UUID) later if needed
+        $params['qr_identifier'] = trim($requestQueryParams['qr_identifier']);
     }
 
     // Pagination parameters
