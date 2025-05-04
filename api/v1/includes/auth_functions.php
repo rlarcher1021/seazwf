@@ -60,7 +60,7 @@ function authenticateApiKey(PDO $pdo): array|false
                 return [
                     'id' => $keyRecord['id'],
                     'associated_permissions' => $keyRecord['associated_permissions'] ?? '[]', // Default to empty JSON array
-                    'associated_user_id' => $keyRecord['associated_user_id'], // May be null
+                    'user_id' => $keyRecord['associated_user_id'], // Renamed key to match usage in index.php
                     'associated_site_id' => $keyRecord['associated_site_id']  // May be null
                 ];
             }
