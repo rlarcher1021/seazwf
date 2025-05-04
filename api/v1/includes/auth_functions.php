@@ -87,20 +87,42 @@ function authenticateApiKey(PDO $pdo): array|false
  */
 function checkApiKeyPermission(string|array $requiredPermission, array $apiKeyData): bool
 {
-    $permissionsJson = $apiKeyData['associated_permissions'] ?? '[]';
-    $keyPermissions = json_decode($permissionsJson, true);
+    $permissionsString = $apiKeyData['associated_permissions'] ?? ''; // Get the raw string, default to empty
+    $keyPermissions = []; // Initialize empty array
 
-    // Handle potential JSON decode errors
-    if (json_last_error() !== JSON_ERROR_NONE || !is_array($keyPermissions)) {
-        error_log("Failed to decode permissions JSON for API key ID {$apiKeyData['id']}: " . json_last_error_msg());
-        return false; // Treat invalid JSON as no permissions
+    if (!empty($permissionsString)) {
+        $trimmedString = trim($permissionsString);
+        // Check if it looks like a JSON array
+        if (str_starts_with($trimmedString, '[') && str_ends_with($trimmedString, ']')) {
+            $decodedPermissions = json_decode($permissionsString, true);
+            // Check if decoding was successful and resulted in an array
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decodedPermissions)) {
+                $keyPermissions = $decodedPermissions;
+            } else {
+                // JSON decode failed or wasn't an array, log error but proceed to check as string
+                $apiKeyId = $apiKeyData['id'] ?? 'unknown'; // Get ID safely
+                error_log("Attempted JSON decode failed for permissions string for API key ID {$apiKeyId}: " . json_last_error_msg() . ". String: " . $permissionsString);
+                // Fall through to treat as potential comma-separated string below
+            }
+        }
+
+        // If not successfully decoded as JSON array, treat as comma-separated (or single permission)
+        // This condition ensures we only process as string if JSON decoding didn't populate $keyPermissions
+        if (empty($keyPermissions) && !empty($permissionsString)) {
+            $keyPermissions = array_map('trim', explode(',', $permissionsString));
+            // Remove any empty elements that might result from incorrect formatting (e.g., "perm1,,perm2")
+            $keyPermissions = array_filter($keyPermissions, function($value) { return !empty($value); });
+        }
     }
+    // $keyPermissions now holds the array of permissions, either from JSON or comma-separated string
 
     $requiredPermissions = is_array($requiredPermission) ? $requiredPermission : [$requiredPermission];
 
     // Check if all required permissions are present in the key's permissions
     foreach ($requiredPermissions as $reqPerm) {
-        if (!in_array($reqPerm, $keyPermissions)) {
+        // Ensure $reqPerm is also trimmed if it came from user input elsewhere potentially
+        $trimmedReqPerm = trim($reqPerm);
+        if (!in_array($trimmedReqPerm, $keyPermissions)) {
             return false; // Missing a required permission
         }
     }
