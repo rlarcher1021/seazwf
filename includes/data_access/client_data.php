@@ -380,11 +380,18 @@ function searchClientsApi(PDO $pdo, array $params, int $page, int $limit): array
             error_log("ERROR searchClientsApi (Count): Prepare failed. PDO Error: " . implode(" | ", $pdo->errorInfo()));
             return ['total_items' => 0, 'clients' => []];
         }
-        $countStmt->execute($executeParams);
+        // Explicitly bind parameters for the count query
+        foreach ($executeParams as $key => $value) {
+            // Determine PDO type based on key? For now, assume STR is okay for LIKE/email/qr
+            $countStmt->bindValue($key, $value, PDO::PARAM_STR);
+        }
+
+        $countStmt->execute(); // Execute without passing params array
         $totalItems = (int)$countStmt->fetchColumn();
 
     } catch (PDOException $e) {
-        error_log("EXCEPTION in searchClientsApi (Count): " . $e->getMessage() . " SQL: " . $countSql);
+        // Log the parameters along with the SQL and error
+        error_log("EXCEPTION in searchClientsApi (Count): " . $e->getMessage() . " SQL: " . $countSql . " Params: " . print_r($executeParams, true));
         return ['total_items' => 0, 'clients' => []];
     }
 
