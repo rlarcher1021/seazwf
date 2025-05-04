@@ -226,7 +226,7 @@ class ApiKeyData {
          // Correcting: Check revoked_at IS NULL and select 'api_api_key_hash' for hash
          $sql_fetch = "SELECT id, api_key_hash, associated_permissions, associated_user_id, associated_site_id
                        FROM api_keys
-                       WHERE revoked_at IS NULL"; // Changed api_api_key_hash to api_key_hash
+                       WHERE revoked_at IS NULL AND api_keys.is_active = 1"; // Added check for is_active based on error log
 
          try {
              $stmt_fetch = $pdo->query($sql_fetch);
