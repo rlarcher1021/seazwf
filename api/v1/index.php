@@ -323,7 +323,7 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
         $pathParams = ['client_id' => $clientId];
 
         // Call the handler function from client_handler.php
-        $clientData = handleGetClientById($pdo, $apiKeyData, $pathParams); // Pass path params
+        $clientData = handleGetClientById($pdo, $pathParams, $apiKeyData); // Pass path params (Corrected argument order)
 
         // Handler should return data or throw exception (or call sendJsonError for 404)
         // If handler returns data, send success response
