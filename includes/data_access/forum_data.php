@@ -476,26 +476,43 @@ function createForumPostApi(PDO $pdo, int $topicId, string $content, int $apiKey
             throw new Exception("Failed to get last insert ID for API post.");
         }
 
-        // Update the topic's last post information - Set user to NULL for API posts
-        $stmtUpdateTopic = $pdo->prepare(
-            "UPDATE forum_topics SET last_post_at = NOW(), last_post_user_id = NULL
-             WHERE id = :topic_id"
-        );
-        $stmtUpdateTopic->bindParam(':topic_id', $topicId, PDO::PARAM_INT);
-        $stmtUpdateTopic->execute();
+        // Topic update logic removed, will be handled by updateTopicLastPost
 
-        // Fetch the created post data to return
-        $stmtFetch = $pdo->prepare("SELECT * FROM forum_posts WHERE id = :post_id");
-        $stmtFetch->bindParam(':post_id', $postId, PDO::PARAM_INT);
-        $stmtFetch->execute();
-        $createdPostData = $stmtFetch->fetch(PDO::FETCH_ASSOC);
-
-        return $createdPostData ?: false; // Return fetched data or false if fetch failed
+        // Return the ID of the newly created post
+        return (int)$postId;
 
     } catch (Exception $e) {
         // The transaction is handled by the calling function (e.g., in api/v1/index.php)
         // No rollback needed here, just log and return false to signal failure.
         error_log("Error creating API forum post for topic ($topicId): " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Updates the last post details for a specific forum topic.
+ * Assumes the forum_topics table has a last_post_id column as per task requirements.
+ *
+ * @param PDO $pdo The PDO database connection object.
+ * @param int $topicId The ID of the topic to update.
+ * @param int $postId The ID of the new last post.
+ * @return bool True on success, false on failure.
+ */
+function updateTopicLastPost(PDO $pdo, int $topicId, int $postId): bool
+{
+    try {
+        // Update the topic's last post information
+        // NOTE: Assumes 'last_post_id' column exists based on task instructions,
+        // even though it wasn't in the provided schema dump.
+        $stmtUpdateTopic = $pdo->prepare(
+            "UPDATE forum_topics SET last_post_at = NOW(), last_post_id = :post_id
+             WHERE id = :topic_id"
+        );
+        $stmtUpdateTopic->bindParam(':post_id', $postId, PDO::PARAM_INT);
+        $stmtUpdateTopic->bindParam(':topic_id', $topicId, PDO::PARAM_INT);
+        return $stmtUpdateTopic->execute();
+    } catch (PDOException $e) {
+        error_log("Error updating topic last post (Topic: $topicId, Post: $postId): " . $e->getMessage());
         return false;
     }
 }
