@@ -112,6 +112,28 @@ function getTopicById(PDO $pdo, int $topicId)
         return false;
     }
 }
+/**
+ * Checks if a forum topic exists by its ID.
+ *
+ * @param PDO $pdo The PDO database connection object.
+ * @param int $topicId The ID of the topic to check.
+ * @return bool True if the topic exists, false otherwise.
+ */
+function checkTopicExists(PDO $pdo, int $topicId): bool
+{
+    try {
+        $stmt = $pdo->prepare("SELECT 1 FROM forum_topics WHERE id = :id LIMIT 1");
+        $stmt->bindParam(':id', $topicId, PDO::PARAM_INT);
+        $stmt->execute();
+        // fetchColumn() returns the value of the first column of the next row,
+        // or false if there are no more rows. Since we selected '1',
+        // it will return '1' (truthy) if found, and false otherwise.
+        return $stmt->fetchColumn() !== false;
+    } catch (PDOException $e) {
+        error_log("Error checking if topic exists (ID: $topicId): " . $e->getMessage());
+        return false; // Return false on database error
+    }
+}
 
 /**
  * Fetches posts for a given topic with pagination.
@@ -424,5 +446,57 @@ function getRecentForumPosts(PDO $pdo, int $limit = 10): array
     } catch (PDOException $e) {
         error_log("Error fetching recent forum posts: " . $e->getMessage());
         return []; // Return empty array on error
+    }
+}
+/**
+ * Creates a new forum post via the API within a transaction.
+ * Associates the post with an API key instead of a user.
+ *
+ * @param PDO $pdo The PDO database connection object.
+ * @param int $topicId The ID of the topic to post in.
+ * @param string $content The content of the post.
+ * @param int $apiKeyId The ID of the API key creating the post.
+ * @return array|false An associative array of the created post data on success, false on failure.
+ */
+function createForumPostApi(PDO $pdo, int $topicId, string $content, int $apiKeyId)
+{
+    $pdo->beginTransaction();
+    try {
+        // Insert the new post, linking to the API key
+        $stmtPost = $pdo->prepare(
+            "INSERT INTO forum_posts (topic_id, content, created_at, created_by_api_key_id)
+             VALUES (:topic_id, :content, NOW(), :api_key_id)"
+        );
+        $stmtPost->bindParam(':topic_id', $topicId, PDO::PARAM_INT);
+        $stmtPost->bindParam(':content', $content, PDO::PARAM_STR);
+        $stmtPost->bindParam(':api_key_id', $apiKeyId, PDO::PARAM_INT);
+        $stmtPost->execute();
+
+        $postId = $pdo->lastInsertId();
+        if (!$postId) {
+            throw new Exception("Failed to get last insert ID for API post.");
+        }
+
+        // Update the topic's last post information - Set user to NULL for API posts
+        $stmtUpdateTopic = $pdo->prepare(
+            "UPDATE forum_topics SET last_post_at = NOW(), last_post_user_id = NULL
+             WHERE id = :topic_id"
+        );
+        $stmtUpdateTopic->bindParam(':topic_id', $topicId, PDO::PARAM_INT);
+        $stmtUpdateTopic->execute();
+
+        // Fetch the created post data to return
+        $stmtFetch = $pdo->prepare("SELECT * FROM forum_posts WHERE id = :post_id");
+        $stmtFetch->bindParam(':post_id', $postId, PDO::PARAM_INT);
+        $stmtFetch->execute();
+        $createdPostData = $stmtFetch->fetch(PDO::FETCH_ASSOC);
+
+        $pdo->commit();
+        return $createdPostData ?: false; // Return fetched data or false if fetch failed
+
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        error_log("Error creating API forum post for topic ($topicId): " . $e->getMessage());
+        return false;
     }
 }

@@ -109,3 +109,74 @@ function handleGetRecentForumPosts(PDO $pdo, array $apiKeyData, array $queryPara
     // Directly return the array of posts. No pagination structure needed.
     return $recentPosts;
 }
+/**
+ * Handles POST requests for /api/v1/forum/posts.
+ * Creates a new forum post.
+ *
+ * @param PDO $pdo The PDO database connection object.
+ * @param array $apiKeyData Authenticated API key data (including permissions and id).
+ * @param array $requestBody Decoded JSON request body.
+ * @return array Associative array representing the created post, suitable for JSON encoding.
+ * @throws InvalidArgumentException For bad request parameters (missing/invalid fields).
+ * @throws RuntimeException For database errors, non-existent topic, or other internal issues.
+ */
+function handleCreateForumPost(PDO $pdo, array $apiKeyData, array $requestBody): array
+{
+    // Note: Authorization (permission check 'create:forum_post') should be done in the router *before* calling this handler.
+
+    // --- Input Validation ---
+    if (!isset($requestBody['topic_id']) || !filter_var($requestBody['topic_id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]])) {
+        throw new InvalidArgumentException("Missing or invalid 'topic_id'. Must be a positive integer.", 400);
+    }
+    $topicId = (int)$requestBody['topic_id'];
+
+    if (!isset($requestBody['post_body']) || empty(trim($requestBody['post_body']))) {
+        throw new InvalidArgumentException("Missing or empty 'post_body'.", 400);
+    }
+    $postBody = trim($requestBody['post_body']);
+
+    // Extract API Key ID for associating the post
+    if (!isset($apiKeyData['id'])) {
+         error_log("API Key ID missing from authenticated data in handleCreateForumPost.");
+         throw new RuntimeException("Internal server error: Unable to identify API key.", 500);
+    }
+    $apiKeyId = (int)$apiKeyData['id'];
+
+
+    // --- Business Logic & Data Access ---
+    try {
+        // 1. Check if the topic exists using the function from forum_data.php
+        if (!checkTopicExists($pdo, $topicId)) {
+            // Throw a RuntimeException with a specific message and code for the router to map to 404
+            throw new RuntimeException("Topic with ID {$topicId} not found.", 404);
+        }
+
+        // 2. Create the post using a DAL function (needs implementation/modification in forum_data.php)
+        // This assumes a function `createForumPostApi` exists or `createForumPost` is modified
+        // to accept an API key ID instead of/in addition to a user ID.
+        // Let's assume it returns the created post details or its ID.
+        $createdPost = createForumPostApi($pdo, $topicId, $postBody, $apiKeyId); // Placeholder DAL call
+
+        if ($createdPost === false) {
+            // DAL function indicated failure
+            throw new RuntimeException("Failed to create forum post in the database.");
+        }
+
+        // --- Response Formatting ---
+        // Assuming $createdPost contains the necessary details (e.g., id, topic_id, content, created_at, created_by_api_key_id)
+        // If it only returns an ID, you might need another fetch here, but ideally, the create function returns the data.
+        http_response_code(201); // Set HTTP status code to 201 Created
+        return $createdPost; // Return the created post data
+
+    } catch (PDOException $e) {
+        error_log("Database error creating forum post for topic ($topicId): " . $e->getMessage());
+        throw new RuntimeException("An internal error occurred while creating the forum post."); // Caught as 500
+    } catch (RuntimeException $e) {
+        // Re-throw RuntimeExceptions (like the 404 or DAL failure) for the main error handler
+        throw $e;
+    } catch (Exception $e) {
+        // Catch any other unexpected exceptions
+        error_log("Unexpected error creating forum post for topic ($topicId): " . $e->getMessage());
+        throw new RuntimeException("An unexpected error occurred."); // Caught as 500
+    }
+}
