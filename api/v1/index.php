@@ -689,7 +689,7 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
                 $queryParams = $_GET;
 
                 // Call the handler function from client_handler.php
-                $clientResult = handleSearchClients($pdo, $apiKeyData, $queryParams);
+                $clientResult = handleSearchClients($pdo, $queryParams, $apiKeyData); // Corrected argument order
 
                 // Send success response
                 header('Content-Type: application/json; charset=utf-8');
