@@ -412,8 +412,6 @@ function getRecentForumPosts(PDO $pdo, int $limit = 10): array
                     forum_topics t ON p.topic_id = t.id
                 LEFT JOIN
                     users u ON p.user_id = u.id
-                WHERE
-                    p.is_deleted = 0
                 ORDER BY
                     p.created_at DESC
                 LIMIT :limit";
