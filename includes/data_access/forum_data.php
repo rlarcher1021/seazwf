@@ -493,17 +493,19 @@ function getRecentForumPosts(PDO $pdo, int $limit = 10): array
  * @param int $topicId The ID of the topic to post in.
  * @param string $content The content of the post.
  * @param int $apiKeyId The ID of the API key creating the post.
- * @return array|false An associative array of the created post data on success, false on failure.
+ * @param int $userId The ID of the user associated with the API key.
+ * @return int|false The ID of the newly created post on success, false on failure.
  */
-function createForumPostApi(PDO $pdo, int $topicId, string $content, int $apiKeyId)
+function createForumPostApi(PDO $pdo, int $topicId, string $content, int $apiKeyId, int $userId)
 {
     try {
-        // Insert the new post, linking to the API key
+        // Insert the new post, linking to the API key and the associated user
         $stmtPost = $pdo->prepare(
-            "INSERT INTO forum_posts (topic_id, content, created_at, created_by_api_key_id)
-             VALUES (:topic_id, :content, NOW(), :api_key_id)"
+            "INSERT INTO forum_posts (topic_id, user_id, content, created_at, created_by_api_key_id)
+             VALUES (:topic_id, :user_id, :content, NOW(), :api_key_id)"
         );
         $stmtPost->bindParam(':topic_id', $topicId, PDO::PARAM_INT);
+        $stmtPost->bindParam(':user_id', $userId, PDO::PARAM_INT); // Add binding for user_id
         $stmtPost->bindParam(':content', $content, PDO::PARAM_STR);
         $stmtPost->bindParam(':api_key_id', $apiKeyId, PDO::PARAM_INT);
         $stmtPost->execute();
