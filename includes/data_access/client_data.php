@@ -343,7 +343,7 @@ function getClientById(PDO $pdo, int $clientId): ?array
  * @param array $params Associative array of search parameters. Allowed keys: 'name', 'email', 'qr_identifier'.
  * @param int $page The current page number (1-based).
  * @param int $limit The number of items per page.
- * @return array An array containing 'total_items' (int) and 'clients' (array of client data), or ['total_items' => 0, 'clients' => []] on error.
+ * @return array An array containing 'total_count' (int) and 'clients' (array of client data), or ['total_count' => 0, 'clients' => []] on error.
  */
 function searchClientsApi(PDO $pdo, array $params, int $page, int $limit): array
 {
@@ -378,7 +378,7 @@ function searchClientsApi(PDO $pdo, array $params, int $page, int $limit): array
         $countStmt = $pdo->prepare($countSql);
         if (!$countStmt) {
             error_log("ERROR searchClientsApi (Count): Prepare failed. PDO Error: " . implode(" | ", $pdo->errorInfo()));
-            return ['total_items' => 0, 'clients' => []];
+            return ['total_count' => 0, 'clients' => []]; // Use total_count
         }
         // Explicitly bind parameters for the count query
         foreach ($executeParams as $key => $value) {
@@ -392,7 +392,7 @@ function searchClientsApi(PDO $pdo, array $params, int $page, int $limit): array
     } catch (PDOException $e) {
         // Log the parameters along with the SQL and error
         error_log("EXCEPTION in searchClientsApi (Count): " . $e->getMessage() . " SQL: " . $countSql . " Params: " . print_r($executeParams, true));
-        return ['total_items' => 0, 'clients' => []];
+        return ['total_count' => 0, 'clients' => []]; // Use total_count
     }
 
     // --- Data Query ---
@@ -406,7 +406,7 @@ function searchClientsApi(PDO $pdo, array $params, int $page, int $limit): array
             if (!$dataStmt) {
                 error_log("ERROR searchClientsApi (Data): Prepare failed. PDO Error: " . implode(" | ", $pdo->errorInfo()));
                 // Return total count but empty client list as data fetch failed
-                return ['total_items' => $totalItems, 'clients' => []];
+                return ['total_count' => $totalItems, 'clients' => []]; // Use total_count
             }
 
             // Bind WHERE parameters
@@ -423,12 +423,12 @@ function searchClientsApi(PDO $pdo, array $params, int $page, int $limit): array
         } catch (PDOException $e) {
             error_log("EXCEPTION in searchClientsApi (Data): " . $e->getMessage() . " SQL: " . $dataSql);
             // Return total count but empty client list as data fetch failed
-            return ['total_items' => $totalItems, 'clients' => []];
+            return ['total_count' => $totalItems, 'clients' => []]; // Use total_count
         }
     }
 
     return [
-        'total_items' => $totalItems,
+        'total_count' => $totalItems, // Use total_count
         'clients' => $clients ?: [] // Ensure clients is always an array
     ];
 }
