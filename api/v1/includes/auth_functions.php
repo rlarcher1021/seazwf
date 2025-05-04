@@ -92,9 +92,15 @@ function checkApiKeyPermission(string|array $requiredPermission, array $apiKeyDa
 
     if (!empty($permissionsString)) {
         $trimmedString = trim($permissionsString);
+        // NEW: Remove potential surrounding quotes AFTER trimming whitespace
+        if (strlen($trimmedString) >= 2 && str_starts_with($trimmedString, '"') && str_ends_with($trimmedString, '"')) {
+            $trimmedString = substr($trimmedString, 1, -1);
+        }
         // Check if it looks like a JSON array
         if (str_starts_with($trimmedString, '[') && str_ends_with($trimmedString, ']')) {
-            $decodedPermissions = json_decode($permissionsString, true);
+             // NEW: Strip slashes before decoding, as they might be literal in the DB string
+             $jsonReadyString = stripslashes($trimmedString);
+            $decodedPermissions = json_decode($jsonReadyString, true); // Use the cleaned string for decoding
             // Check if decoding was successful and resulted in an array
             if (json_last_error() === JSON_ERROR_NONE && is_array($decodedPermissions)) {
                 $keyPermissions = $decodedPermissions;

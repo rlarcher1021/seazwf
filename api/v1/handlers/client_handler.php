@@ -22,13 +22,7 @@ require_once __DIR__ . '/../includes/error_handler.php'; // Provides sendJsonErr
  */
 function handleGetClientById(PDO $pdo, array $requestPathParams, array $apiKeyData): void
 {
-    // 1. Validate Permission
-    if (!checkApiKeyPermission('read:client_data', $apiKeyData)) {
-        sendJsonError(403, "Forbidden: API key lacks 'read:client_data' permission.", 'AUTH_FORBIDDEN');
-        return; // Exit function
-    }
-
-    // 2. Extract and Validate Client ID
+    // 1. Extract and Validate Client ID (Permission check moved to index.php router)
     if (!isset($requestPathParams['client_id'])) {
          sendJsonError(400, "Bad Request: Missing client_id path parameter.", 'INVALID_INPUT');
          return;
@@ -76,13 +70,7 @@ function handleGetClientById(PDO $pdo, array $requestPathParams, array $apiKeyDa
  */
 function handleSearchClients(PDO $pdo, array $requestQueryParams, array $apiKeyData): void
 {
-    // 1. Validate Permission
-    if (!checkApiKeyPermission('read:client_data', $apiKeyData)) {
-        sendJsonError(403, "Forbidden: API key lacks 'read:client_data' permission.", 'AUTH_FORBIDDEN');
-        return; // Exit function
-    }
-
-    // 2. Parse and Validate Query Parameters
+    // 1. Parse and Validate Query Parameters (Permission check moved to index.php router)
     $params = [];
     $filtersProvided = false;
 
