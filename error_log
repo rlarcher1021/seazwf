@@ -3,3 +3,7 @@
 [04-May-2025 07:14:41 Europe/Berlin] DEBUG configurations.php: Before panel include. Tab='api-keys', Selected Site ID=4, Role='administrator', IsSiteAdmin=0
 [04-May-2025 14:19:39 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/api_keys_panel.php'. Selected Site ID = 4, Role = administrator, IsSiteAdmin = 0
 [04-May-2025 14:19:39 Europe/Berlin] DEBUG configurations.php: Before panel include. Tab='api-keys', Selected Site ID=4, Role='administrator', IsSiteAdmin=0
+[05-May-2025 04:02:25 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/api_keys_panel.php'. Selected Site ID = 4, Role = administrator, IsSiteAdmin = 0
+[05-May-2025 04:02:25 Europe/Berlin] DEBUG configurations.php: Before panel include. Tab='api-keys', Selected Site ID=4, Role='administrator', IsSiteAdmin=0
+[05-May-2025 04:07:25 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/api_keys_panel.php'. Selected Site ID = 4, Role = administrator, IsSiteAdmin = 0
+[05-May-2025 04:07:25 Europe/Berlin] DEBUG configurations.php: Before panel include. Tab='api-keys', Selected Site ID=4, Role='administrator', IsSiteAdmin=0

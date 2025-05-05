@@ -57,6 +57,7 @@ $allowedPermissions = [
     'read:budget_allocations',
     'create:forum_post',
     'read:all_forum_posts',
+    'read:recent_forum_posts', // Added this permission
     'generate:reports',
     'read:all_checkin_data',
     'read:site_checkin_data',
