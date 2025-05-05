@@ -25,11 +25,22 @@ function handleGetAllForumPosts(PDO $pdo, array $apiKeyData, array $queryParams)
     // Note: Authorization (permission check) should be done in the router *before* calling this handler.
 
     // --- Parameter Parsing & Validation ---
-    $page = filter_var($queryParams['page'] ?? 1, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'default' => 1]]);
-    $limit = filter_var($queryParams['limit'] ?? 25, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 100, 'default' => 25]]); // Added max_range
+    $pageInput = $queryParams['page'] ?? '1'; // Default to string '1'
+    $page = 1; // Default value
+    if ($pageInput !== '') { // Only validate if not empty
+        $page = filter_var($pageInput, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if ($page === false) {
+            throw new InvalidArgumentException("Invalid 'page' parameter. Must be a positive integer.", 400);
+        }
+    }
 
-    if ($page === false || $limit === false) {
-        throw new InvalidArgumentException("Invalid 'page' or 'limit' parameter. Must be positive integers.", 400);
+    $limitInput = $queryParams['limit'] ?? '25'; // Default to string '25'
+    $limit = 25; // Default value
+    if ($limitInput !== '') { // Only validate if not empty
+        $limit = filter_var($limitInput, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 100]]); // Added max_range
+        if ($limit === false) {
+            throw new InvalidArgumentException("Invalid 'limit' parameter. Must be an integer between 1 and 100.", 400);
+        }
     }
 
     // --- Data Fetching ---
@@ -84,10 +95,13 @@ function handleGetRecentForumPosts(PDO $pdo, array $apiKeyData, array $queryPara
 
     // --- Parameter Parsing & Validation ---
     // Default limit to 10, allow up to 50 recent posts.
-    $limit = filter_var($queryParams['limit'] ?? 10, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 50, 'default' => 10]]);
-
-    if ($limit === false) {
-        throw new InvalidArgumentException("Invalid 'limit' parameter. Must be a positive integer between 1 and 50.", 400);
+    $limitInput = $queryParams['limit'] ?? '10'; // Default to string '10'
+    $limit = 10; // Default value
+    if ($limitInput !== '') { // Only validate if not empty
+        $limit = filter_var($limitInput, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 50]]);
+        if ($limit === false) {
+            throw new InvalidArgumentException("Invalid 'limit' parameter. Must be a positive integer between 1 and 50.", 400);
+        }
     }
 
     // --- Data Fetching ---

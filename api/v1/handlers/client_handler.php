@@ -129,12 +129,24 @@ function handleSearchClients(PDO $pdo, array $requestQueryParams, array $apiKeyD
     }
 
     // Pagination parameters
-    $page = filter_var($requestQueryParams['page'] ?? 1, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'default' => 1]]);
-    $limit = filter_var($requestQueryParams['limit'] ?? 10, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 100, 'default' => 10]]); // Max limit 100
+    $pageInput = $requestQueryParams['page'] ?? '1'; // Default to string '1'
+    $page = 1; // Default value
+    if ($pageInput !== '') { // Only validate if not empty
+        $page = filter_var($pageInput, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if ($page === false) {
+             sendJsonError(400, "Bad Request: Invalid 'page' parameter. Must be a positive integer.", 'INVALID_PAGINATION');
+             return;
+        }
+    }
 
-    if ($page === false || $limit === false) {
-        sendJsonError(400, "Bad Request: Invalid 'page' or 'limit' parameter. Must be positive integers.", 'INVALID_PAGINATION');
-        return;
+    $limitInput = $requestQueryParams['limit'] ?? '10'; // Default to string '10'
+    $limit = 10; // Default value
+    if ($limitInput !== '') { // Only validate if not empty
+        $limit = filter_var($limitInput, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 100]]); // Max limit 100
+        if ($limit === false) {
+            sendJsonError(400, "Bad Request: Invalid 'limit' parameter. Must be an integer between 1 and 100.", 'INVALID_PAGINATION');
+            return;
+        }
     }
 
     // 3. Search Clients

@@ -77,15 +77,23 @@ function validateCommonReportParams(array $queryParams): array
 
 
     // Pagination (Optional, with defaults)
-    $limit = filter_var($queryParams['limit'] ?? 50, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 1000]]); // Max limit 1000
-    if ($limit === false) {
-        throw new InvalidArgumentException("Invalid 'limit' parameter. Must be an integer between 1 and 1000.", 400);
+    $limitInput = $queryParams['limit'] ?? '50'; // Default to string '50'
+    $limit = 50; // Default value
+    if ($limitInput !== '') { // Only validate if not empty
+        $limit = filter_var($limitInput, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 1000]]); // Max limit 1000
+        if ($limit === false) {
+            throw new InvalidArgumentException("Invalid 'limit' parameter. Must be an integer between 1 and 1000.", 400);
+        }
     }
     $validated['limit'] = $limit;
 
-    $page = filter_var($queryParams['page'] ?? 1, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-    if ($page === false) {
-        throw new InvalidArgumentException("Invalid 'page' parameter. Must be a positive integer.", 400);
+    $pageInput = $queryParams['page'] ?? '1'; // Default to string '1'
+    $page = 1; // Default value
+    if ($pageInput !== '') { // Only validate if not empty
+        $page = filter_var($pageInput, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if ($page === false) {
+            throw new InvalidArgumentException("Invalid 'page' parameter. Must be a positive integer.", 400);
+        }
     }
     $validated['page'] = $page;
 
@@ -121,10 +129,11 @@ function generateCheckinDetailReport(PDO $pdo, array $apiKeyData, array $validat
     $siteIdFilter = null;
 
     if ($hasReadAll) {
-        // Can filter by site_id if provided
-        if (isset($validatedParams['other_params']['site_id'])) {
+        // Can filter by site_id if provided and not empty
+        if (isset($validatedParams['other_params']['site_id']) && $validatedParams['other_params']['site_id'] !== '') {
             $siteId = filter_var($validatedParams['other_params']['site_id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
             if ($siteId === false) {
+                 // If set and not empty, but still invalid, then throw error
                  throw new InvalidArgumentException("Invalid 'site_id' parameter. Must be a positive integer.", 400);
             }
             $whereClauses[] = "ci.site_id = :site_id_param";
@@ -243,8 +252,8 @@ function generateAllocationDetailReport(PDO $pdo, array $apiKeyData, array $vali
     $joins = "FROM budget_allocations ba JOIN budgets b ON ba.budget_id = b.id"; // Base JOIN
 
     if ($hasReadAll) {
-        // Can filter by site_id, department_id, grant_id, budget_id, user_id
-        if (isset($validatedParams['other_params']['site_id'])) {
+        // Can filter by site_id, department_id, grant_id, budget_id, user_id if provided and not empty
+        if (isset($validatedParams['other_params']['site_id']) && $validatedParams['other_params']['site_id'] !== '') {
             $siteId = filter_var($validatedParams['other_params']['site_id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
             if ($siteId === false) throw new InvalidArgumentException("Invalid 'site_id'. Must be positive integer.", 400);
             // Assuming budgets table has site_id - Check Schema! If not, need another JOIN
@@ -259,25 +268,25 @@ function generateAllocationDetailReport(PDO $pdo, array $apiKeyData, array $vali
              // To implement: Add JOIN to users table: JOIN users u ON b.user_id = u.id
              // Then filter: $whereClauses[] = "u.site_id = :site_id_param";
         }
-        if (isset($validatedParams['other_params']['department_id'])) {
+        if (isset($validatedParams['other_params']['department_id']) && $validatedParams['other_params']['department_id'] !== '') {
             $deptId = filter_var($validatedParams['other_params']['department_id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
             if ($deptId === false) throw new InvalidArgumentException("Invalid 'department_id'. Must be positive integer.", 400);
             $whereClauses[] = "b.department_id = :dept_id_param";
             $queryParams[':dept_id_param'] = $deptId;
         }
-        if (isset($validatedParams['other_params']['grant_id'])) {
+        if (isset($validatedParams['other_params']['grant_id']) && $validatedParams['other_params']['grant_id'] !== '') {
             $grantId = filter_var($validatedParams['other_params']['grant_id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
             if ($grantId === false) throw new InvalidArgumentException("Invalid 'grant_id'. Must be positive integer.", 400);
             $whereClauses[] = "b.grant_id = :grant_id_param";
             $queryParams[':grant_id_param'] = $grantId;
         }
-        if (isset($validatedParams['other_params']['budget_id'])) {
+        if (isset($validatedParams['other_params']['budget_id']) && $validatedParams['other_params']['budget_id'] !== '') {
             $budgetId = filter_var($validatedParams['other_params']['budget_id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
             if ($budgetId === false) throw new InvalidArgumentException("Invalid 'budget_id'. Must be positive integer.", 400);
             $whereClauses[] = "ba.budget_id = :budget_id_param";
             $queryParams[':budget_id_param'] = $budgetId;
         }
-         if (isset($validatedParams['other_params']['user_id'])) {
+         if (isset($validatedParams['other_params']['user_id']) && $validatedParams['other_params']['user_id'] !== '') {
             $userId = filter_var($validatedParams['other_params']['user_id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
             if ($userId === false) throw new InvalidArgumentException("Invalid 'user_id'. Must be positive integer.", 400);
             $whereClauses[] = "b.user_id = :user_id_param"; // Filter by budget owner
@@ -301,8 +310,8 @@ function generateAllocationDetailReport(PDO $pdo, array $apiKeyData, array $vali
         $whereClauses[] = "b.user_id = :associated_user_id";
         $queryParams[':associated_user_id'] = $associatedUserId;
 
-        // Allow filtering by budget_id (only budgets they own)
-        if (isset($validatedParams['other_params']['budget_id'])) {
+        // Allow filtering by budget_id (only budgets they own) if provided and not empty
+        if (isset($validatedParams['other_params']['budget_id']) && $validatedParams['other_params']['budget_id'] !== '') {
             $budgetId = filter_var($validatedParams['other_params']['budget_id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
             if ($budgetId === false) throw new InvalidArgumentException("Invalid 'budget_id'. Must be positive integer.", 400);
             $whereClauses[] = "ba.budget_id = :budget_id_param";

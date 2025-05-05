@@ -19,11 +19,12 @@ function getAllocations(PDO $pdo, array $queryParams): array
     $params = []; // Use associative array for named placeholders
 
     // Fiscal Year (Validate as YYYY integer)
-    if (isset($queryParams['fiscal_year'])) {
+    if (isset($queryParams['fiscal_year']) && $queryParams['fiscal_year'] !== '') {
         $year = filter_var($queryParams['fiscal_year'], FILTER_VALIDATE_INT, [
             'options' => ['min_range' => 1900, 'max_range' => date('Y') + 10] // Adjust range as needed
         ]);
         if ($year === false) {
+            // If it's set and not empty, but still invalid, then throw error
             throw new InvalidArgumentException('Invalid query parameter format for fiscal_year. Must be a valid year (YYYY).');
         }
         // Assuming fiscal year filtering is based on budget's start year
@@ -32,9 +33,10 @@ function getAllocations(PDO $pdo, array $queryParams): array
     }
 
     // Grant ID (Validate as positive integer)
-    if (isset($queryParams['grant_id'])) {
+    if (isset($queryParams['grant_id']) && $queryParams['grant_id'] !== '') {
         $grantId = filter_var($queryParams['grant_id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
         if ($grantId === false) {
+            // If it's set and not empty, but still invalid, then throw error
             throw new InvalidArgumentException('Invalid query parameter format for grant_id. Must be a positive integer.');
         }
         $filters[] = "b.grant_id = :grant_id"; // Use named placeholder
@@ -42,9 +44,10 @@ function getAllocations(PDO $pdo, array $queryParams): array
     }
 
     // Department ID (Validate as positive integer)
-    if (isset($queryParams['department_id'])) {
+    if (isset($queryParams['department_id']) && $queryParams['department_id'] !== '') {
         $deptId = filter_var($queryParams['department_id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
         if ($deptId === false) {
+            // If it's set and not empty, but still invalid, then throw error
             throw new InvalidArgumentException('Invalid query parameter format for department_id. Must be a positive integer.');
         }
         $filters[] = "b.department_id = :department_id"; // Use named placeholder
@@ -52,9 +55,10 @@ function getAllocations(PDO $pdo, array $queryParams): array
     }
 
     // Budget ID (Validate as positive integer)
-    if (isset($queryParams['budget_id'])) {
+    if (isset($queryParams['budget_id']) && $queryParams['budget_id'] !== '') {
         $budgetId = filter_var($queryParams['budget_id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
         if ($budgetId === false) {
+            // If it's set and not empty, but still invalid, then throw error
             throw new InvalidArgumentException('Invalid query parameter format for budget_id. Must be a positive integer.');
         }
         $filters[] = "ba.budget_id = :budget_id"; // Use named placeholder
