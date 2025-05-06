@@ -20,7 +20,7 @@ curltest
 # Node.js dependencies (if applicable)
 node_modules/
 # Composer dependencies (if applicable)
-vendor/
+# vendor/
 error_log
 # OS-specific files
 .DS_Store
