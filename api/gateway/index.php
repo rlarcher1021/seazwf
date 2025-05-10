@@ -9,8 +9,41 @@ header('Content-Type: application/json');
 // Assuming db_connect.php provides a $conn (mysqli or PDO) object
 require_once __DIR__ . '/../../includes/db_connect.php';
 
+// DEBUG START - Header Inspection
+$debug_timestamp_headers = date('[Y-m-d H:i:s] ');
+if (function_exists('getallheaders')) {
+    $all_headers_arr = getallheaders();
+} else {
+    $all_headers_arr = [];
+    foreach ($_SERVER as $name => $value) {
+        if (substr($name, 0, 5) == 'HTTP_') {
+            $header_name = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))));
+            $all_headers_arr[$header_name] = $value;
+        } elseif ($name == 'CONTENT_TYPE') {
+            $all_headers_arr['Content-Type'] = $value;
+        } elseif ($name == 'CONTENT_LENGTH') {
+            $all_headers_arr['Content-Length'] = $value;
+        }
+    }
+}
+$log_message_headers = $debug_timestamp_headers . "All Headers: " . json_encode($all_headers_arr) . PHP_EOL;
+file_put_contents(__DIR__ . '/debug.log', $log_message_headers, FILE_APPEND | LOCK_EX);
+
+$auth_header_value = isset($_SERVER['HTTP_AUTHORIZATION']) ? $_SERVER['HTTP_AUTHORIZATION'] : 'Not set';
+$log_message_auth = $debug_timestamp_headers . "Authorization Header: " . $auth_header_value . PHP_EOL;
+file_put_contents(__DIR__ . '/debug.log', $log_message_auth, FILE_APPEND | LOCK_EX);
+
+$x_api_key_value = isset($_SERVER['HTTP_X_AGENT_API_KEY']) ? $_SERVER['HTTP_X_AGENT_API_KEY'] : 'Not set';
+$log_message_x_key = $debug_timestamp_headers . "X-Agent-API-Key Header: " . $x_api_key_value . PHP_EOL;
+file_put_contents(__DIR__ . '/debug.log', $log_message_x_key, FILE_APPEND | LOCK_EX);
+
+$raw_request_body_content = file_get_contents('php://input');
+$log_message_body = $debug_timestamp_headers . "Raw Request Body: " . ($raw_request_body_content ?: 'Empty or not readable') . PHP_EOL;
+file_put_contents(__DIR__ . '/debug.log', $log_message_body, FILE_APPEND | LOCK_EX);
+// DEBUG END - Header Inspection
+
 // Placeholder for the Gateway's dedicated internal V1 API Key
-define('INTERNAL_API_KEY_PLACEHOLDER', 'YOUR_GATEWAY_INTERNAL_API_KEY');
+define('INTERNAL_API_KEY_PLACEHOLDER', 'e6e532dd83d0456d163c7f38b6a0f6d96930e67bf627eb2ef1b987c0a3a5da79');
 // Base URL for the internal V1 API
 define('INTERNAL_API_V1_BASE_URL', 'https://seazwf.com/api/v1'); // Adjust if your local/dev URL is different
 
@@ -141,6 +174,11 @@ if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
 } elseif (isset($_SERVER['HTTP_X_AGENT_API_KEY'])) {
     $agentApiKey = $_SERVER['HTTP_X_AGENT_API_KEY'];
 }
+// DEBUG START - Extracted API Key
+$debug_timestamp_extraction = date('[Y-m-d H:i:s] ');
+$log_message_extracted_key = $debug_timestamp_extraction . "Attempted Extracted Agent API Key: " . ($agentApiKey ? $agentApiKey : 'NULL or Empty') . PHP_EOL;
+file_put_contents(__DIR__ . '/debug.log', $log_message_extracted_key, FILE_APPEND | LOCK_EX);
+// DEBUG END - Extracted API Key
 
 if (!$agentApiKey) {
     send_error_response(401, 'AUTHENTICATION_FAILED', 'API key is missing.');
@@ -196,6 +234,14 @@ try {
 }
 
 
+// DEBUG START - DB Query Check
+$debug_timestamp_db_check = date('[Y-m-d H:i:s] ');
+$log_message_db_key_lookup = $debug_timestamp_db_check . "DB Check: API Key used for lookup: " . ($agentApiKey ? $agentApiKey : 'NULL or Empty') . PHP_EOL;
+file_put_contents(__DIR__ . '/debug.log', $log_message_db_key_lookup, FILE_APPEND | LOCK_EX);
+
+$log_message_db_found_record = $debug_timestamp_db_check . "DB Check: Key Record Found in agent_api_keys: " . ($keyRecord ? 'Yes (ID: ' . $keyRecord['id'] . ', Agent: ' . $keyRecord['agent_name'] . ')' : 'No') . PHP_EOL;
+file_put_contents(__DIR__ . '/debug.log', $log_message_db_found_record, FILE_APPEND | LOCK_EX);
+// DEBUG END - DB Query Check
 if (!$keyRecord) {
     send_error_response(401, 'AUTHENTICATION_FAILED', 'Invalid or revoked API key.');
 }
