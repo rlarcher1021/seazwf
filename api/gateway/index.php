@@ -9,6 +9,28 @@ header('Content-Type: application/json');
 // Assuming db_connect.php provides a $conn (mysqli or PDO) object
 require_once __DIR__ . '/../../includes/db_connect.php';
 
+// DEBUG START - PDO Status After Include
+$debug_timestamp_after_include = date('[Y-m-d H:i:s] ');
+$pdo_status_in_gateway = 'Not set or invalid in gateway';
+if (isset($pdo)) {
+    if ($pdo instanceof PDO) {
+        $pdo_status_in_gateway = 'PDO object successfully available in gateway.';
+        // Optionally, you could try a minimal check like $pdo->getAttribute(PDO::ATTR_SERVER_INFO)
+        // but be cautious of exceptions if connection truly failed in db_connect.php
+        try {
+            $server_info = $pdo->getAttribute(PDO::ATTR_SERVER_VERSION); // Light check
+            $pdo_status_in_gateway .= ' Server version: ' . $server_info;
+        } catch (PDOException $e) {
+            $pdo_status_in_gateway .= ' Error during light check: ' . $e->getMessage();
+        }
+    } else {
+        $pdo_status_in_gateway = 'Variable $pdo is set in gateway, but not a PDO object. Type: ' . gettype($pdo);
+    }
+}
+$log_message_pdo_in_gateway = $debug_timestamp_after_include . "Gateway: PDO Status After Include: " . $pdo_status_in_gateway . PHP_EOL;
+file_put_contents(__DIR__ . '/debug.log', $log_message_pdo_in_gateway, FILE_APPEND | LOCK_EX);
+// DEBUG END - PDO Status After Include
+
 // DEBUG START - Header Inspection
 $debug_timestamp_headers = date('[Y-m-d H:i:s] ');
 if (function_exists('getallheaders')) {
@@ -185,37 +207,33 @@ if (!$agentApiKey) {
 }
 
 // Prepare to query the database for the API key
-// Ensure $conn is available from db_connect.php
-// DEBUG START - Database Connection Status
-$debug_timestamp_db_conn = date('[Y-m-d H:i:s] ');
-$db_conn_status = 'Not set or invalid';
-$db_conn_error = '';
-if (isset($conn)) {
-    if ($conn instanceof mysqli) {
-        $db_conn_status = 'mysqli object';
-        if ($conn->connect_error) {
-            $db_conn_status .= ' (Connection Error)';
-            $db_conn_error = $conn->connect_error;
-        } else {
-            $db_conn_status .= ' (Connected)';
+// Ensure $pdo is available from db_connect.php
+// DEBUG START - Database Connection Status Before Agent Auth Query
+$debug_timestamp_db_auth_check = date('[Y-m-d H:i:s] ');
+$db_auth_conn_status = 'Not set or invalid before agent auth query';
+$db_auth_conn_error = '';
+if (isset($pdo)) {
+    if ($pdo instanceof PDO) {
+        $db_auth_conn_status = 'PDO object available before agent auth query.';
+        try {
+            // A light check to see if the connection is alive
+            $pdo->getAttribute(PDO::ATTR_CONNECTION_STATUS);
+            $db_auth_conn_status .= ' (Connection attribute readable)';
+        } catch (PDOException $e) {
+            $db_auth_conn_status .= ' (Error getting connection attribute: ' . $e->getMessage() . ')';
+            $db_auth_conn_error = $e->getMessage();
         }
-    } elseif ($conn instanceof PDO) {
-        $db_conn_status = 'PDO object';
-        // PDO doesn't have a direct connect_error property after successful connection
-        // We can try a simple query to check if it's truly connected, but that adds overhead.
-        // For now, just checking if the object exists is sufficient for this log.
-        $db_conn_status .= ' (Object Exists)';
     } else {
-        $db_conn_status = 'Set, but not mysqli or PDO';
+        $db_auth_conn_status = '$pdo is set, but not a PDO object before agent auth query. Type: ' . gettype($pdo);
     }
 }
-$log_message_db_conn = $debug_timestamp_db_conn . "DB Connection Status: " . $db_conn_status . ($db_conn_error ? " Error: " . $db_conn_error : "") . PHP_EOL;
-file_put_contents(__DIR__ . '/debug.log', $log_message_db_conn, FILE_APPEND | LOCK_EX);
-// DEBUG END - Database Connection Status
+$log_message_db_auth_conn = $debug_timestamp_db_auth_check . "Gateway Auth: DB Connection Status: " . $db_auth_conn_status . ($db_auth_conn_error ? " Error: " . $db_auth_conn_error : "") . PHP_EOL;
+file_put_contents(__DIR__ . '/debug.log', $log_message_db_auth_conn, FILE_APPEND | LOCK_EX);
+// DEBUG END - Database Connection Status Before Agent Auth Query
 
-if (!isset($conn) || ($conn instanceof mysqli && $conn->connect_error) || ($conn instanceof PDO && !$conn)) {
+if (!isset($pdo) || !($pdo instanceof PDO)) { // Simplified check for PDO
     // Log this critical error, as it means the gateway cannot function
-    error_log("Gateway Error: Database connection not available or failed.");
+    error_log("Gateway Error: PDO Database connection not available or not a PDO object before agent auth query.");
     send_error_response(500, 'INTERNAL_SERVER_ERROR', 'Database connection error. Cannot authenticate agent.');
 }
 
@@ -223,77 +241,14 @@ $stmt = null;
 $keyRecord = null;
 
 try {
-    if ($conn instanceof mysqli) {
-        // Using a prepared statement to prevent SQL injection, even though we are not directly inserting the key
-        // We are looking for ANY key, then verifying. A more direct SELECT on a hashed key might be better if feasible.
-        // However, password_verify needs the plain key and the hash. So we fetch potential hashes.
-        // For this phase, we'll fetch all non-revoked keys and iterate. This is NOT ideal for performance with many keys.
-        // A better approach for Phase 2 would be to require the agent_name or a key_id as part of the request
-        // or implement a more direct lookup if the raw key can be part of a secure lookup mechanism (e.g. HMAC against a known part of the key).
-        // For now, fetching all and verifying is simpler given the `password_verify` constraint.
-        $sql = "SELECT id, agent_name, key_hash, associated_user_id, associated_site_id, permissions, revoked_at FROM agent_api_keys WHERE revoked_at IS NULL";
+    // Since db_connect.php establishes a PDO connection into $pdo, we should only use the PDO path.
+    // The mysqli path ($conn instanceof mysqli) is now effectively dead code if db_connect.php is consistent.
+    // We will proceed assuming $pdo is the correct variable and it's a PDO instance.
 
-        // DEBUG START - SQL Query Logging (mysqli)
-        $debug_timestamp_sql_mysqli = date('[Y-m-d H:i:s] ');
-        $log_message_sql_mysqli = $debug_timestamp_sql_mysqli . "SQL Query (mysqli): " . $sql . PHP_EOL;
-        file_put_contents(__DIR__ . '/debug.log', $log_message_sql_mysqli, FILE_APPEND | LOCK_EX);
-        // DEBUG END - SQL Query Logging (mysqli)
-
-        $stmt = $conn->prepare($sql);
-
-        // DEBUG START - Query Preparation Status (mysqli)
-        $debug_timestamp_prep_mysqli = date('[Y-m-d H:i:s] ');
-        $log_message_prep_mysqli = $debug_timestamp_prep_mysqli . "Query Preparation (mysqli): " . ($stmt ? "Successful" : "Failed - " . $conn->error) . PHP_EOL;
-        file_put_contents(__DIR__ . '/debug.log', $log_message_prep_mysqli, FILE_APPEND | LOCK_EX);
-        // DEBUG END - Query Preparation Status (mysqli)
-
-        if ($stmt) {
-            $exec_success = $stmt->execute();
-
-            // DEBUG START - Query Execution Result (mysqli)
-            $debug_timestamp_exec_mysqli = date('[Y-m-d H:i:s] ');
-            $log_message_exec_mysqli = $debug_timestamp_exec_mysqli . "Query Execution (mysqli): " . ($exec_success ? "Successful" : "Failed - " . $stmt->error) . PHP_EOL;
-            file_put_contents(__DIR__ . '/debug.log', $log_message_exec_mysqli, FILE_APPEND | LOCK_EX);
-            // DEBUG END - Query Execution Result (mysqli)
-
-            if ($exec_success) {
-                $result = $stmt->get_result();
-
-                // DEBUG START - Row Count (mysqli)
-                $debug_timestamp_rows_mysqli = date('[Y-m-d H:i:s] ');
-                $row_count_mysqli = $result ? $result->num_rows : 'N/A';
-                $log_message_rows_mysqli = $debug_timestamp_rows_mysqli . "Row Count (mysqli): " . $row_count_mysqli . PHP_EOL;
-                file_put_contents(__DIR__ . '/debug.log', $log_message_rows_mysqli, FILE_APPEND | LOCK_EX);
-                // DEBUG END - Row Count (mysqli)
-
-                while ($row = $result->fetch_assoc()) {
-                    // DEBUG START - Row Data and password_verify (mysqli)
-                    $debug_timestamp_row_mysqli = date('[Y-m-d H:i:s] ');
-                    $log_message_row_mysqli = $debug_timestamp_row_mysqli . "Fetched Row (mysqli): " . json_encode($row) . PHP_EOL;
-                    file_put_contents(__DIR__ . '/debug.log', $log_message_row_mysqli, FILE_APPEND | LOCK_EX);
-
-                    $key_hash_mysqli = isset($row['key_hash']) ? $row['key_hash'] : 'N/A';
-                    $log_message_hash_mysqli = $debug_timestamp_row_mysqli . "Key Hash from DB (mysqli): " . $key_hash_mysqli . PHP_EOL;
-                    file_put_contents(__DIR__ . '/debug.log', $log_message_hash_mysqli, FILE_APPEND | LOCK_EX);
-
-                    $password_verify_result_mysqli = password_verify($agentApiKey, $row['key_hash']);
-                    $log_message_verify_mysqli = $debug_timestamp_row_mysqli . "password_verify result (mysqli): " . ($password_verify_result_mysqli ? 'True' : 'False') . PHP_EOL;
-                    file_put_contents(__DIR__ . '/debug.log', $log_message_verify_mysqli, FILE_APPEND | LOCK_EX);
-                    // DEBUG END - Row Data and password_verify (mysqli)
-
-                    if ($password_verify_result_mysqli) {
-                        $keyRecord = $row;
-                        break; // Found a matching, valid key
-                    }
-                }
-                $result->free(); // Free result set
-            }
-        }
-        if ($stmt) {
-            $stmt->close();
-        }
-
-    } elseif ($conn instanceof PDO) {
+    // if ($conn instanceof mysqli) { ... mysqli specific code removed for brevity ... }
+    
+    // elseif ($conn instanceof PDO) { // This will now be the primary path
+    if ($pdo instanceof PDO) { // Corrected to use $pdo
         $sql = "SELECT id, agent_name, key_hash, associated_user_id, associated_site_id, permissions, revoked_at FROM agent_api_keys WHERE revoked_at IS NULL";
 
         // DEBUG START - SQL Query Logging (PDO)
@@ -302,11 +257,11 @@ try {
         file_put_contents(__DIR__ . '/debug.log', $log_message_sql_pdo, FILE_APPEND | LOCK_EX);
         // DEBUG END - SQL Query Logging (PDO)
 
-        $stmt = $conn->prepare($sql);
+        $stmt = $pdo->prepare($sql); // Corrected to use $pdo
 
         // DEBUG START - Query Preparation Status (PDO)
         $debug_timestamp_prep_pdo = date('[Y-m-d H:i:s] ');
-        $log_message_prep_pdo = $debug_timestamp_prep_pdo . "Query Preparation (PDO): " . ($stmt ? "Successful" : "Failed - " . json_encode($conn->errorInfo())) . PHP_EOL;
+        $log_message_prep_pdo = $debug_timestamp_prep_pdo . "Query Preparation (PDO): " . ($stmt ? "Successful" : "Failed - " . json_encode($pdo->errorInfo())) . PHP_EOL; // Corrected to use $pdo
         file_put_contents(__DIR__ . '/debug.log', $log_message_prep_pdo, FILE_APPEND | LOCK_EX);
         // DEBUG END - Query Preparation Status (PDO)
 
@@ -356,6 +311,14 @@ try {
         if ($stmt) {
              $stmt->closeCursor(); // PDO way
         }
+    } else {
+        // This case should ideally not be reached if db_connect.php always provides a PDO $pdo object
+        // or exits on failure.
+        $debug_timestamp_no_db_type = date('[Y-m-d H:i:s] ');
+        $log_message_no_db_type = $debug_timestamp_no_db_type . "Gateway Auth: DB object \$pdo was not a PDO instance. Type: " . (isset($pdo) ? gettype($pdo) : 'not set') . PHP_EOL;
+        file_put_contents(__DIR__ . '/debug.log', $log_message_no_db_type, FILE_APPEND | LOCK_EX);
+        // This implies a problem with db_connect.php or the $pdo variable being overwritten.
+        // The earlier check `if (!isset($pdo) || !($pdo instanceof PDO))` should catch this.
     }
 } catch (Exception $e) {
     // DEBUG START - Exception Logging
@@ -392,14 +355,13 @@ $authenticated_agent_info = [
 // Update last_used_at for the key
 try {
     $updateSql = "UPDATE agent_api_keys SET last_used_at = CURRENT_TIMESTAMP WHERE id = ?";
-    if ($conn instanceof mysqli) {
-        $updateStmt = $conn->prepare($updateSql);
-        $updateStmt->bind_param('i', $keyRecord['id']);
-        $updateStmt->execute();
-        $updateStmt->close();
-    } elseif ($conn instanceof PDO) {
-        $updateStmt = $conn->prepare($updateSql);
+    // Assuming $pdo is a PDO object if we've reached this point
+    if ($pdo instanceof PDO) { // Explicitly check, though it should be
+        $updateStmt = $pdo->prepare($updateSql); // Corrected to use $pdo
         $updateStmt->execute([$keyRecord['id']]);
+    } else {
+        // Log if $pdo is not what we expect, though previous checks should prevent this.
+        error_log("Gateway Info: Failed to update last_used_at because \$pdo was not a PDO instance for agent_api_key ID " . $keyRecord['id']);
     }
 } catch (Exception $e) {
     // Log this, but don't fail the request if updating last_used_at fails

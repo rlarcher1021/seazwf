@@ -59,6 +59,19 @@ $dsn = "mysql:host=$db_host;dbname=$db_name;charset=$db_charset";
 
 try {
     $pdo = new PDO($dsn, $db_user, $db_pass, $options);
+
+    // DEBUG START - PDO Object Creation Status
+    $debug_timestamp_pdo_created = date('[Y-m-d H:i:s] ');
+    $pdo_creation_status = ($pdo instanceof PDO) ? 'PDO object successfully created.' : 'PDO object NOT created or invalid.';
+    $log_message_pdo_created = $debug_timestamp_pdo_created . "DB Connect: " . $pdo_creation_status . PHP_EOL;
+    // Ensure the logs directory exists and is writable by the web server.
+    // For gateway, logs are in api/gateway/debug.log, let's try to keep it consistent or make a global log.
+    // For now, let's assume a global log file or adjust if gateway's log is preferred.
+    // Using a path relative to this file for simplicity, assuming 'logs' dir is in 'public_html'
+    $log_file_path = dirname(__DIR__) . '/logs/db_connect_debug.log';
+    file_put_contents($log_file_path, $log_message_pdo_created, FILE_APPEND | LOCK_EX);
+    // DEBUG END - PDO Object Creation Status
+
 } catch (\PDOException $e) {
     error_log("Database Connection Error: " . $e->getMessage());
     http_response_code(500); // Internal Server Error
