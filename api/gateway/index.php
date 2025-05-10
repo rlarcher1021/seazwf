@@ -186,6 +186,33 @@ if (!$agentApiKey) {
 
 // Prepare to query the database for the API key
 // Ensure $conn is available from db_connect.php
+// DEBUG START - Database Connection Status
+$debug_timestamp_db_conn = date('[Y-m-d H:i:s] ');
+$db_conn_status = 'Not set or invalid';
+$db_conn_error = '';
+if (isset($conn)) {
+    if ($conn instanceof mysqli) {
+        $db_conn_status = 'mysqli object';
+        if ($conn->connect_error) {
+            $db_conn_status .= ' (Connection Error)';
+            $db_conn_error = $conn->connect_error;
+        } else {
+            $db_conn_status .= ' (Connected)';
+        }
+    } elseif ($conn instanceof PDO) {
+        $db_conn_status = 'PDO object';
+        // PDO doesn't have a direct connect_error property after successful connection
+        // We can try a simple query to check if it's truly connected, but that adds overhead.
+        // For now, just checking if the object exists is sufficient for this log.
+        $db_conn_status .= ' (Object Exists)';
+    } else {
+        $db_conn_status = 'Set, but not mysqli or PDO';
+    }
+}
+$log_message_db_conn = $debug_timestamp_db_conn . "DB Connection Status: " . $db_conn_status . ($db_conn_error ? " Error: " . $db_conn_error : "") . PHP_EOL;
+file_put_contents(__DIR__ . '/debug.log', $log_message_db_conn, FILE_APPEND | LOCK_EX);
+// DEBUG END - Database Connection Status
+
 if (!isset($conn) || ($conn instanceof mysqli && $conn->connect_error) || ($conn instanceof PDO && !$conn)) {
     // Log this critical error, as it means the gateway cannot function
     error_log("Gateway Error: Database connection not available or failed.");
@@ -205,30 +232,137 @@ try {
         // or implement a more direct lookup if the raw key can be part of a secure lookup mechanism (e.g. HMAC against a known part of the key).
         // For now, fetching all and verifying is simpler given the `password_verify` constraint.
         $sql = "SELECT id, agent_name, key_hash, associated_user_id, associated_site_id, permissions, revoked_at FROM agent_api_keys WHERE revoked_at IS NULL";
+
+        // DEBUG START - SQL Query Logging (mysqli)
+        $debug_timestamp_sql_mysqli = date('[Y-m-d H:i:s] ');
+        $log_message_sql_mysqli = $debug_timestamp_sql_mysqli . "SQL Query (mysqli): " . $sql . PHP_EOL;
+        file_put_contents(__DIR__ . '/debug.log', $log_message_sql_mysqli, FILE_APPEND | LOCK_EX);
+        // DEBUG END - SQL Query Logging (mysqli)
+
         $stmt = $conn->prepare($sql);
-        // No parameters to bind for this broad select
-        $stmt->execute();
-        $result = $stmt->get_result();
-        while ($row = $result->fetch_assoc()) {
-            if (password_verify($agentApiKey, $row['key_hash'])) {
-                $keyRecord = $row;
-                break; // Found a matching, valid key
+
+        // DEBUG START - Query Preparation Status (mysqli)
+        $debug_timestamp_prep_mysqli = date('[Y-m-d H:i:s] ');
+        $log_message_prep_mysqli = $debug_timestamp_prep_mysqli . "Query Preparation (mysqli): " . ($stmt ? "Successful" : "Failed - " . $conn->error) . PHP_EOL;
+        file_put_contents(__DIR__ . '/debug.log', $log_message_prep_mysqli, FILE_APPEND | LOCK_EX);
+        // DEBUG END - Query Preparation Status (mysqli)
+
+        if ($stmt) {
+            $exec_success = $stmt->execute();
+
+            // DEBUG START - Query Execution Result (mysqli)
+            $debug_timestamp_exec_mysqli = date('[Y-m-d H:i:s] ');
+            $log_message_exec_mysqli = $debug_timestamp_exec_mysqli . "Query Execution (mysqli): " . ($exec_success ? "Successful" : "Failed - " . $stmt->error) . PHP_EOL;
+            file_put_contents(__DIR__ . '/debug.log', $log_message_exec_mysqli, FILE_APPEND | LOCK_EX);
+            // DEBUG END - Query Execution Result (mysqli)
+
+            if ($exec_success) {
+                $result = $stmt->get_result();
+
+                // DEBUG START - Row Count (mysqli)
+                $debug_timestamp_rows_mysqli = date('[Y-m-d H:i:s] ');
+                $row_count_mysqli = $result ? $result->num_rows : 'N/A';
+                $log_message_rows_mysqli = $debug_timestamp_rows_mysqli . "Row Count (mysqli): " . $row_count_mysqli . PHP_EOL;
+                file_put_contents(__DIR__ . '/debug.log', $log_message_rows_mysqli, FILE_APPEND | LOCK_EX);
+                // DEBUG END - Row Count (mysqli)
+
+                while ($row = $result->fetch_assoc()) {
+                    // DEBUG START - Row Data and password_verify (mysqli)
+                    $debug_timestamp_row_mysqli = date('[Y-m-d H:i:s] ');
+                    $log_message_row_mysqli = $debug_timestamp_row_mysqli . "Fetched Row (mysqli): " . json_encode($row) . PHP_EOL;
+                    file_put_contents(__DIR__ . '/debug.log', $log_message_row_mysqli, FILE_APPEND | LOCK_EX);
+
+                    $key_hash_mysqli = isset($row['key_hash']) ? $row['key_hash'] : 'N/A';
+                    $log_message_hash_mysqli = $debug_timestamp_row_mysqli . "Key Hash from DB (mysqli): " . $key_hash_mysqli . PHP_EOL;
+                    file_put_contents(__DIR__ . '/debug.log', $log_message_hash_mysqli, FILE_APPEND | LOCK_EX);
+
+                    $password_verify_result_mysqli = password_verify($agentApiKey, $row['key_hash']);
+                    $log_message_verify_mysqli = $debug_timestamp_row_mysqli . "password_verify result (mysqli): " . ($password_verify_result_mysqli ? 'True' : 'False') . PHP_EOL;
+                    file_put_contents(__DIR__ . '/debug.log', $log_message_verify_mysqli, FILE_APPEND | LOCK_EX);
+                    // DEBUG END - Row Data and password_verify (mysqli)
+
+                    if ($password_verify_result_mysqli) {
+                        $keyRecord = $row;
+                        break; // Found a matching, valid key
+                    }
+                }
+                $result->free(); // Free result set
             }
         }
-        $stmt->close();
+        if ($stmt) {
+            $stmt->close();
+        }
+
     } elseif ($conn instanceof PDO) {
         $sql = "SELECT id, agent_name, key_hash, associated_user_id, associated_site_id, permissions, revoked_at FROM agent_api_keys WHERE revoked_at IS NULL";
+
+        // DEBUG START - SQL Query Logging (PDO)
+        $debug_timestamp_sql_pdo = date('[Y-m-d H:i:s] ');
+        $log_message_sql_pdo = $debug_timestamp_sql_pdo . "SQL Query (PDO): " . $sql . PHP_EOL;
+        file_put_contents(__DIR__ . '/debug.log', $log_message_sql_pdo, FILE_APPEND | LOCK_EX);
+        // DEBUG END - SQL Query Logging (PDO)
+
         $stmt = $conn->prepare($sql);
-        $stmt->execute();
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            if (password_verify($agentApiKey, $row['key_hash'])) {
-                $keyRecord = $row;
-                break;
+
+        // DEBUG START - Query Preparation Status (PDO)
+        $debug_timestamp_prep_pdo = date('[Y-m-d H:i:s] ');
+        $log_message_prep_pdo = $debug_timestamp_prep_pdo . "Query Preparation (PDO): " . ($stmt ? "Successful" : "Failed - " . json_encode($conn->errorInfo())) . PHP_EOL;
+        file_put_contents(__DIR__ . '/debug.log', $log_message_prep_pdo, FILE_APPEND | LOCK_EX);
+        // DEBUG END - Query Preparation Status (PDO)
+
+        if ($stmt) {
+            $exec_success = $stmt->execute();
+
+            // DEBUG START - Query Execution Result (PDO)
+            $debug_timestamp_exec_pdo = date('[Y-m-d H:i:s] ');
+            $log_message_exec_pdo = $debug_timestamp_exec_pdo . "Query Execution (PDO): " . ($exec_success ? "Successful" : "Failed - " . json_encode($stmt->errorInfo())) . PHP_EOL;
+            file_put_contents(__DIR__ . '/debug.log', $log_message_exec_pdo, FILE_APPEND | LOCK_EX);
+            // DEBUG END - Query Execution Result (PDO)
+
+            if ($exec_success) {
+                 // PDO doesn't have a direct num_rows equivalent for SELECT * without fetching first.
+                 // We'll log row count after fetching.
+
+                while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                    // DEBUG START - Row Data and password_verify (PDO)
+                    $debug_timestamp_row_pdo = date('[Y-m-d H:i:s] ');
+                    $log_message_row_pdo = $debug_timestamp_row_pdo . "Fetched Row (PDO): " . json_encode($row) . PHP_EOL;
+                    file_put_contents(__DIR__ . '/debug.log', $log_message_row_pdo, FILE_APPEND | LOCK_EX);
+
+                    $key_hash_pdo = isset($row['key_hash']) ? $row['key_hash'] : 'N/A';
+                    $log_message_hash_pdo = $debug_timestamp_row_pdo . "Key Hash from DB (PDO): " . $key_hash_pdo . PHP_EOL;
+                    file_put_contents(__DIR__ . '/debug.log', $log_message_hash_pdo, FILE_APPEND | LOCK_EX);
+
+                    $password_verify_result_pdo = password_verify($agentApiKey, $row['key_hash']);
+                    $log_message_verify_pdo = $debug_timestamp_row_pdo . "password_verify result (PDO): " . ($password_verify_result_pdo ? 'True' : 'False') . PHP_EOL;
+                    file_put_contents(__DIR__ . '/debug.log', $log_message_verify_pdo, FILE_APPEND | LOCK_EX);
+                    // DEBUG END - Row Data and password_verify (PDO)
+
+                    if ($password_verify_result_pdo) {
+                        $keyRecord = $row;
+                        break;
+                    }
+                }
+                 // DEBUG START - Row Count (PDO) - Logged after fetching
+                $debug_timestamp_rows_pdo = date('[Y-m-d H:i:s] ');
+                // To get row count in PDO after fetching, you might need to rewind or re-query,
+                // or fetch all into an array first. For simple logging, we'll just note if a record was found.
+                // A more accurate count would require fetching all into an array and counting.
+                $log_message_rows_pdo = $debug_timestamp_rows_pdo . "Row Count (PDO): Logged after fetching. Check if keyRecord is set below." . PHP_EOL;
+                file_put_contents(__DIR__ . '/debug.log', $log_message_rows_pdo, FILE_APPEND | LOCK_EX);
+                // DEBUG END - Row Count (PDO)
             }
         }
-        $stmt->closeCursor(); // PDO way
+        if ($stmt) {
+             $stmt->closeCursor(); // PDO way
+        }
     }
 } catch (Exception $e) {
+    // DEBUG START - Exception Logging
+    $debug_timestamp_exception = date('[Y-m-d H:i:s] ');
+    $log_message_exception = $debug_timestamp_exception . "Caught Exception during DB interaction: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine() . PHP_EOL;
+    file_put_contents(__DIR__ . '/debug.log', $log_message_exception, FILE_APPEND | LOCK_EX);
+    // DEBUG END - Exception Logging
     error_log("Gateway DB Error: " . $e->getMessage());
     send_error_response(500, 'DATABASE_ERROR', 'Error during agent authentication.');
 }
