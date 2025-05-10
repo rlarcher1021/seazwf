@@ -1,9 +1,17 @@
-[04-May-2025 07:14:36 Europe/Berlin] Admin action: Error log cleared by user ID: 1
-[04-May-2025 07:14:41 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/api_keys_panel.php'. Selected Site ID = 4, Role = administrator, IsSiteAdmin = 0
-[04-May-2025 07:14:41 Europe/Berlin] DEBUG configurations.php: Before panel include. Tab='api-keys', Selected Site ID=4, Role='administrator', IsSiteAdmin=0
-[04-May-2025 14:19:39 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/api_keys_panel.php'. Selected Site ID = 4, Role = administrator, IsSiteAdmin = 0
-[04-May-2025 14:19:39 Europe/Berlin] DEBUG configurations.php: Before panel include. Tab='api-keys', Selected Site ID=4, Role='administrator', IsSiteAdmin=0
-[05-May-2025 04:02:25 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/api_keys_panel.php'. Selected Site ID = 4, Role = administrator, IsSiteAdmin = 0
-[05-May-2025 04:02:25 Europe/Berlin] DEBUG configurations.php: Before panel include. Tab='api-keys', Selected Site ID=4, Role='administrator', IsSiteAdmin=0
-[05-May-2025 04:07:25 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/api_keys_panel.php'. Selected Site ID = 4, Role = administrator, IsSiteAdmin = 0
-[05-May-2025 04:07:25 Europe/Berlin] DEBUG configurations.php: Before panel include. Tab='api-keys', Selected Site ID=4, Role='administrator', IsSiteAdmin=0
+[10-May-2025 02:02:52 Europe/Berlin] Admin action: Error log cleared by user ID: 1
+[10-May-2025 02:03:00 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/site_settings_panel.php'. Selected Site ID = 4, Role = administrator, IsSiteAdmin = 0
+[10-May-2025 02:03:00 Europe/Berlin] DEBUG configurations.php: Before panel include. Tab='site-settings', Selected Site ID=4, Role='administrator', IsSiteAdmin=0
+[10-May-2025 02:03:09 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/site_settings_panel.php'. Selected Site ID = 4, Role = administrator, IsSiteAdmin = 0
+[10-May-2025 02:03:09 Europe/Berlin] DEBUG configurations.php: Before panel include. Tab='site-settings', Selected Site ID=4, Role='administrator', IsSiteAdmin=0
+[10-May-2025 02:03:10 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/questions_panel.php'. Selected Site ID = 4, Role = administrator, IsSiteAdmin = 0
+[10-May-2025 02:03:10 Europe/Berlin] DEBUG configurations.php: Before panel include. Tab='questions', Selected Site ID=4, Role='administrator', IsSiteAdmin=0
+[10-May-2025 02:03:10 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/notifiers_panel.php'. Selected Site ID = 4, Role = administrator, IsSiteAdmin = 0
+[10-May-2025 02:03:10 Europe/Berlin] DEBUG configurations.php: Before panel include. Tab='notifiers', Selected Site ID=4, Role='administrator', IsSiteAdmin=0
+[10-May-2025 02:03:11 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/ads_panel.php'. Selected Site ID = 4, Role = administrator, IsSiteAdmin = 0
+[10-May-2025 02:03:11 Europe/Berlin] DEBUG configurations.php: Before panel include. Tab='ads-management', Selected Site ID=4, Role='administrator', IsSiteAdmin=0
+[10-May-2025 02:03:12 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/departments_panel.php'. Selected Site ID = 4, Role = administrator, IsSiteAdmin = 0
+[10-May-2025 02:03:12 Europe/Berlin] DEBUG configurations.php: Before panel include. Tab='departments', Selected Site ID=4, Role='administrator', IsSiteAdmin=0
+[10-May-2025 02:03:13 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/api_keys_panel.php'. Selected Site ID = 4, Role = administrator, IsSiteAdmin = 0
+[10-May-2025 02:03:13 Europe/Berlin] DEBUG configurations.php: Before panel include. Tab='api-keys', Selected Site ID=4, Role='administrator', IsSiteAdmin=0
+[10-May-2025 02:03:54 Europe/Berlin] DEBUG configurations.php (GET): Including panel 'includes/config_panels/api_keys_panel.php'. Selected Site ID = 4, Role = administrator, IsSiteAdmin = 0
+[10-May-2025 02:03:54 Europe/Berlin] DEBUG configurations.php: Before panel include. Tab='api-keys', Selected Site ID=4, Role='administrator', IsSiteAdmin=0

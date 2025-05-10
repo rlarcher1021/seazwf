@@ -498,49 +498,61 @@ Comments: User accounts for system access
 Columns:
 id: int(11), NOT NULL (Primary) - Unique User ID
 username: varchar(50), NOT NULL - Login username
-full_name: varchar(100), NULL - User full display name
-email: varchar(255), NULL
-job_title: varchar(100), NULL - User's job title
-department_id: int(11), NULL
-password_hash: varchar(255), NOT NULL - Hashed password (use password_hash)
-role: enum('kiosk', 'azwk_staff', 'outside_staff', 'director', 'administrator'), NOT NULL - kiosk
-is_site_admin: tinyint(1), NOT NULL - 0 - Flag indicating if user has site-level admin privileges (0=No, 1=Yes)
-site_id: int(11), NULL - FK to sites. NULL for Director/Admin (all sites), required for Kiosk/Supervisor
-last_login: datetime, NULL - Timestamp of the last successful login
-deleted_at: datetime, NULL
-is_active: tinyint(1), NULL - 1 - Is the account active?
-created_at: timestamp, NOT NULL - current_timestamp()
+password_hash: varchar(255), NOT NULL - Hashed password
+email: varchar(100), NOT NULL - User's email address
+role: enum('kiosk', 'azwk_staff', 'outside_staff', 'director', 'administrator'), NOT NULL - User's role
+site_id: int(11), NULL - FK to sites table, primary site for the user
+department_id: int(11), NULL - FK to departments table
+is_site_admin: tinyint(1), NOT NULL - 0 - 0 = No, 1 = Yes (Site-level admin privileges)
+created_at: timestamp, NOT NULL - current_timestamp() - When user account was created
+last_login: timestamp, NULL - Timestamp of last successful login
+deleted_at: datetime, NULL - Timestamp if account is soft-deleted
 Indexes:
 PRIMARY (id)
-username (username) - Unique
-site_id (site\_id)
+username_UNIQUE (username) - Unique
+email_UNIQUE (email) - Unique
+fk_users_site_idx (site\_id)
 fk_users_department_idx (department\_id)
+idx_users_deleted_at (deleted\_at)
 Foreign Keys:
-department_id -> departments.id (Implicit from index name/comment)
-site_id -> sites.id (Implicit from index name/comment)
-Various FKs point to users.id from other tables (e.g., budgets, budget_allocations, checkin_notes, client_profile_audit_log, forum_posts, forum_topics, finance_department_access).
+site_id -> sites.id (Implicit from comment/index)
+department_id -> departments.id (Implicit from comment/index)
 vendors
 Comments: None provided in dump (Note: Living Plan v1.51 Section 7 has comments)
 Columns:
 id: int(11), NOT NULL (Primary)
 name: varchar(255), NOT NULL
-client_name_required: tinyint(1), NOT NULL - 0 - 0 = No, 1 = Yes. Client name required in budget_allocations if this vendor is selected.
-is_active: tinyint(1), NOT NULL - 1
+contact_person: varchar(255), NULL
+email: varchar(255), NULL
+phone: varchar(20), NULL
+address: text, NULL
 created_at: timestamp, NULL - current_timestamp()
+updated_at: timestamp, NULL - current_timestamp()
 deleted_at: datetime, NULL
 Indexes:
 PRIMARY (id)
 name_UNIQUE (name) - Unique
-idx_vendors_active (is\_active)
 idx_vendors_deleted_at (deleted\_at)
-Foreign Keys: budget_allocations.vendor_id points here (Implicit).
-This format should be easier to read and reference than the raw dump. It aligns with the tables listed in the Living Plan.
-Noteworthy Points from the dump compared to the Living Plan v1.51 Section 7:
-api_keys: The schema provided in the dump matches the corrected schema in Living Plan v1.51 Section 7, confirming the SQL script you ran was successful. It does show a potential duplicate index name (api_key_hash), but that's a minor detail.
-check_ins: The q_* columns in the dump (q_unemployment_assistance, q_age, q_veteran, etc.) are different and more numerous than the q_veteran, q_age, q_interviewing specified in Living Plan v1.51 Section 7. The comment in the dump mentions additional_data storing dynamic answers, while the comment in the Living Plan says q_* are populated from client_answers during QR scans. This suggests a potential discrepancy in how dynamic question answers are stored/handled between the Living Plan documentation and the actual database schema/code. Living Plan v1.51 says checkin_answers stores manual answers and check_ins.q_* stores QR answers copied from client_answers. The schema dump's check_ins table has many q_* columns and also additional_data, while checkin_answers exists. This needs clarification for consistency between documentation and implementation.
-checkin_answers: The FK comment says global_questions, but the index and Living Plan say site_questions. Consistency is needed.
-client_answers: Similar to checkin_answers, the index points to question_id (likely site_questions.id) but the comment in the dump says global_questions. Living Plan v1.51 says site_questions. Consistency needed.
-questions table: This table exists in the dump with site-specific questions, FK to sites, etc., but it's not explicitly mentioned or described in Living Plan v1.51 Section 7. The plan describes site_questions and global_questions being used for dynamic questions. This questions table might be an old or unused table, or it's the one actually being used instead of/in conjunction with site_questions. This needs clarification and potential update to the Living Plan schema section.
-global_questions: Exists as expected.
-site_questions: Exists as expected and used for FKs in client_answers and checkin_answers per Living Plan v1.51 (though the dump comments are inconsistent).
-users: Includes is_active column, which is not in Living Plan v1.51 Section 7. The plan uses deleted_at for soft deletes. This is a discrepancy.
+Foreign Keys: None explicitly listed/implied here, but budget_allocations.vendor_id points here.
+
+--
+-- NEW TABLE: agent_api_keys
+--
+-- Table structure for table `agent_api_keys`
+--
+-- Stores dedicated API keys for AI agents to access the Unified API Gateway.
+--
+
+CREATE TABLE `agent_api_keys` (
+  `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `agent_name` VARCHAR(255) NOT NULL COMMENT 'Descriptive name for the AI agent/client using the key',
+  `key_hash` VARCHAR(255) NOT NULL UNIQUE COMMENT 'Hashed version of the API key (do not store raw key)',
+  `associated_user_id` INT NULL COMMENT 'Optional: User ID in the main system this agent acts on behalf of',
+  `associated_site_id` INT NULL COMMENT 'Optional: Site ID this agent is primarily associated with',
+  `permissions` TEXT NULL COMMENT 'JSON encoded permissions structure for future granular control (Phase 2)',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_used_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT 'Timestamp of the last successful use of this key',
+  `revoked_at` DATETIME NULL DEFAULT NULL COMMENT 'Timestamp if the key has been revoked',
+  CONSTRAINT `fk_agent_keys_user` FOREIGN KEY (`associated_user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_agent_keys_site` FOREIGN KEY (`associated_site_id`) REFERENCES `sites`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Stores dedicated API keys for AI agents to access the Unified API Gateway.';

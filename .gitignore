@@ -6,7 +6,6 @@ Database_Schema_checkin_system
 wp-config.php
 .env
 config.ini
-error_log
 *.log
 Checkin/
 # Cache folders
@@ -20,8 +19,7 @@ curltest
 # Node.js dependencies (if applicable)
 node_modules/
 # Composer dependencies (if applicable)
-# vendor/
-error_log
+vendor/
 # OS-specific files
 .DS_Store
 Thumbs.db
