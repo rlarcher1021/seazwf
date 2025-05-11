@@ -1,6 +1,6 @@
 Arizona@Work Check-In System - Living Project Plan
-Version: 1.54
-Date: 2025-05-04
+Version: 1.56
+Date: 2025-05-10
 (This Living Plan document is the "Single Source of Truth". User Responsibility: Maintain locally, provide current code, request plan updates. Developer (AI) Responsibility: Use plan/code context, focus on single tasks, provide code, assist plan updates.)
 1. Project Goal:
 Develop a web-based check-in and tracking system for Arizona@Work sites. Implement role-based access control (RBAC) using User Roles (including a site-scoped administrative capability via is_site_admin flag) in combination with Department assignments to manage feature access for staff. Incorporate a comprehensive Budget tracking module. Develop a secure API layer (V1) to enable programmatic access for internal system components and the Unified API Gateway, with initial endpoints and the reports endpoint tested and verified. Implement a Unified API Gateway to serve as a single, secure access point for external systems (e.g., AI agents), simplifying their interaction and enhancing system flexibility. Implement a parallel client check-in system featuring client accounts (associated with a primary site), profile management using dynamic site-specific questions, QR code check-in via authenticated kiosks (where key answers are copied to the check-in record), and an option for continued anonymous manual check-in (also using dynamic site-specific questions), aimed at improving data quality and check-in efficiency.
@@ -27,8 +27,8 @@ Session Data: Stores client_id, potentially basic info needed for portal display
 Purpose: Allows clients to manage their profile (dynamic questions), retrieve their QR code, and view service information.
 Internal V1 API (Section 5): Requires token-based authentication (API Keys hashed in api_keys table). Used by the Unified API Gateway and potentially other internal trusted services. Authentication and authorization layers are implemented and verified.
 Unified API Gateway (Section 6):
-Agent-to-Gateway: Requires a dedicated API key specific to the AI agent (hashed in agent_api_keys table). Authentication details passed via HTTP headers.
-Gateway-to-Internal-V1-API: The Gateway uses its own dedicated, permissioned API key (from api_keys table) to authenticate with the internal V1 API endpoints.
+Agent-to-Gateway: Requires a dedicated API key specific to the AI agent (hashed in agent_api_keys table). Authentication details passed via HTTP headers. Implemented and verified in Phase 1.
+Gateway-to-Internal-V1-API: The Gateway uses its own dedicated, permissioned API key (from api_keys table) to authenticate with the internal V1 API endpoints. Implemented and verified in Phase 1.
 4. Site Context Handling for Admin/Director:
 Implemented via session context variable (site_context) potentially linking to users.site_id. Allows Directors/Admins with appropriate roles/permissions to switch between site views if the application supports multiple AZ@Work sites and the user has privileges across them. Affects filtering and data visibility in the Web UI. Site Admins' powers are strictly scoped by their assigned users.site_id. (Note: API data scoping for V1 APIs uses API Key permissions and associated IDs, see Section 5. The Unified API Gateway uses agent identity for scoping, see Section 6). Kiosk sessions also have an inherent site_id context.
 5. Internal API Specification (V1 - Used by Gateway & Internal Services):
@@ -116,12 +116,12 @@ Success Body: {"status": "success", "data": (object/array, optional), "message":
 Error Body: {"status": "error", "error": {"code": "GATEWAY_ERROR_CODE", "message": "...", "details": (optional)}}
 Uses standard HTTP status codes.
 Authentication:
-Agent-to-Gateway: Requires a dedicated API key specific to the AI agent. These keys are stored (hashed) and managed in the agent_api_keys table (see Section 8). The gateway authenticates the agent using this key (e.g., via Authorization: Bearer <agent_api_key> or X-Agent-API-Key: <agent_api_key>). Upon successful authentication, the gateway retrieves the agent's associated_user_id and/or associated_site_id from the agent_api_keys table for data scoping.
-Gateway-to-Internal-V1-APIs: The gateway uses its own dedicated internal API key (stored in the api_keys table, see Section 5) to authenticate with the existing V1 API endpoints. This key must have a comprehensive set of permissions (e.g., read:checkin_data, create:checkin_note, read:client_data, etc.) sufficient for all actions the gateway supports.
+Agent-to-Gateway: Requires a dedicated API key specific to the AI agent (hashed in agent_api_keys table). Authentication details passed via HTTP headers. Implemented and verified in Phase 1.
+Gateway-to-Internal-V1-API: The Gateway uses its own dedicated, permissioned API key (from api_keys table) to authenticate with the internal V1 API endpoints. Implemented and verified in Phase 1.
 Internal API Mapping & Granular Permissions (Example action mappings in Technical Design Doc):
 The gateway maps the action string from the agent's request to specific internal V1 API endpoints and methods (as per Section 5).
-For granular permissions (e.g., an agent action corresponding to read:site_checkin_data or read:own_allocation_data), the gateway uses the authenticated agent's associated_user_id and/or associated_site_id to add necessary filtering parameters (e.g., user_id={id}, site_id={id}) to the internal V1 API calls. The V1 APIs are expected to enforce these filters based on the parameters provided by the gateway.
-Error Handling: The gateway handles its own errors (e.g., invalid agent request format, unmappable action) and relays errors from the internal V1 APIs in a standardized format to the agent, without exposing sensitive internal details.
+For granular permissions (e.g., an agent action corresponding to read:site_checkin_data or read:own:allocation_data), the gateway uses the authenticated agent's associated_user_id and/or associated_site_id to add necessary filtering parameters (e.g., user_id={id}, site_id={id}) to the internal V1 API calls. The V1 APIs are expected to enforce these filters based on the parameters provided by the gateway. Full implementation for all actions and granular permission logic based on agent identity is now complete as of Phase 2.
+Error Handling: The gateway handles its own errors (e.g., invalid agent request format, unmappable action) and relays errors from the internal V1 APIs in a standardized format to the agent, without exposing sensitive internal details. Basic error handling implemented and verified in Phase 1. Refined in Phase 2.
 Scalability: Designed to be extensible. New agent-accessible functionalities can be added by:
 Ensuring the underlying capability exists as an internal V1 API (Section 5).
 Defining a new action string for the agent.
@@ -157,7 +157,7 @@ Includes: header.php, footer.php, modals/ (staff modals).
 8. Database Schema (MySQL):
 (AUTO_INCREMENT/details omitted. Standard indexes assumed. FK relationships described.)
 ai_resume, ai_resume_logs, ai_resume_val: Unchanged.
-agent_api_keys (NEW):
+agent_api_keys:
 Comments: Stores dedicated API keys for AI agents to access the Unified API Gateway.
 Columns:
 id (INT NOT NULL AUTO_INCREMENT PRIMARY KEY)
@@ -167,9 +167,9 @@ associated_user_id (INT NULL COMMENT 'User ID in users table this agent might op
 associated_site_id (INT NULL COMMENT 'Site ID this agent might be primarily associated with for data scoping')
 permissions (TEXT NULL COMMENT 'Optional: For future gateway-level permission overrides, if needed. JSON or CSV.')
 created_at (TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)
-last_used_at (TIMESTAMP NULL DEFAULT NULL)
-revoked_at (DATETIME NULL DEFAULT NULL)
-Foreign Keys: associated_user_id -> users(id) ON DELETE SET NULL, associated_site_id -> sites(id) ON DELETE SET NULL.
+last_used_at (TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT 'Timestamp of the last successful use of this key')
+revoked_at (DATETIME NULL DEFAULT NULL COMMENT 'Timestamp if the key has been revoked')
+Foreign Keys: associated_user_id -> users(id) ON DELETE SET NULL, associated_site_id -> sites(id) ON DELETE SET NULL. Table structure created and added to schema documentation.
 api_keys: (Stores internal V1 API keys, including the one used by the Gateway)
 Columns: id, api_key_hash (UNIQUE), name, permissions, associated_user_id, associated_site_id, created_at, last_used_at, revoked_at.
 Foreign Keys: associated_user_id -> users(id), associated_site_id -> sites(id).
@@ -191,7 +191,7 @@ vendors: Unchanged.
 Root: budget_settings.php, budgets.php, index.php, checkins.php, kiosk_manual_handler.php, client_register.php, client_login.php, client_editor.php, reports.php.
 ajax_handlers/: Various AJAX handlers.
 api/v1/: Internal V1 API entry point (index.php), includes, handlers. openapi.yaml (for V1).
-api/gateway/ (NEW): Contains index.php (entry point for Unified API Gateway) and any necessary includes/handlers specific to the gateway logic.
+api/gateway/: Contains index.php (entry point for Unified API Gateway) and any necessary includes/handlers specific to the gateway logic. Directory and index.php created in Phase 1.
 budget_settings_panels/: Include files for budget tabs.
 client_portal/: Client-facing pages.
 config/: DB connection, constants.
@@ -228,35 +228,37 @@ Audit Logging for client data changes.
 13. Compliance and Legal:
 Data Retention, PII Handling, Email Opt-In (email_preference_jobs).
 14. Current Status & Next Steps:
-Completed/Resolved (Summary from v1.53):
+Completed/Resolved (Summary from v1.55):
 Core Staff features (Budget, User/Site Admin) largely functional.
 Client Account / QR Check-in / Service Info system functional.
 V1 API Foundation and specified endpoints (incl. /reports, Forum Read, Client Lookup) implemented and verified.
 Admin UI for V1 API Key Management implemented.
 Multiple API authentication/endpoint bugs resolved. Reports UI refactored.
-NEW: Unified API Gateway Technical Design Specification completed and approved.
+Unified API Gateway Technical Design Specification completed and approved.
+Unified API Gateway (Phase 1 - Core Functionality) Developed and Verified. This includes:
+agent_api_keys table created and schema documented.
+api/gateway/index.php endpoint setup.
+Agent-to-Gateway authentication implemented and verified.
+Gateway-to-Internal-V1-API authentication implemented and verified.
+Basic routing/mapping for fetchCheckinDetails and queryClients implemented and verified.
+Basic error handling implemented and verified.
+Database connection issue during agent authentication identified and resolved.
+Temporary debugging code removed.
+NEW: Unified API Gateway (Phase 2 - Full Mapping & Granular Permissions) Developed. This includes:
+Implementation of mapping logic for all remaining actions defined in the technical specification.
+Implementation of logic for granular permissions based on authenticated agent identity (associated_user_id, associated_site_id).
+Refinement of error handling for all actions.
 Known Issues: None critical not listed as pending.
 Required User Action:
 Perform system backup.
-Review and approve this Living Plan v1.54.
-Manually create initial agent_api_keys in the database for AI agent testing once the gateway is partially developed.
-Manually create and permission the dedicated internal API key (in api_keys table) for the Gateway to use.
+Review and approve this Living Plan v1.56.
+TEST Unified API Gateway Phase 2 Functionality: This is critical. Thoroughly test all implemented actions and verify that granular permissions (based on the associated_user_id and associated_site_id of the agent's API key) are correctly enforced. (See detailed testing instructions below).
+Continue to manually manage agent_api_keys in the database for testing/setup until a UI is developed (Future Enhancement).
+Ensure the dedicated internal API key for the Gateway (in api_keys table) remains configured with necessary V1 permissions.
 Required Developer Action (Next Focus - PRIORITY ORDER):
-Develop Unified API Gateway (Phase 1 - Core):
-Set up the gateway endpoint (api/gateway/index.php).
-Implement Agent-to-Gateway authentication (validate agent_api_keys).
-Implement Gateway-to-Internal-V1-API authentication (using its dedicated key).
-Implement basic routing/mapping logic for 2-3 initial actions (e.g., fetchCheckinDetails, queryClients).
-Implement basic error handling and response structure.
-Develop Unified API Gateway (Phase 2 - Full Mapping):
-Implement mapping for all actions defined in the technical specification, including parameter handling and invoking the correct V1 internal APIs.
-Implement logic for granular permissions based on authenticated agent identity (associated_user_id, associated_site_id).
-Refine error handling.
 Refinements to existing Staff UI modules as needed or if critical bugs arise (ongoing/as needed).
 (Deferred to near Deployment):
-Complete Pending Security Items (from Section 12): Upload Directory Hardening, XSS review, FK error handling.
-Database Schema Setup:
-AI Developer to provide SQL script to create the new agent_api_keys table.
+Complete Pending Security Items (from Section 12): Upload Directory Hardening, XSS review, Robust FK error handling.
 15. Future Enhancements (Post-MVP, Client System & Gateway Stabilization):
 Site Outreach Coordinator Capability.
 Dedicated Permissions Checking API Endpoint (via Gateway).
@@ -274,9 +276,9 @@ User Lookup API Endpoints (V1 internal, exposed via Gateway action).
 Site Information API Endpoints (V1 internal, exposed via Gateway action).
 Expand Gateway capabilities as new internal V1 APIs are developed.
 16. Implementation Plan & Process:
-Use Living Plan v1.54 as Single Source of Truth.
-Priority: Development of the Unified API Gateway (as outlined in Section 14) is the primary focus for the AI Developer.
-Iterative development for the Gateway: Phase 1 (core functionality, few actions), then Phase 2 (full action mapping, granular permissions).
+Use Living Plan v1.56 as Single Source of Truth.
+Priority: User testing and verification of Unified API Gateway Phase 2 functionality is the immediate priority. Developer focus shifts to general refinements and deferred security items once testing is complete.
+Iterative development for the Gateway: Phase 1 (core functionality, few actions - COMPLETED), Phase 2 (full action mapping, granular permissions - COMPLETED).
 Require clear code comments, especially around gateway logic (action mapping, auth, internal API calls), V1 API permission logic, session checks, data handling, and security measures.
 User (Robert) responsible for providing context, testing, reporting results, and requesting plan updates.
 PM (AI) responsible for plan maintenance, context, task breakdown based on the plan.

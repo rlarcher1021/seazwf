@@ -9,60 +9,7 @@ header('Content-Type: application/json');
 // Assuming db_connect.php provides a $conn (mysqli or PDO) object
 require_once __DIR__ . '/../../includes/db_connect.php';
 
-// DEBUG START - PDO Status After Include
-$debug_timestamp_after_include = date('[Y-m-d H:i:s] ');
-$pdo_status_in_gateway = 'Not set or invalid in gateway';
-if (isset($pdo)) {
-    if ($pdo instanceof PDO) {
-        $pdo_status_in_gateway = 'PDO object successfully available in gateway.';
-        // Optionally, you could try a minimal check like $pdo->getAttribute(PDO::ATTR_SERVER_INFO)
-        // but be cautious of exceptions if connection truly failed in db_connect.php
-        try {
-            $server_info = $pdo->getAttribute(PDO::ATTR_SERVER_VERSION); // Light check
-            $pdo_status_in_gateway .= ' Server version: ' . $server_info;
-        } catch (PDOException $e) {
-            $pdo_status_in_gateway .= ' Error during light check: ' . $e->getMessage();
-        }
-    } else {
-        $pdo_status_in_gateway = 'Variable $pdo is set in gateway, but not a PDO object. Type: ' . gettype($pdo);
-    }
-}
-$log_message_pdo_in_gateway = $debug_timestamp_after_include . "Gateway: PDO Status After Include: " . $pdo_status_in_gateway . PHP_EOL;
-file_put_contents(__DIR__ . '/debug.log', $log_message_pdo_in_gateway, FILE_APPEND | LOCK_EX);
-// DEBUG END - PDO Status After Include
 
-// DEBUG START - Header Inspection
-$debug_timestamp_headers = date('[Y-m-d H:i:s] ');
-if (function_exists('getallheaders')) {
-    $all_headers_arr = getallheaders();
-} else {
-    $all_headers_arr = [];
-    foreach ($_SERVER as $name => $value) {
-        if (substr($name, 0, 5) == 'HTTP_') {
-            $header_name = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))));
-            $all_headers_arr[$header_name] = $value;
-        } elseif ($name == 'CONTENT_TYPE') {
-            $all_headers_arr['Content-Type'] = $value;
-        } elseif ($name == 'CONTENT_LENGTH') {
-            $all_headers_arr['Content-Length'] = $value;
-        }
-    }
-}
-$log_message_headers = $debug_timestamp_headers . "All Headers: " . json_encode($all_headers_arr) . PHP_EOL;
-file_put_contents(__DIR__ . '/debug.log', $log_message_headers, FILE_APPEND | LOCK_EX);
-
-$auth_header_value = isset($_SERVER['HTTP_AUTHORIZATION']) ? $_SERVER['HTTP_AUTHORIZATION'] : 'Not set';
-$log_message_auth = $debug_timestamp_headers . "Authorization Header: " . $auth_header_value . PHP_EOL;
-file_put_contents(__DIR__ . '/debug.log', $log_message_auth, FILE_APPEND | LOCK_EX);
-
-$x_api_key_value = isset($_SERVER['HTTP_X_AGENT_API_KEY']) ? $_SERVER['HTTP_X_AGENT_API_KEY'] : 'Not set';
-$log_message_x_key = $debug_timestamp_headers . "X-Agent-API-Key Header: " . $x_api_key_value . PHP_EOL;
-file_put_contents(__DIR__ . '/debug.log', $log_message_x_key, FILE_APPEND | LOCK_EX);
-
-$raw_request_body_content = file_get_contents('php://input');
-$log_message_body = $debug_timestamp_headers . "Raw Request Body: " . ($raw_request_body_content ?: 'Empty or not readable') . PHP_EOL;
-file_put_contents(__DIR__ . '/debug.log', $log_message_body, FILE_APPEND | LOCK_EX);
-// DEBUG END - Header Inspection
 
 // Placeholder for the Gateway's dedicated internal V1 API Key
 define('INTERNAL_API_KEY_PLACEHOLDER', 'e6e532dd83d0456d163c7f38b6a0f6d96930e67bf627eb2ef1b987c0a3a5da79');
@@ -196,11 +143,6 @@ if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
 } elseif (isset($_SERVER['HTTP_X_AGENT_API_KEY'])) {
     $agentApiKey = $_SERVER['HTTP_X_AGENT_API_KEY'];
 }
-// DEBUG START - Extracted API Key
-$debug_timestamp_extraction = date('[Y-m-d H:i:s] ');
-$log_message_extracted_key = $debug_timestamp_extraction . "Attempted Extracted Agent API Key: " . ($agentApiKey ? $agentApiKey : 'NULL or Empty') . PHP_EOL;
-file_put_contents(__DIR__ . '/debug.log', $log_message_extracted_key, FILE_APPEND | LOCK_EX);
-// DEBUG END - Extracted API Key
 
 if (!$agentApiKey) {
     send_error_response(401, 'AUTHENTICATION_FAILED', 'API key is missing.');
@@ -208,28 +150,6 @@ if (!$agentApiKey) {
 
 // Prepare to query the database for the API key
 // Ensure $pdo is available from db_connect.php
-// DEBUG START - Database Connection Status Before Agent Auth Query
-$debug_timestamp_db_auth_check = date('[Y-m-d H:i:s] ');
-$db_auth_conn_status = 'Not set or invalid before agent auth query';
-$db_auth_conn_error = '';
-if (isset($pdo)) {
-    if ($pdo instanceof PDO) {
-        $db_auth_conn_status = 'PDO object available before agent auth query.';
-        try {
-            // A light check to see if the connection is alive
-            $pdo->getAttribute(PDO::ATTR_CONNECTION_STATUS);
-            $db_auth_conn_status .= ' (Connection attribute readable)';
-        } catch (PDOException $e) {
-            $db_auth_conn_status .= ' (Error getting connection attribute: ' . $e->getMessage() . ')';
-            $db_auth_conn_error = $e->getMessage();
-        }
-    } else {
-        $db_auth_conn_status = '$pdo is set, but not a PDO object before agent auth query. Type: ' . gettype($pdo);
-    }
-}
-$log_message_db_auth_conn = $debug_timestamp_db_auth_check . "Gateway Auth: DB Connection Status: " . $db_auth_conn_status . ($db_auth_conn_error ? " Error: " . $db_auth_conn_error : "") . PHP_EOL;
-file_put_contents(__DIR__ . '/debug.log', $log_message_db_auth_conn, FILE_APPEND | LOCK_EX);
-// DEBUG END - Database Connection Status Before Agent Auth Query
 
 if (!isset($pdo) || !($pdo instanceof PDO)) { // Simplified check for PDO
     // Log this critical error, as it means the gateway cannot function
@@ -251,61 +171,25 @@ try {
     if ($pdo instanceof PDO) { // Corrected to use $pdo
         $sql = "SELECT id, agent_name, key_hash, associated_user_id, associated_site_id, permissions, revoked_at FROM agent_api_keys WHERE revoked_at IS NULL";
 
-        // DEBUG START - SQL Query Logging (PDO)
-        $debug_timestamp_sql_pdo = date('[Y-m-d H:i:s] ');
-        $log_message_sql_pdo = $debug_timestamp_sql_pdo . "SQL Query (PDO): " . $sql . PHP_EOL;
-        file_put_contents(__DIR__ . '/debug.log', $log_message_sql_pdo, FILE_APPEND | LOCK_EX);
-        // DEBUG END - SQL Query Logging (PDO)
 
         $stmt = $pdo->prepare($sql); // Corrected to use $pdo
 
-        // DEBUG START - Query Preparation Status (PDO)
-        $debug_timestamp_prep_pdo = date('[Y-m-d H:i:s] ');
-        $log_message_prep_pdo = $debug_timestamp_prep_pdo . "Query Preparation (PDO): " . ($stmt ? "Successful" : "Failed - " . json_encode($pdo->errorInfo())) . PHP_EOL; // Corrected to use $pdo
-        file_put_contents(__DIR__ . '/debug.log', $log_message_prep_pdo, FILE_APPEND | LOCK_EX);
-        // DEBUG END - Query Preparation Status (PDO)
 
         if ($stmt) {
             $exec_success = $stmt->execute();
 
-            // DEBUG START - Query Execution Result (PDO)
-            $debug_timestamp_exec_pdo = date('[Y-m-d H:i:s] ');
-            $log_message_exec_pdo = $debug_timestamp_exec_pdo . "Query Execution (PDO): " . ($exec_success ? "Successful" : "Failed - " . json_encode($stmt->errorInfo())) . PHP_EOL;
-            file_put_contents(__DIR__ . '/debug.log', $log_message_exec_pdo, FILE_APPEND | LOCK_EX);
-            // DEBUG END - Query Execution Result (PDO)
 
             if ($exec_success) {
                  // PDO doesn't have a direct num_rows equivalent for SELECT * without fetching first.
                  // We'll log row count after fetching.
 
                 while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                    // DEBUG START - Row Data and password_verify (PDO)
-                    $debug_timestamp_row_pdo = date('[Y-m-d H:i:s] ');
-                    $log_message_row_pdo = $debug_timestamp_row_pdo . "Fetched Row (PDO): " . json_encode($row) . PHP_EOL;
-                    file_put_contents(__DIR__ . '/debug.log', $log_message_row_pdo, FILE_APPEND | LOCK_EX);
-
-                    $key_hash_pdo = isset($row['key_hash']) ? $row['key_hash'] : 'N/A';
-                    $log_message_hash_pdo = $debug_timestamp_row_pdo . "Key Hash from DB (PDO): " . $key_hash_pdo . PHP_EOL;
-                    file_put_contents(__DIR__ . '/debug.log', $log_message_hash_pdo, FILE_APPEND | LOCK_EX);
-
-                    $password_verify_result_pdo = password_verify($agentApiKey, $row['key_hash']);
-                    $log_message_verify_pdo = $debug_timestamp_row_pdo . "password_verify result (PDO): " . ($password_verify_result_pdo ? 'True' : 'False') . PHP_EOL;
-                    file_put_contents(__DIR__ . '/debug.log', $log_message_verify_pdo, FILE_APPEND | LOCK_EX);
-                    // DEBUG END - Row Data and password_verify (PDO)
-
-                    if ($password_verify_result_pdo) {
+                    // Verify the provided API key against the hashed key from the database
+                    if (password_verify($agentApiKey, $row['key_hash'])) {
                         $keyRecord = $row;
                         break;
                     }
                 }
-                 // DEBUG START - Row Count (PDO) - Logged after fetching
-                $debug_timestamp_rows_pdo = date('[Y-m-d H:i:s] ');
-                // To get row count in PDO after fetching, you might need to rewind or re-query,
-                // or fetch all into an array first. For simple logging, we'll just note if a record was found.
-                // A more accurate count would require fetching all into an array and counting.
-                $log_message_rows_pdo = $debug_timestamp_rows_pdo . "Row Count (PDO): Logged after fetching. Check if keyRecord is set below." . PHP_EOL;
-                file_put_contents(__DIR__ . '/debug.log', $log_message_rows_pdo, FILE_APPEND | LOCK_EX);
-                // DEBUG END - Row Count (PDO)
             }
         }
         if ($stmt) {
@@ -314,31 +198,15 @@ try {
     } else {
         // This case should ideally not be reached if db_connect.php always provides a PDO $pdo object
         // or exits on failure.
-        $debug_timestamp_no_db_type = date('[Y-m-d H:i:s] ');
-        $log_message_no_db_type = $debug_timestamp_no_db_type . "Gateway Auth: DB object \$pdo was not a PDO instance. Type: " . (isset($pdo) ? gettype($pdo) : 'not set') . PHP_EOL;
-        file_put_contents(__DIR__ . '/debug.log', $log_message_no_db_type, FILE_APPEND | LOCK_EX);
         // This implies a problem with db_connect.php or the $pdo variable being overwritten.
         // The earlier check `if (!isset($pdo) || !($pdo instanceof PDO))` should catch this.
     }
 } catch (Exception $e) {
-    // DEBUG START - Exception Logging
-    $debug_timestamp_exception = date('[Y-m-d H:i:s] ');
-    $log_message_exception = $debug_timestamp_exception . "Caught Exception during DB interaction: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine() . PHP_EOL;
-    file_put_contents(__DIR__ . '/debug.log', $log_message_exception, FILE_APPEND | LOCK_EX);
-    // DEBUG END - Exception Logging
     error_log("Gateway DB Error: " . $e->getMessage());
     send_error_response(500, 'DATABASE_ERROR', 'Error during agent authentication.');
 }
 
 
-// DEBUG START - DB Query Check
-$debug_timestamp_db_check = date('[Y-m-d H:i:s] ');
-$log_message_db_key_lookup = $debug_timestamp_db_check . "DB Check: API Key used for lookup: " . ($agentApiKey ? $agentApiKey : 'NULL or Empty') . PHP_EOL;
-file_put_contents(__DIR__ . '/debug.log', $log_message_db_key_lookup, FILE_APPEND | LOCK_EX);
-
-$log_message_db_found_record = $debug_timestamp_db_check . "DB Check: Key Record Found in agent_api_keys: " . ($keyRecord ? 'Yes (ID: ' . $keyRecord['id'] . ', Agent: ' . $keyRecord['agent_name'] . ')' : 'No') . PHP_EOL;
-file_put_contents(__DIR__ . '/debug.log', $log_message_db_found_record, FILE_APPEND | LOCK_EX);
-// DEBUG END - DB Query Check
 if (!$keyRecord) {
     send_error_response(401, 'AUTHENTICATION_FAILED', 'Invalid or revoked API key.');
 }
@@ -381,7 +249,7 @@ if (!isset($requestData['action']) || !is_string($requestData['action'])) {
     send_error_response(400, 'MISSING_ACTION', 'Required "action" parameter is missing or not a string.');
 }
 
-$action = $requestData['action'];
+$action = lcfirst(trim($requestData['action']));
 $params = isset($requestData['params']) && is_array($requestData['params']) ? $requestData['params'] : [];
 
 // --- Action Routing & Mapping ---
@@ -426,6 +294,274 @@ switch ($action) {
              send_error_response(
                 $internalResponse['http_code'] ?: 500, 
                 'INTERNAL_API_ERROR', 
+                $internalResponse['message'],
+                isset($internalResponse['response_body']) ? ['internal_response' => $internalResponse['response_body']] : null
+            );
+        }
+        send_success_response($internalResponse);
+        break;
+
+    case 'queryCheckins':
+        // Permissions: read:all_checkin_data, read:site_checkin_data
+        // Optional params: site_id, start_date, end_date, limit, page
+        $allowedV1Params = ['site_id', 'start_date', 'end_date', 'limit', 'page'];
+        $v1QueryParams = [];
+
+        // Apply granular permission for site_id if agent has an associated_site_id
+        if (!empty($authenticated_agent_info['associated_site_id'])) {
+            // If agent's key is tied to a specific site, enforce it.
+            // This overrides any site_id provided in params, as per initial simpler approach.
+            $v1QueryParams['site_id'] = $authenticated_agent_info['associated_site_id'];
+        } elseif (isset($params['site_id'])) {
+            // Only use agent-provided site_id if their key is not restricted to a specific site.
+            $v1QueryParams['site_id'] = $params['site_id'];
+        }
+
+        // Process other allowed parameters
+        foreach ($allowedV1Params as $paramName) {
+            if ($paramName === 'site_id' && isset($v1QueryParams['site_id'])) {
+                continue; // site_id already handled by permission logic
+            }
+            if (isset($params[$paramName])) {
+                $v1QueryParams[$paramName] = $params[$paramName];
+            }
+        }
+        
+        $internalResponse = call_internal_api('GET', '/checkins', $v1QueryParams);
+
+        if (isset($internalResponse['error'])) {
+            send_error_response(
+                $internalResponse['http_code'] ?: 500,
+                'INTERNAL_API_ERROR',
+                $internalResponse['message'],
+                isset($internalResponse['response_body']) ? ['internal_response' => $internalResponse['response_body']] : null
+            );
+        }
+        send_success_response($internalResponse);
+        break;
+
+    case 'addCheckinNote':
+        // Permission: create:checkin_note (handled by V1 API based on gateway's internal key)
+        // Required params: checkin_id, note_text
+        if (!isset($params['checkin_id'])) {
+            send_error_response(400, 'INVALID_PARAMS', 'Missing required parameter "checkin_id" for action "addCheckinNote".');
+        }
+        if (!isset($params['note_text'])) {
+            send_error_response(400, 'INVALID_PARAMS', 'Missing required parameter "note_text" for action "addCheckinNote".');
+        }
+
+        $checkinId = $params['checkin_id'];
+        $noteText = $params['note_text'];
+
+        if (!is_numeric($checkinId) || $checkinId <= 0) {
+            send_error_response(400, 'INVALID_PARAMS', '"checkin_id" must be a positive integer for "addCheckinNote".');
+        }
+        if (!is_string($noteText) || empty(trim($noteText))) {
+            send_error_response(400, 'INVALID_PARAMS', '"note_text" must be a non-empty string for "addCheckinNote".');
+        }
+
+        $internalApiParams = ['note_text' => $noteText];
+        $internalResponse = call_internal_api('POST', '/checkins/' . intval($checkinId) . '/notes', $internalApiParams);
+
+        if (isset($internalResponse['error'])) {
+            send_error_response(
+                $internalResponse['http_code'] ?: 500,
+                'INTERNAL_API_ERROR',
+                $internalResponse['message'],
+                isset($internalResponse['response_body']) ? ['internal_response' => $internalResponse['response_body']] : null
+            );
+        }
+        // V1 API for addCheckinNote returns 201 Created with the note data.
+        // send_success_response by default sends 200. We should align if possible,
+        // or ensure the agent understands the gateway's 200 means the V1's 201 was successful.
+        // For now, stick to existing send_success_response which sends 200.
+        send_success_response($internalResponse, 'Check-in note added successfully.'); // Or use $internalResponse directly if it contains a success message
+        break;
+
+    case 'queryAllocations':
+        // Permissions: read:budget_allocations, read:all_allocation_data, read:own_allocation_data
+        // Optional params: fiscal_year, grant_id, user_id, department_id, budget_id, page, limit
+        $allowedV1Params = ['fiscal_year', 'grant_id', 'user_id', 'department_id', 'budget_id', 'page', 'limit'];
+        $v1QueryParams = [];
+
+        // Apply granular permission for user_id if agent has an associated_user_id
+        // This is relevant for the 'read:own_allocation_data' scope.
+        // The V1 API /allocations endpoint is expected to filter by user_id if provided.
+        if (!empty($authenticated_agent_info['associated_user_id'])) {
+            // If agent's key is tied to a specific user, enforce it for 'own_allocation_data' scenarios.
+            // The V1 API should handle filtering if user_id is passed.
+            // We assume if associated_user_id is present, it's for "own data" type access.
+            $v1QueryParams['user_id'] = $authenticated_agent_info['associated_user_id'];
+        } elseif (isset($params['user_id'])) {
+            // Only use agent-provided user_id if their key is not restricted to a specific user.
+            $v1QueryParams['user_id'] = $params['user_id'];
+        }
+        
+        // Process other allowed parameters
+        foreach ($allowedV1Params as $paramName) {
+            if ($paramName === 'user_id' && isset($v1QueryParams['user_id'])) {
+                continue; // user_id already handled by permission logic
+            }
+            if (isset($params[$paramName])) {
+                $v1QueryParams[$paramName] = $params[$paramName];
+            }
+        }
+
+        $internalResponse = call_internal_api('GET', '/allocations', $v1QueryParams);
+
+        if (isset($internalResponse['error'])) {
+            send_error_response(
+                $internalResponse['http_code'] ?: 500,
+                'INTERNAL_API_ERROR',
+                $internalResponse['message'],
+                isset($internalResponse['response_body']) ? ['internal_response' => $internalResponse['response_body']] : null
+            );
+        }
+        send_success_response($internalResponse);
+        break;
+
+    case 'createForumPost':
+        // Permission: create:forum_post (handled by V1 API)
+        // Required params: topic_id, post_body
+        if (!isset($params['topic_id'])) {
+            send_error_response(400, 'INVALID_PARAMS', 'Missing required parameter "topic_id" for action "createForumPost".');
+        }
+        if (!isset($params['post_body'])) {
+            send_error_response(400, 'INVALID_PARAMS', 'Missing required parameter "post_body" for action "createForumPost".');
+        }
+
+        $topicId = $params['topic_id'];
+        $postBody = $params['post_body'];
+
+        if (!is_numeric($topicId) || $topicId <= 0) {
+            send_error_response(400, 'INVALID_PARAMS', '"topic_id" must be a positive integer for "createForumPost".');
+        }
+        if (!is_string($postBody) || empty(trim($postBody))) {
+            send_error_response(400, 'INVALID_PARAMS', '"post_body" must be a non-empty string for "createForumPost".');
+        }
+
+        $internalApiParams = ['topic_id' => intval($topicId), 'post_body' => $postBody];
+        $internalResponse = call_internal_api('POST', '/forum/posts', $internalApiParams);
+
+        if (isset($internalResponse['error'])) {
+            send_error_response(
+                $internalResponse['http_code'] ?: 500,
+                'INTERNAL_API_ERROR',
+                $internalResponse['message'],
+                isset($internalResponse['response_body']) ? ['internal_response' => $internalResponse['response_body']] : null
+            );
+        }
+        send_success_response($internalResponse, 'Forum post created successfully.');
+        break;
+
+    case 'generateReports':
+        // Permission: generate:reports (V1 API handles specific report type permissions)
+        // Required param: type
+        // Optional params: start_date, end_date, site_id, limit, page (common)
+        if (!isset($params['type'])) {
+            send_error_response(400, 'INVALID_PARAMS', 'Missing required parameter "type" for action "generateReports".');
+        }
+        if (!is_string($params['type']) || empty(trim($params['type']))) {
+            send_error_response(400, 'INVALID_PARAMS', '"type" must be a non-empty string for "generateReports".');
+        }
+
+        $v1QueryParams = ['type' => $params['type']];
+        $allowedV1Params = ['start_date', 'end_date', 'site_id', 'limit', 'page']; // Add other V1 supported params as needed
+
+        // Apply granular permission for site_id if agent has an associated_site_id
+        if (!empty($authenticated_agent_info['associated_site_id'])) {
+            $v1QueryParams['site_id'] = $authenticated_agent_info['associated_site_id'];
+        } elseif (isset($params['site_id'])) {
+            $v1QueryParams['site_id'] = $params['site_id'];
+        }
+
+        foreach ($allowedV1Params as $paramName) {
+            if ($paramName === 'site_id' && isset($v1QueryParams['site_id'])) {
+                continue;
+            }
+            if (isset($params[$paramName])) {
+                $v1QueryParams[$paramName] = $params[$paramName];
+            }
+        }
+
+        $internalResponse = call_internal_api('GET', '/reports', $v1QueryParams);
+
+        if (isset($internalResponse['error'])) {
+            send_error_response(
+                $internalResponse['http_code'] ?: 500,
+                'INTERNAL_API_ERROR',
+                $internalResponse['message'],
+                isset($internalResponse['response_body']) ? ['internal_response' => $internalResponse['response_body']] : null
+            );
+        }
+        send_success_response($internalResponse);
+        break;
+
+    case 'readAllForumPosts':
+        // Permission: read:all_forum_posts (handled by V1 API)
+        // Optional params: page, limit
+        $allowedV1Params = ['page', 'limit'];
+        $v1QueryParams = [];
+        foreach ($allowedV1Params as $paramName) {
+            if (isset($params[$paramName])) {
+                $v1QueryParams[$paramName] = $params[$paramName];
+            }
+        }
+
+        $internalResponse = call_internal_api('GET', '/forum/posts', $v1QueryParams);
+
+        if (isset($internalResponse['error'])) {
+            send_error_response(
+                $internalResponse['http_code'] ?: 500,
+                'INTERNAL_API_ERROR',
+                $internalResponse['message'],
+                isset($internalResponse['response_body']) ? ['internal_response' => $internalResponse['response_body']] : null
+            );
+        }
+        send_success_response($internalResponse);
+        break;
+
+    case 'readRecentForumPosts':
+        // Permission: read:recent_forum_posts (handled by V1 API)
+        // Optional params: limit
+        $allowedV1Params = ['limit'];
+        $v1QueryParams = [];
+        foreach ($allowedV1Params as $paramName) {
+            if (isset($params[$paramName])) {
+                $v1QueryParams[$paramName] = $params[$paramName];
+            }
+        }
+
+        $internalResponse = call_internal_api('GET', '/forum/posts/recent', $v1QueryParams);
+
+        if (isset($internalResponse['error'])) {
+            send_error_response(
+                $internalResponse['http_code'] ?: 500,
+                'INTERNAL_API_ERROR',
+                $internalResponse['message'],
+                isset($internalResponse['response_body']) ? ['internal_response' => $internalResponse['response_body']] : null
+            );
+        }
+        send_success_response($internalResponse);
+        break;
+
+    case 'fetchClientDetails':
+        // Permission: read:client_data (handled by V1 API)
+        // Required param: client_id
+        if (!isset($params['client_id'])) {
+            send_error_response(400, 'INVALID_PARAMS', 'Missing required parameter "client_id" for action "fetchClientDetails".');
+        }
+        $clientId = $params['client_id'];
+        if (!is_numeric($clientId) || $clientId <= 0) {
+            send_error_response(400, 'INVALID_PARAMS', '"client_id" must be a positive integer for "fetchClientDetails".');
+        }
+
+        $internalResponse = call_internal_api('GET', '/clients/' . intval($clientId));
+
+        if (isset($internalResponse['error'])) {
+            send_error_response(
+                $internalResponse['http_code'] ?: 500,
+                'INTERNAL_API_ERROR',
                 $internalResponse['message'],
                 isset($internalResponse['response_body']) ? ['internal_response' => $internalResponse['response_body']] : null
             );
