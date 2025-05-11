@@ -19,6 +19,21 @@ define('INTERNAL_API_V1_BASE_URL', 'https://seazwf.com/api/v1'); // Adjust if yo
 // --- Helper Functions ---
 
 /**
+ * Logs a message to the gateway's debug.log file.
+ * @param string $message The message to log.
+ */
+function log_gateway_debug($message) {
+    $logFilePath = __DIR__ . '/debug.log'; // Ensures it's in the same directory as index.php
+    $timestamp = date('Y-m-d H:i:s');
+    $logEntry = "[{$timestamp}] Agent: " . ($GLOBALS['authenticated_agent_info']['name'] ?? 'Unknown') . " - {$message}\n";
+    // Use FILE_APPEND to add to the file, and LOCK_EX to prevent concurrent writes issues
+    if (file_put_contents($logFilePath, $logEntry, FILE_APPEND | LOCK_EX) === false) {
+        // Fallback or error notification if writing to debug.log fails
+        error_log("CRITICAL: Failed to write to gateway debug log: {$logFilePath}. Message: {$message}");
+    }
+}
+
+/**
  * Sends a JSON response.
  * @param int $statusCode HTTP status code.
  * @param array $data The data to send.
@@ -407,6 +422,15 @@ switch ($action) {
             }
         }
 
+// --- BEGIN DEBUG LOGS FOR queryAllocations ---
+        log_gateway_debug("queryAllocations - Authenticated agent associated_user_id: " . ($authenticated_agent_info['associated_user_id'] ?? 'NOT SET'));
+
+        $log_internal_api_url = INTERNAL_API_V1_BASE_URL . '/allocations';
+        if (!empty($v1QueryParams)) {
+            $log_internal_api_url .= '?' . http_build_query($v1QueryParams);
+        }
+        log_gateway_debug("queryAllocations - Calling internal API URL: " . $log_internal_api_url);
+        // --- END DEBUG LOGS FOR queryAllocations ---
         $internalResponse = call_internal_api('GET', '/allocations', $v1QueryParams);
 
         if (isset($internalResponse['error'])) {

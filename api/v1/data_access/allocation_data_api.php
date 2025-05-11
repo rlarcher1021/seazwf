@@ -65,6 +65,17 @@ function getAllocations(PDO $pdo, array $queryParams): array
         $params[':budget_id'] = $budgetId;
     }
 
+    // User ID (Validate as positive integer, for filtering by creator)
+    if (isset($queryParams['user_id']) && $queryParams['user_id'] !== '') {
+        $userId = filter_var($queryParams['user_id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if ($userId === false) {
+            // If it's set and not empty, but still invalid, then throw error
+            throw new InvalidArgumentException('Invalid query parameter format for user_id. Must be a positive integer.');
+        }
+        $filters[] = "ba.created_by_user_id = :user_id"; // Use named placeholder
+        $params[':user_id'] = $userId;
+    }
+
     // Pagination
     $page = filter_var($queryParams['page'] ?? 1, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
     $limit = filter_var($queryParams['limit'] ?? 50, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 100]]); // Max limit 100
