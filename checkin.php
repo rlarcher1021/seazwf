@@ -246,6 +246,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
          $notified_staff_id = null;
     }
 
+error_log("[DEBUG checkin.php POST] Site ID for checkin: " . $site_id);
+error_log("[DEBUG checkin.php POST] Raw \$_POST['notify_staff']: " . ($_POST['notify_staff'] ?? 'NOT SET'));
+error_log("[DEBUG checkin.php POST] \$notified_staff_id (users.id or null) before save: " . print_r($notified_staff_id, true));
+error_log("[DEBUG checkin.php POST] \$staff_notifiers array structure: " . print_r($staff_notifiers, true));
     // If no validation errors, proceed to save
     if (empty($errors)) {
         // Prepare data array for the saveCheckin function
