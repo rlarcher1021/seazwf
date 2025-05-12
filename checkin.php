@@ -215,12 +215,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Validate dynamic questions
     $question_answers = [];
     foreach ($assigned_questions as $question) {
-        $q_key = 'q_' . $question['global_question_id'];
+        $q_key = 'q_' . $question['id']; // Use 'id' as aliased in getActiveQuestionsForSite
         $answer = filter_input(INPUT_POST, $q_key, FILTER_SANITIZE_SPECIAL_CHARS);
         $question_title_base = $question['question_title'];
 
         if (empty($question_title_base)) {
-            error_log("Checkin Warning: Global Question ID {$question['global_question_id']} missing title/base_name for site {$site_id}.");
+            error_log("Checkin Warning: Global Question ID {$question['id']} missing title/base_name for site {$site_id}."); // Use 'id' here as well
             continue;
         }
         $db_column_name = 'q_' . sanitize_title_to_base_name($question_title_base);

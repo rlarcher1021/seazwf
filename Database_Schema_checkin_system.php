@@ -1,558 +1,663 @@
-Database Schema (MySQL):
+-- --------------------------------------------------------
+-- Table: agent_api_keys
+-- Comments: Stores dedicated API keys for AI agents to access the Unified API Gateway.
+-- Foreign Keys: associated_user_id -> users(id) (ON DELETE SET NULL), associated_site_id -> sites(id) (ON DELETE SET NULL)
+-- --------------------------------------------------------
+agent_api_keys
+Column	Type	Null	Default	Comments
+id (Primary)	int(11)	No		-- Auto Increment assumed
+agent_name	varchar(255)	No		Descriptive name for the AI agent/client using the key
+key_hash	varchar(255)	No		Hashed version of the API key (do not store raw key) -- Unique
+associated_user_id	int(11)	Yes	NULL	Optional: User ID in the main system this agent acts on behalf of
+associated_site_id	int(11)	Yes	NULL	Optional: Site ID this agent is primarily associated with
+permissions	text	Yes	NULL	JSON encoded permissions structure for future granular control (Phase 2)
+created_at	timestamp	No	current_timestamp()
+last_used_at	timestamp	Yes	NULL	Timestamp of the last successful use of this key
+revoked_at	datetime	Yes	NULL	Timestamp if the key has been revoked
+Indexes
+Keyname	Type	Unique	Packed	Column	Cardinality	Collation	Null	Comment
+PRIMARY	BTREE	Yes	No	id	1	A	No
+key_hash	BTREE	Yes	No	key_hash	1	A	No
+fk_agent_keys_user	BTREE	No	No	associated_user_id	1	A	Yes	-- Implicit FK to users.id
+fk_agent_keys_site	BTREE	No	No	associated_site_id	1	A	Yes	-- Implicit FK to sites.id
+
+-- --------------------------------------------------------
+-- Table: ai_resume
+-- Comments: Stores records related to AI Resume generation requests.
+-- Foreign Keys: user_id -> users.id (Implicit)
+-- --------------------------------------------------------
 ai_resume
-Comments: None provided in dump
-Columns:
-id: bigint(20), NOT NULL (Primary)
-client_name: varchar(255), NULL
-email: varchar(255), NULL
-user_id: int(11), NULL
-job_applied: varchar(255), NULL
-threadsID: varchar(255), NULL - Identifier from the AI interaction/thread
-request: text, NULL - Details of the request made
-status: varchar(255), NOT NULL - e.g., Success, Fail reason
-request_status: enum('queued', 'running', 'done', 'error'), NULL - queued
-created_at: datetime, NOT NULL - current_timestamp() - Date and time the record was created
-Indexes:
-PRIMARY (id)
-idx_threadsID (threadsID)
-idx_email (email)
-idx_created_at (created_at)
-idx_airesume_user (user\_id)
-Foreign Keys: Implicitly user_id -> users.id
+Column	Type	Null	Default	Comments
+id (Primary)	bigint(20)	No
+client_name	varchar(255)	Yes	NULL
+email	varchar(255)	Yes	NULL
+user_id	int(11)	Yes	NULL	-- Likely FK to users.id
+job_applied	varchar(255)	Yes	NULL
+threadsID	varchar(255)	Yes	NULL	Identifier from the AI interaction/thread
+request	text	Yes	NULL	Details of the request made
+status	varchar(255)	No		e.g., Success, Fail reason
+request_status	enum('queued', 'running', 'done', 'error')	Yes	queued
+created_at	datetime	No	current_timestamp()	Date and time the record was created
+Indexes
+Keyname	Type	Unique	Packed	Column	Cardinality	Collation	Null	Comment
+PRIMARY	BTREE	Yes	No	id	0	A	No
+idx_threadsID	BTREE	No	No	threadsID	0	A	Yes
+idx_email	BTREE	No	No	email	0	A	Yes
+idx_created_at	BTREE	No	No	created_at	0	A	No
+idx_airesume_user	BTREE	No	No	user_id	0	A	Yes	-- Index supporting potential FK
+
+-- --------------------------------------------------------
+-- Table: ai_resume_logs
+-- Comments: Stores logs for specific AI Resume generation events.
+-- Foreign Keys: resume_id -> ai_resume.id (Implicit from index name)
+-- --------------------------------------------------------
 ai_resume_logs
-Comments: None provided in dump
-Columns:
-id: bigint(20), NOT NULL (Primary)
-resume_id: bigint(20), NOT NULL
-event: varchar(50), NOT NULL
-details: text, NULL
-created_at: timestamp, NOT NULL - current_timestamp()
-Indexes:
-PRIMARY (id)
-fk_ai_logs_resume (resume_id)
-Foreign Keys: resume_id -> ai_resume.id (Implicit from index name)
+Column	Type	Null	Default	Comments
+id (Primary)	bigint(20)	No
+resume_id	bigint(20)	No		-- FK to ai_resume.id
+event	varchar(50)	No
+details	text	Yes	NULL
+created_at	timestamp	No	current_timestamp()
+Indexes
+Keyname	Type	Unique	Packed	Column	Cardinality	Collation	Null	Comment
+PRIMARY	BTREE	Yes	No	id	0	A	No
+fk_ai_logs_resume	BTREE	No	No	resume_id	0	A	No	-- Index supporting FK
+
+-- --------------------------------------------------------
+-- Table: ai_resume_val
+-- Comments: Stores validation or signup information related to AI resume features.
+-- Foreign Keys: user_id -> users.id (Implicit from index name)
+-- --------------------------------------------------------
 ai_resume_val
-Comments: None provided in dump
-Columns:
-id: bigint(20), NOT NULL (Primary)
-name: varchar(255), NULL
-email: varchar(255), NOT NULL
-user_id: int(11), NULL
-site: varchar(100), NULL - Identifier for the site/location of signup
-signup_time: datetime, NOT NULL - current_timestamp() - Timestamp when the user was added/validated
-created_at: timestamp, NOT NULL - current_timestamp()
-Indexes:
-PRIMARY (id)
-idx_unique_email (email) - Unique
-idx_site (site)
-fk_ai_resumeval_user (user\_id)
-Foreign Keys: user_id -> users.id (Implicit from index name)
+Column	Type	Null	Default	Comments
+id (Primary)	bigint(20)	No
+name	varchar(255)	Yes	NULL
+email	varchar(255)	No		-- Unique
+user_id	int(11)	Yes	NULL	-- Likely FK to users.id
+site	varchar(100)	Yes	NULL	Identifier for the site/location of signup
+signup_time	datetime	No	current_timestamp()	Timestamp when the user was added/validated
+created_at	timestamp	No	current_timestamp()
+Indexes
+Keyname	Type	Unique	Packed	Column	Cardinality	Collation	Null	Comment
+PRIMARY	BTREE	Yes	No	id	1	A	No
+idx_unique_email	BTREE	Yes	No	email	1	A	No
+idx_site	BTREE	No	No	site	1	A	Yes
+fk_ai_resumeval_user	BTREE	No	No	user_id	1	A	Yes	-- Index supporting potential FK
+
+-- --------------------------------------------------------
+-- Table: api_keys
+-- Comments: Stores general API keys for system access (potentially different from agent_api_keys). (Note: Living Plan v1.51 Section 7 might have more comments)
+-- Foreign Keys: associated_user_id -> users.id (Implicit), associated_site_id -> sites.id (Implicit)
+-- --------------------------------------------------------
 api_keys
-Comments: None provided in dump (Note: Living Plan v1.51 Section 7 has comments)
-Columns:
-id: int(11), NOT NULL (Primary)
-api_key_hash: varchar(255), NULL - Secure hash of API key
-name: varchar(255), NULL - User-defined name/label for the key
-associated_permissions: text, NULL - JSON array or comma-separated list of permissions granted (e.g., ["read:client_data", "create:client_note"])
-created_at: timestamp, NULL - current_timestamp()
-last_used_at: timestamp, NULL
-revoked_at: datetime, NULL - Timestamp when the key was revoked
-associated_user_id: int(11), NULL
-associated_site_id: int(11), NULL
-Indexes:
-PRIMARY (id)
-idx_key_hash_unique (api_key_hash) - Unique
-api_key_hash (api_key_hash) - Unique (Duplicate index name?)
-fk_api_key_user (associated\_user\_id)
-fk_api_key_site (associated\_site\_id)
-idx_api_keys_revoked_at (revoked\_at)
-Foreign Keys:
-associated_user_id -> users.id (Implicit from index name)
-associated_site_id -> sites.id (Implicit from index name)
+Column	Type	Null	Default	Comments
+id (Primary)	int(11)	No
+api_key_hash	varchar(255)	Yes	NULL	Secure hash of API key -- Unique (Note: Duplicate index names `idx_key_hash_unique` and `api_key_hash` observed in Schema 1 dump, both unique)
+name	varchar(255)	Yes	NULL	User-defined name/label for the key
+associated_permissions	text	Yes	NULL	JSON array or comma-separated list of permissions granted (e.g., ["read:client_data", "create:client_note"])
+created_at	timestamp	Yes	current_timestamp()
+last_used_at	timestamp	Yes	NULL
+revoked_at	datetime	Yes	NULL	Timestamp when the key was revoked
+associated_user_id	int(11)	Yes	NULL	-- FK to users.id
+associated_site_id	int(11)	Yes	NULL	-- FK to sites.id
+Indexes
+Keyname	Type	Unique	Packed	Column	Cardinality	Collation	Null	Comment
+PRIMARY	BTREE	Yes	No	id	4	A	No
+idx_key_hash_unique	BTREE	Yes	No	api_key_hash	4	A	Yes
+api_key_hash	BTREE	Yes	No	api_key_hash	4	A	Yes	-- Potential duplicate unique index
+fk_api_key_user	BTREE	No	No	associated_user_id	4	A	Yes	-- Index supporting FK
+fk_api_key_site	BTREE	No	No	associated_site_id	2	A	Yes	-- Index supporting FK
+idx_api_keys_revoked_at	BTREE	No	No	revoked_at	4	A	Yes
+
+-- --------------------------------------------------------
+-- Table: budgets
+-- Comments: Stores budget information, linked to grants and departments. (Note: Living Plan v1.51 Section 7 might have more comments)
+-- Foreign Keys: user_id -> users.id (Implicit), grant_id -> grants.id (Implicit), department_id -> departments.id (Implicit)
+-- --------------------------------------------------------
 budgets
-Comments: None provided in dump (Note: Living Plan v1.51 Section 7 has comments)
-Columns:
-id: int(11), NOT NULL (Primary)
-name: varchar(255), NOT NULL
-user_id: int(11), NULL
-grant_id: int(11), NOT NULL
-department_id: int(11), NOT NULL - Department responsible for this budget (e.g., Arizona@Work)
-fiscal_year_start: date, NOT NULL
-fiscal_year_end: date, NOT NULL
-budget_type: enum('Staff', 'Admin'), NOT NULL - Staff
-notes: text, NULL
-created_at: timestamp, NULL - current_timestamp()
-updated_at: timestamp, NULL - current_timestamp()
-deleted_at: datetime, NULL
-Indexes:
-PRIMARY (id)
-fk_budget_user_idx (user\_id)
-fk_budget_grant_idx (grant\_id)
-fk_budget_department_idx (department\_id)
-idx_budgets_fiscal_year_start (fiscal\_year\_start)
-idx_budgets_deleted_at (deleted\_at)
-Foreign Keys:
-user_id -> users.id (Implicit from index name)
-grant_id -> grants.id (Implicit from index name)
-department_id -> departments.id (Implicit from index name)
+Column	Type	Null	Default	Comments
+id (Primary)	int(11)	No
+name	varchar(255)	No
+user_id	int(11)	Yes	NULL	-- FK to users.id
+grant_id	int(11)	No		-- FK to grants.id
+department_id	int(11)	No		Department responsible for this budget (e.g., Arizona@Work) -- FK to departments.id
+fiscal_year_start	date	No
+fiscal_year_end	date	No
+budget_type	enum('Staff', 'Admin')	No	Staff
+notes	text	Yes	NULL
+created_at	timestamp	Yes	current_timestamp()
+updated_at	timestamp	Yes	current_timestamp()
+deleted_at	datetime	Yes	NULL
+Indexes
+Keyname	Type	Unique	Packed	Column	Cardinality	Collation	Null	Comment
+PRIMARY	BTREE	Yes	No	id	0	A	No
+fk_budget_user_idx	BTREE	No	No	user_id	0	A	Yes	-- Index supporting FK
+fk_budget_grant_idx	BTREE	No	No	grant_id	0	A	No	-- Index supporting FK
+fk_budget_department_idx	BTREE	No	No	department_id	0	A	No	-- Index supporting FK
+idx_budgets_fiscal_year_start	BTREE	No	No	fiscal_year_start	0	A	No
+idx_budgets_deleted_at	BTREE	No	No	deleted_at	0	A	Yes
+
+-- --------------------------------------------------------
+-- Table: budget_allocations
+-- Comments: Stores individual financial transactions against budgets. (Note: Living Plan v1.51 Section 7 might have more comments)
+-- Foreign Keys: budget_id -> budgets.id (Implicit), vendor_id -> vendors.id (Implicit), fin_processed_by_user_id -> users.id (Implicit), created_by_user_id -> users.id (Implicit), updated_by_user_id -> users.id (Implicit)
+-- --------------------------------------------------------
 budget_allocations
-Comments: None provided in dump (Note: Living Plan v1.51 Section 7 has comments)
-Columns:
-id: int(11), NOT NULL (Primary)
-budget_id: int(11), NOT NULL - FK to budgets table
-transaction_date: date, NOT NULL
-vendor_id: int(11), NULL
-client_name: varchar(255), NULL
-voucher_number: varchar(100), NULL
-enrollment_date: date, NULL
-class_start_date: date, NULL
-purchase_date: date, NULL
-payment_status: enum('P', 'U'), NOT NULL - U
-program_explanation: text, NULL
-funding_dw: decimal(10,2), NULL - 0.00
-funding_dw_admin: decimal(10,2), NULL - 0.00
-funding_dw_sus: decimal(10,2), NULL - 0.00
-funding_adult: decimal(10,2), NULL - 0.00
-funding_adult_admin: decimal(10,2), NULL - 0.00
-funding_adult_sus: decimal(10,2), NULL - 0.00
-funding_rr: decimal(10,2), NULL - 0.00
-funding_h1b: decimal(10,2), NULL - 0.00
-funding_youth_is: decimal(10,2), NULL - 0.00
-funding_youth_os: decimal(10,2), NULL - 0.00
-funding_youth_admin: decimal(10,2), NULL - 0.00
-fin_voucher_received: varchar(10), NULL
-fin_accrual_date: date, NULL
-fin_obligated_date: date, NULL
-fin_comments: text, NULL
-fin_expense_code: varchar(50), NULL
-fin_processed_by_user_id: int(11), NULL - FK to users.id (Finance user who processed)
-created_by_user_id: int(11), NOT NULL - FK to users.id (Who created the row)
-updated_by_user_id: int(11), NULL - FK to users.id (Who last updated the row)
-created_at: timestamp, NULL - current_timestamp()
-updated_at: timestamp, NULL - current_timestamp()
-deleted_at: datetime, NULL
-Indexes:
-PRIMARY (id)
-idx_alloc_budget_id (budget\_id)
-idx_alloc_transaction_date (transaction\_date)
-idx_alloc_deleted_at (deleted\_at)
-fk_alloc_fin_processed_user_idx (fin\_processed\_by\_user\_id)
-fk_alloc_created_user_idx (created\_by\_user\_id)
-fk_alloc_updated_user_idx (updated\_by\_user\_id)
-Foreign Keys:
-budget_id -> budgets.id (Implicit)
-vendor_id -> vendors.id (Implicit)
-fin_processed_by_user_id -> users.id (Implicit from comment/index)
-created_by_user_id -> users.id (Implicit from comment/index)
-updated_by_user_id -> users.id (Implicit from comment/index)
+Column	Type	Null	Default	Comments
+id (Primary)	int(11)	No
+budget_id	int(11)	No		FK to budgets table
+transaction_date	date	No
+vendor_id	int(11)	Yes	NULL	-- FK to vendors.id
+client_name	varchar(255)	Yes	NULL
+voucher_number	varchar(100)	Yes	NULL
+enrollment_date	date	Yes	NULL
+class_start_date	date	Yes	NULL
+purchase_date	date	Yes	NULL
+payment_status	enum('P', 'U')	No	U
+program_explanation	text	Yes	NULL
+funding_dw	decimal(10,2)	Yes	0.00
+funding_dw_admin	decimal(10,2)	Yes	0.00
+funding_dw_sus	decimal(10,2)	Yes	0.00
+funding_adult	decimal(10,2)	Yes	0.00
+funding_adult_admin	decimal(10,2)	Yes	0.00
+funding_adult_sus	decimal(10,2)	Yes	0.00
+funding_rr	decimal(10,2)	Yes	0.00
+funding_h1b	decimal(10,2)	Yes	0.00
+funding_youth_is	decimal(10,2)	Yes	0.00
+funding_youth_os	decimal(10,2)	Yes	0.00
+funding_youth_admin	decimal(10,2)	Yes	0.00
+fin_voucher_received	varchar(10)	Yes	NULL
+fin_accrual_date	date	Yes	NULL
+fin_obligated_date	date	Yes	NULL
+fin_comments	text	Yes	NULL
+fin_expense_code	varchar(50)	Yes	NULL
+fin_processed_by_user_id	int(11)	Yes	NULL	FK to users.id (Finance user who processed)
+fin_processed_at	datetime	Yes	NULL	-- Timestamp when finance processing occurred (Added in Schema 2)
+created_by_user_id	int(11)	No		FK to users.id (Who created the row)
+updated_by_user_id	int(11)	Yes	NULL	FK to users.id (Who last updated the row)
+created_at	timestamp	Yes	current_timestamp()
+updated_at	timestamp	Yes	current_timestamp()
+deleted_at	datetime	Yes	NULL
+Indexes
+Keyname	Type	Unique	Packed	Column	Cardinality	Collation	Null	Comment
+PRIMARY	BTREE	Yes	No	id	0	A	No
+idx_alloc_budget_id	BTREE	No	No	budget_id	0	A	No	-- Index supporting FK
+idx_alloc_transaction_date	BTREE	No	No	transaction_date	0	A	No
+idx_alloc_deleted_at	BTREE	No	No	deleted_at	0	A	Yes
+fk_alloc_fin_processed_user_idx	BTREE	No	No	fin_processed_by_user_id	0	A	Yes	-- Index supporting FK
+fk_alloc_created_user_idx	BTREE	No	No	created_by_user_id	0	A	No	-- Index supporting FK
+fk_alloc_updated_user_idx	BTREE	No	No	updated_by_user_id	0	A	Yes	-- Index supporting FK
+
+-- --------------------------------------------------------
+-- Table: checkin_answers
+-- Comments: Stores answers to dynamic questions for individual check-ins (manual or client).
+-- Foreign Keys: check_in_id -> check_ins.id (Implicit), question_id -> global_questions.id (Implicit)
+-- --------------------------------------------------------
 checkin_answers
-Comments: Stores answers to dynamic questions for individual check-ins (manual or client)
-Columns:
-id: int(11), NOT NULL (Primary)
-check_in_id: int(11), NOT NULL - Foreign key to the check_ins table
-question_id: int(11), NOT NULL - Foreign key to the global_questions table
-answer: enum('Yes', 'No'), NOT NULL - Answer provided by the user
-created_at: timestamp, NOT NULL - current_timestamp()
-Indexes:
-PRIMARY (id)
-idx_checkin_question_unique (check\_in\_id, question\_id) - Unique - Ensure only one answer per question per check-in
-fk_checkin_answers_checkin_idx (check\_in\_id)
-fk_checkin_answers_question_idx (question\_id)
-Foreign Keys:
-check_in_id -> check_ins.id (Implicit from comment/index)
-question_id -> global_questions.id (Implicit from comment/index)
+Column	Type	Null	Default	Comments
+id (Primary)	int(11)	No
+check_in_id	int(11)	No		Foreign key to the check_ins table
+question_id	int(11)	No		Foreign key to the global_questions table
+answer	enum('Yes', 'No')	No		Answer provided by the user
+created_at	timestamp	No	current_timestamp()
+Indexes
+Keyname	Type	Unique	Packed	Column	Cardinality	Collation	Null	Comment
+PRIMARY	BTREE	Yes	No	id	0	A	No
+idx_checkin_question_unique	BTREE	Yes	No	check_in_id	0	A	No	Ensure only one answer per question per check-in
+question_id	0	A	No
+fk_checkin_answers_checkin_idx	BTREE	No	No	check_in_id	0	A	No	-- Index supporting FK
+fk_checkin_answers_question_idx	BTREE	No	No	question_id	0	A	No	-- Index supporting FK
+
+-- --------------------------------------------------------
+-- Table: checkin_notes
+-- Comments: Stores notes associated with specific check-ins. (Note: Living Plan v1.51 Section 7 might have more comments)
+-- Foreign Keys: check_in_id -> check_ins.id (Implicit), created_by_user_id -> users.id (Implicit), created_by_api_key_id -> api_keys.id (Implicit)
+-- --------------------------------------------------------
 checkin_notes
-Comments: None provided in dump (Note: Living Plan v1.51 Section 7 has comments)
-Columns:
-id: int(11), NOT NULL (Primary)
-check_in_id: int(11), NOT NULL - FK to check_ins.id
-note_text: text, NOT NULL
-created_by_user_id: int(11), NULL - FK to users.id (if created via Web UI)
-created_by_api_key_id: int(11), NULL - FK to api_keys.id (if created via API)
-created_at: timestamp, NULL - current_timestamp()
-deleted_at: datetime, NULL
-Indexes:
-PRIMARY (id)
-idx_checkin_notes_checkin_id (check\_in\_id)
-idx_checkin_notes_deleted_at (deleted\_at)
-fk_checkin_note_user_creator_idx (created\_by\_user\_id)
-fk_checkin_note_api_creator_idx (created\_by\_api\_key\_id)
-Foreign Keys:
-check_in_id -> check_ins.id (Implicit from comment/index)
-created_by_user_id -> users.id (Implicit from comment/index)
-created_by_api_key_id -> api_keys.id (Implicit from comment/index)
+Column	Type	Null	Default	Comments
+id (Primary)	int(11)	No
+check_in_id	int(11)	No		FK to check_ins.id
+note_text	text	No
+created_by_user_id	int(11)	Yes	NULL	FK to users.id (if created via Web UI)
+created_by_api_key_id	int(11)	Yes	NULL	FK to api_keys.id (if created via API)
+created_at	timestamp	Yes	current_timestamp()
+deleted_at	datetime	Yes	NULL
+Indexes
+Keyname	Type	Unique	Packed	Column	Cardinality	Collation	Null	Comment
+PRIMARY	BTREE	Yes	No	id	3	A	No
+idx_checkin_notes_checkin_id	BTREE	No	No	check_in_id	3	A	No	-- Index supporting FK
+idx_checkin_notes_deleted_at	BTREE	No	No	deleted_at	3	A	Yes
+fk_checkin_note_user_creator_idx	BTREE	No	No	created_by_user_id	3	A	Yes	-- Index supporting FK
+fk_checkin_note_api_creator_idx	BTREE	No	No	created_by_api_key_id	3	A	Yes	-- Index supporting FK
+
+-- --------------------------------------------------------
+-- Table: check_ins
+-- Comments: Record of each client check-in.
+-- Foreign Keys: site_id -> sites.id (Implicit), notified_staff_id -> staff_notifications.id (Implicit), client_id -> clients.id (Implicit)
+-- --------------------------------------------------------
 check_ins
-Comments: Record of each client check-in
-Columns:
-id: int(11), NOT NULL (Primary) - Unique Check-in ID
-site_id: int(11), NOT NULL - FK to the site where check-in occurred
-first_name: varchar(100), NOT NULL
-last_name: varchar(100), NOT NULL
-check_in_time: timestamp, NOT NULL - current_timestamp() - When check-in submitted
-additional_data: longtext, NULL - Stores dynamic answers and optional collected email
-notified_staff_id: int(11), NULL - FK to staff_notifications if staff selected
-client_email: varchar(255), NULL
-q_unemployment_assistance: enum('YES', 'NO'), NULL
-q_age: enum('YES', 'NO'), NULL
-q_veteran: enum('YES', 'NO'), NULL
-q_school: enum('YES', 'NO'), NULL
-q_employment_layoff: enum('YES', 'NO'), NULL
-q_unemployment_claim: enum('YES', 'NO'), NULL
-q_employment_services: enum('YES', 'NO'), NULL
-q_equus: enum('YES', 'NO'), NULL
-q_seasonal_farmworker: enum('YES', 'NO'), NULL
-client_id: int(11), NULL - Foreign Key to the clients table, Null for manual/anonymous check-ins
-Indexes:
-PRIMARY (id)
-fk_checkins_staff (notified\_staff\_id)
-idx_checkins_site_time (site\_id, check\_in\_time)
-fk_checkins_client_idx (client\_id)
-Foreign Keys:
-site_id -> sites.id (Implicit)
-notified_staff_id -> staff_notifications.id (Implicit from index name/comment)
-client_id -> clients.id (Implicit from comment/index)
+Column	Type	Null	Default	Comments
+id (Primary)	int(11)	No		Unique Check-in ID
+site_id	int(11)	No		FK to the site where check-in occurred
+first_name	varchar(100)	No
+last_name	varchar(100)	No
+check_in_time	timestamp	No	current_timestamp()	When check-in submitted
+additional_data	longtext	Yes	NULL	Stores dynamic answers and optional collected email
+notified_staff_id	int(11)	Yes	NULL	FK to staff_notifications if staff selected
+client_email	varchar(255)	Yes	NULL
+q_unemployment_assistance	enum('YES', 'NO')	Yes	NULL	-- Pre-defined question answer
+q_age	enum('YES', 'NO')	Yes	NULL	-- Pre-defined question answer
+q_veteran	enum('YES', 'NO')	Yes	NULL	-- Pre-defined question answer
+q_school	enum('YES', 'NO')	Yes	NULL	-- Pre-defined question answer
+q_employment_layoff	enum('YES', 'NO')	Yes	NULL	-- Pre-defined question answer
+q_unemployment_claim	enum('YES', 'NO')	Yes	NULL	-- Pre-defined question answer
+q_employment_services	enum('YES', 'NO')	Yes	NULL	-- Pre-defined question answer
+q_equus	enum('YES', 'NO')	Yes	NULL	-- Pre-defined question answer
+q_seasonal_farmworker	enum('YES', 'NO')	Yes	NULL	-- Pre-defined question answer
+client_id	int(11)	Yes	NULL	Foreign Key to the clients table, Null for manual/anonymous check-ins
+Indexes
+Keyname	Type	Unique	Packed	Column	Cardinality	Collation	Null	Comment
+PRIMARY	BTREE	Yes	No	id	21	A	No
+fk_checkins_staff	BTREE	No	No	notified_staff_id	2	A	Yes	-- Index supporting FK
+idx_checkins_site_time	BTREE	No	No	site_id	10	A	No
+check_in_time	21	A	No
+fk_checkins_client_idx	BTREE	No	No	client_id	2	A	Yes	-- Index supporting FK
+
+-- --------------------------------------------------------
+-- Table: clients
+-- Comments: Stores client account information for portal login and QR check-in.
+-- Foreign Keys: site_id -> sites.id (Implicit)
+-- --------------------------------------------------------
 clients
-Comments: Stores client account information for portal login and QR check-in.
-Columns:
-id: int(11), NOT NULL (Primary)
-username: varchar(255), NOT NULL - Unique username for client login
-email: varchar(255), NOT NULL - Unique email for client account and AI enrollment
-password_hash: varchar(255), NOT NULL - Hashed password for client login
-first_name: varchar(255), NOT NULL
-last_name: varchar(255), NOT NULL
-site_id: int(11), NULL
-client_qr_identifier: varchar(255), NOT NULL - Persistent UUID/ID for static QR code
-email_preference_jobs: tinyint(1), NOT NULL - 0 - 0=OptOut, 1=OptIn for job/event emails
-created_at: timestamp, NOT NULL - current_timestamp()
-updated_at: timestamp, NULL
-deleted_at: datetime, NULL
-Indexes:
-PRIMARY (id)
-username (username) - Unique
-email (email) - Unique
-client_qr_identifier (client\_qr\_identifier) - Unique
-idx_clients_deleted_at (deleted\_at)
-idx_clients_site_id (site\_id)
-Foreign Keys: site_id -> sites.id (Implicit from index name)
+Column	Type	Null	Default	Comments
+id (Primary)	int(11)	No
+username	varchar(255)	No		Unique username for client login
+email	varchar(255)	No		Unique email for client account and AI enrollment
+password_hash	varchar(255)	No		Hashed password for client login
+first_name	varchar(255)	No
+last_name	varchar(255)	No
+site_id	int(11)	Yes	NULL	-- FK to sites.id
+client_qr_identifier	varchar(255)	No		Persistent UUID/ID for static QR code -- Unique
+email_preference_jobs	tinyint(1)	No	0	0=OptOut, 1=OptIn for job/event emails
+created_at	timestamp	No	current_timestamp()
+updated_at	timestamp	Yes	NULL
+deleted_at	datetime	Yes	NULL
+Indexes
+Keyname	Type	Unique	Packed	Column	Cardinality	Collation	Null	Comment
+PRIMARY	BTREE	Yes	No	id	0	A	No
+username	BTREE	Yes	No	username	0	A	No
+email	BTREE	Yes	No	email	0	A	No
+client_qr_identifier	BTREE	Yes	No	client_qr_identifier	0	A	No
+idx_clients_deleted_at	BTREE	No	No	deleted_at	0	A	Yes
+idx_clients_site_id	BTREE	No	No	site_id	0	A	Yes	-- Index supporting FK
+
+-- --------------------------------------------------------
+-- Table: client_answers
+-- Comments: Stores client answers to site-specific dynamic questions.
+-- Foreign Keys: client_id -> clients.id (Implicit), question_id -> site_questions.id OR global_questions.id (Needs clarification, see S1 notes)
+-- --------------------------------------------------------
 client_answers
-Comments: Stores client answers to site-specific dynamic questions.
-Columns:
-id: int(11), NOT NULL (Primary)
-client_id: int(11), NOT NULL
-question_id: int(11), NOT NULL
-answer: enum('Yes', 'No'), NOT NULL
-created_at: timestamp, NULL - current_timestamp()
-updated_at: timestamp, NULL
-Indexes:
-PRIMARY (id)
-uq_client_question (client\_id, question\_id) - Unique
-idx_client_answers_client_id (client\_id)
-idx_client_answers_question_id (question\_id)
-Foreign Keys:
-client_id -> clients.id (Implicit from index name/comment)
-question_id -> site_questions.id or global_questions.id? (Comment says global_questions, Index says question_id, Living Plan v1.51 Section 7 says site_questions. Needs clarification, but FK relationship is present).
+Column	Type	Null	Default	Comments
+id (Primary)	int(11)	No
+client_id	int(11)	No		-- FK to clients.id
+question_id	int(11)	No		-- FK to site_questions.id or global_questions.id (Check application logic)
+answer	enum('Yes', 'No')	No
+created_at	timestamp	Yes	current_timestamp()
+updated_at	timestamp	Yes	NULL
+Indexes
+Keyname	Type	Unique	Packed	Column	Cardinality	Collation	Null	Comment
+PRIMARY	BTREE	Yes	No	id	18	A	No
+uq_client_question	BTREE	Yes	No	client_id	6	A	No	-- Ensures unique answer per client/question pair
+question_id	18	A	No
+idx_client_answers_client_id	BTREE	No	No	client_id	6	A	No	-- Index supporting FK
+idx_client_answers_question_id	BTREE	No	No	question_id	18	A	No	-- Index supporting FK
+
+-- --------------------------------------------------------
+-- Table: client_profile_audit_log
+-- Comments: Logs changes made to client profile fields.
+-- Foreign Keys: client_id -> clients.id (Implicit), changed_by_user_id -> users.id (Implicit)
+-- --------------------------------------------------------
 client_profile_audit_log
-Comments: Logs changes made to client profile fields.
-Columns:
-id: int(11), NOT NULL (Primary)
-client_id: int(11), NOT NULL
-changed_by_user_id: int(11), NOT NULL
-timestamp: timestamp, NOT NULL - current_timestamp()
-field_name: varchar(255), NOT NULL - e.g., 'first_name', 'last_name', 'site_id', 'email_preference_jobs', 'question_id_X'
-old_value: text, NULL - Previous value of the field
-new_value: text, NULL - New value of the field
-Indexes:
-PRIMARY (id)
-idx_audit_client (client\_id)
-idx_audit_user (changed\_by\_user\_id)
-idx_audit_timestamp (timestamp)
-Foreign Keys:
-client_id -> clients.id (Implicit from index name/comment)
-changed_by_user_id -> users.id (Implicit from index name/comment)
+Column	Type	Null	Default	Comments
+id (Primary)	int(11)	No
+client_id	int(11)	No		-- FK to clients.id
+changed_by_user_id	int(11)	No		-- FK to users.id
+timestamp	timestamp	No	current_timestamp()
+field_name	varchar(255)	No		e.g., 'first_name', 'last_name', 'site_id', 'email_preference_jobs', 'question_id_X'
+old_value	text	Yes	NULL	Previous value of the field
+new_value	text	Yes	NULL	New value of the field
+Indexes
+Keyname	Type	Unique	Packed	Column	Cardinality	Collation	Null	Comment
+PRIMARY	BTREE	Yes	No	id	0	A	No
+idx_audit_client	BTREE	No	No	client_id	0	A	No	-- Index supporting FK
+idx_audit_user	BTREE	No	No	changed_by_user_id	0	A	No	-- Index supporting FK
+idx_audit_timestamp	BTREE	No	No	timestamp	0	A	No
+
+-- --------------------------------------------------------
+-- Table: departments
+-- Comments: Stores global department names and stable slugs. Referenced by users.department_id, budgets.department_id, etc.
+-- --------------------------------------------------------
 departments
-Comments: Stores global department names and stable slugs
-Columns:
-id: int(11), NOT NULL (Primary)
-name: varchar(150), NOT NULL
-slug: varchar(160), NULL
-created_at: timestamp, NULL - current_timestamp()
-deleted_at: datetime, NULL
-Indexes:
-PRIMARY (id)
-name_UNIQUE (name) - Unique
-slug_UNIQUE (slug) - Unique
-Foreign Keys: None explicitly listed/implied here, but users.department_id points here.
+Column	Type	Null	Default	Comments
+id (Primary)	int(11)	No
+name	varchar(150)	No		-- Unique
+slug	varchar(160)	Yes	NULL	-- Unique
+created_at	timestamp	Yes	current_timestamp()
+deleted_at	datetime	Yes	NULL
+Indexes
+Keyname	Type	Unique	Packed	Column	Cardinality	Collation	Null	Comment
+PRIMARY	BTREE	Yes	No	id	2	A	No
+name_UNIQUE	BTREE	Yes	No	name	2	A	No
+slug_UNIQUE	BTREE	Yes	No	slug	2	A	Yes
+
+-- --------------------------------------------------------
+-- Table: finance_department_access
+-- Comments: Maps finance users to the departments they can access budget data for. (Note: Living Plan v1.51 Section 7 might have more comments)
+-- Foreign Keys: finance_user_id -> users.id (Implicit), accessible_department_id -> departments.id (Implicit)
+-- --------------------------------------------------------
 finance_department_access
-Comments: None provided in dump (Note: Living Plan v1.51 Section 7 has comments)
-Columns:
-id: int(11), NOT NULL (Primary)
-finance_user_id: int(11), NOT NULL - FK to users.id where department is Finance
-accessible_department_id: int(11), NOT NULL - FK to departments.id that the Finance user can access
-created_at: timestamp, NULL - current_timestamp()
-Indexes:
-PRIMARY (id)
-idx_user_dept_unique (finance\_user\_id, accessible\_department\_id) - Unique - Prevent duplicate access entries
-fk_fin_access_user_idx (finance\_user\_id)
-fk_fin_access_dept_idx (accessible\_department\_id)
-Foreign Keys:
-finance_user_id -> users.id (Implicit from comment/index)
-accessible_department_id -> departments.id (Implicit from comment/index)
+Column	Type	Null	Default	Comments
+id (Primary)	int(11)	No
+finance_user_id	int(11)	No		FK to users.id where department is Finance
+accessible_department_id	int(11)	No		FK to departments.id that the Finance user can access
+created_at	timestamp	Yes	current_timestamp()
+Indexes
+Keyname	Type	Unique	Packed	Column	Cardinality	Collation	Null	Comment
+PRIMARY	BTREE	Yes	No	id	0	A	No
+idx_user_dept_unique	BTREE	Yes	No	finance_user_id	0	A	No	Prevent duplicate access entries
+accessible_department_id	0	A	No
+fk_fin_access_user_idx	BTREE	No	No	finance_user_id	0	A	No	-- Index supporting FK
+fk_fin_access_dept_idx	BTREE	No	No	accessible_department_id	0	A	No	-- Index supporting FK
+
+-- --------------------------------------------------------
+-- Table: forum_categories
+-- Comments: Forum categories/sections. Defines view/post/reply permissions by role.
+-- --------------------------------------------------------
 forum_categories
-Comments: Forum categories/sections
-Columns:
-id: int(10), NOT NULL (Primary)
-name: varchar(100), NOT NULL - Name of the category
-description: text, NULL - Optional description
-view_role: enum('azwk_staff', 'outside_staff', 'director', 'administrator'), NOT NULL - azwk_staff - Minimum role required to view
-post_role: enum('azwk_staff', 'outside_staff', 'director', 'administrator'), NOT NULL - azwk_staff - Minimum role required to create topics
-reply_role: enum('azwk_staff', 'outside_staff', 'director', 'administrator'), NOT NULL - azwk_staff - Minimum role required to reply
-display_order: int(11), NOT NULL - 0 - Display order
-created_at: timestamp, NOT NULL - current_timestamp()
-Indexes:
-PRIMARY (id)
-Foreign Keys: None explicitly listed/implied here.
+Column	Type	Null	Default	Comments
+id (Primary)	int(10)	No
+name	varchar(100)	No		Name of the category
+description	text	Yes	NULL	Optional description
+view_role	enum('azwk_staff', 'outside_staff', 'director', 'administrator')	No	azwk_staff	Minimum role required to view
+post_role	enum('azwk_staff', 'outside_staff', 'director', 'administrator')	No	azwk_staff	Minimum role required to create topics
+reply_role	enum('azwk_staff', 'outside_staff', 'director', 'administrator')	No	azwk_staff	Minimum role required to reply
+display_order	int(11)	No	0	Display order
+created_at	timestamp	No	current_timestamp()
+Indexes
+Keyname	Type	Unique	Packed	Column	Cardinality	Collation	Null	Comment
+PRIMARY	BTREE	Yes	No	id	3	A	No
+
+-- --------------------------------------------------------
+-- Table: forum_posts
+-- Comments: Individual forum posts/messages within a topic.
+-- Foreign Keys: topic_id -> forum_topics.id (Implicit), user_id -> users.id (Implicit), created_by_api_key_id -> api_keys.id (Implicit), updated_by_user_id -> users.id (Implicit)
+-- --------------------------------------------------------
 forum_posts
-Comments: Individual forum posts/messages
-Columns:
-id: int(10), NOT NULL (Primary)
-topic_id: int(10), NOT NULL - FK pointing to forum_topics
-user_id: int(11), NULL - FK pointing to user who wrote post
-created_by_api_key_id: int(11), NULL - FK to api_keys.id (if created via API)
-content: text, NOT NULL - Post content
-created_at: timestamp, NOT NULL - current_timestamp()
-updated_at: timestamp, NULL - Timestamp of last edit
-updated_by_user_id: int(11), NULL - FK pointing to user who last edited
-Indexes:
-PRIMARY (id)
-fk_forum_posts_topic_idx (topic\_id)
-fk_forum_posts_user_idx (user\_id)
-fk_forum_posts_editor_idx (updated\_by\_user\_id)
-idx_posts_topic_created (topic\_id, created\_at)
-fk_forum_posts_api_creator_idx (created\_by\_api\_key\_id)
-Foreign Keys:
-topic_id -> forum_topics.id (Implicit from comment/index)
-user_id -> users.id (Implicit from comment/index)
-updated_by_user_id -> users.id (Implicit from comment/index)
-created_by_api_key_id -> api_keys.id (Implicit from comment/index)
+Column	Type	Null	Default	Comments
+id (Primary)	int(10)	No
+topic_id	int(10)	No		FK pointing to forum_topics
+user_id	int(11)	Yes	NULL	FK pointing to user who wrote post
+created_by_api_key_id	int(11)	Yes	NULL	FK to api_keys.id (if created via API)
+content	text	No		Post content
+created_at	timestamp	No	current_timestamp()
+updated_at	timestamp	Yes	NULL	Timestamp of last edit
+updated_by_user_id	int(11)	Yes	NULL	FK pointing to user who last edited
+Indexes
+Keyname	Type	Unique	Packed	Column	Cardinality	Collation	Null	Comment
+PRIMARY	BTREE	Yes	No	id	2	A	No
+fk_forum_posts_topic_idx	BTREE	No	No	topic_id	2	A	No	-- Index supporting FK
+fk_forum_posts_user_idx	BTREE	No	No	user_id	2	A	Yes	-- Index supporting FK
+fk_forum_posts_editor_idx	BTREE	No	No	updated_by_user_id	2	A	Yes	-- Index supporting FK
+idx_posts_topic_created	BTREE	No	No	topic_id	2	A	No
+created_at	2	A	No
+fk_forum_posts_api_creator_idx	BTREE	No	No	created_by_api_key_id	2	A	Yes	-- Index supporting FK
+
+-- --------------------------------------------------------
+-- Table: forum_topics
+-- Comments: Individual forum discussion threads (topics).
+-- Foreign Keys: category_id -> forum_categories.id (Implicit), user_id -> users.id (Implicit), last_post_user_id -> users.id (Implicit)
+-- --------------------------------------------------------
 forum_topics
-Comments: Individual forum discussion threads
-Columns:
-id: int(10), NOT NULL (Primary)
-category_id: int(10), NOT NULL - FK pointing to forum_categories
-user_id: int(11), NULL - FK pointing to user who started topic
-title: varchar(255), NOT NULL - Topic Title
-is_sticky: tinyint(1), NOT NULL - 0 - 0 = Normal, 1 = Pinned
-is_locked: tinyint(1), NOT NULL - 0 - 0 = Open, 1 = Closed
-created_at: timestamp, NOT NULL - current_timestamp()
-last_post_at: timestamp, NULL - Timestamp of latest post
-last_post_user_id: int(11), NULL - FK pointing to last poster
-Indexes:
-PRIMARY (id)
-fk_forum_topics_category_idx (category\_id)
-fk_forum_topics_user_idx (user\_id)
-fk_forum_topics_last_poster_idx (last\_post\_user\_id)
-idx_topics_lastpost (last\_post\_at)
-Foreign Keys:
-category_id -> forum_categories.id (Implicit from comment/index)
-user_id -> users.id (Implicit from comment/index)
-last_post_user_id -> users.id (Implicit from comment/index)
+Column	Type	Null	Default	Comments
+id (Primary)	int(10)	No
+category_id	int(10)	No		FK pointing to forum_categories
+user_id	int(11)	Yes	NULL	FK pointing to user who started topic
+title	varchar(255)	No		Topic Title
+is_sticky	tinyint(1)	No	0	0 = Normal, 1 = Pinned
+is_locked	tinyint(1)	No	0	0 = Open, 1 = Closed
+created_at	timestamp	No	current_timestamp()
+last_post_at	timestamp	Yes	NULL	Timestamp of latest post
+last_post_user_id	int(11)	Yes	NULL	FK pointing to last poster
+Indexes
+Keyname	Type	Unique	Packed	Column	Cardinality	Collation	Null	Comment
+PRIMARY	BTREE	Yes	No	id	2	A	No
+fk_forum_topics_category_idx	BTREE	No	No	category_id	2	A	No	-- Index supporting FK
+fk_forum_topics_user_idx	BTREE	No	No	user_id	2	A	Yes	-- Index supporting FK
+fk_forum_topics_last_poster_idx	BTREE	No	No	last_post_user_id	2	A	Yes	-- Index supporting FK
+idx_topics_lastpost	BTREE	No	No	last_post_at	2	A	Yes
+
+-- --------------------------------------------------------
+-- Table: global_ads
+-- Comments: Stores global advertisements (text or image) that can be displayed across sites.
+-- --------------------------------------------------------
 global_ads
-Comments: None provided in dump
-Columns:
-id: int(11), NOT NULL (Primary)
-ad_type: enum('text', 'image'), NOT NULL
-ad_title: varchar(150), NULL
-ad_text: text, NULL
-image_path: varchar(255), NULL
-is_active: tinyint(1), NOT NULL - 1
-created_at: timestamp, NULL - current_timestamp()
-updated_at: timestamp, NULL - current_timestamp()
-Indexes:
-PRIMARY (id)
-Foreign Keys: None explicitly listed/implied here.
+Column	Type	Null	Default	Comments
+id (Primary)	int(11)	No
+ad_type	enum('text', 'image')	No
+ad_title	varchar(150)	Yes	NULL
+ad_text	text	Yes	NULL
+image_path	varchar(255)	Yes	NULL
+is_active	tinyint(1)	No	1
+created_at	timestamp	Yes	current_timestamp()
+updated_at	timestamp	Yes	current_timestamp()
+Indexes
+Keyname	Type	Unique	Packed	Column	Cardinality	Collation	Null	Comment
+PRIMARY	BTREE	Yes	No	id	4	A	No
+
+-- --------------------------------------------------------
+-- Table: global_questions
+-- Comments: Stores globally defined questions that can be used across sites or in check-ins. (Note: Living Plan v1.51 Section 7 might have more comments) Referenced by site_questions.global_question_id, checkin_answers.question_id.
+-- --------------------------------------------------------
 global_questions
-Comments: None provided in dump (Note: Living Plan v1.51 Section 7 has comments)
-Columns:
-id: int(11), NOT NULL (Primary)
-question_text: text, NOT NULL
-question_title: varchar(20), NOT NULL
-created_at: timestamp, NOT NULL - current_timestamp()
-Indexes:
-PRIMARY (id)
-question_title (question\_title) - Unique
-Foreign Keys: None explicitly listed/implied here, but site_questions.global_question_id and checkin_answers.question_id point here.
+Column	Type	Null	Default	Comments
+id (Primary)	int(11)	No
+question_text	text	No
+question_title	varchar(20)	No		-- Unique short identifier/title
+created_at	timestamp	No	current_timestamp()
+Indexes
+Keyname	Type	Unique	Packed	Column	Cardinality	Collation	Null	Comment
+PRIMARY	BTREE	Yes	No	id	7	A	No
+question_title	BTREE	Yes	No	question_title	7	A	No
+
+-- --------------------------------------------------------
+-- Table: grants
+-- Comments: Stores information about funding grants. (Note: Living Plan v1.51 Section 7 might have more comments) Referenced by budgets.grant_id.
+-- --------------------------------------------------------
 grants
-Comments: None provided in dump (Note: Living Plan v1.51 Section 7 has comments)
-Columns:
-id: int(11), NOT NULL (Primary)
-name: varchar(255), NOT NULL
-grant_code: varchar(100), NULL
-description: text, NULL
-start_date: date, NULL
-end_date: date, NULL
-created_at: timestamp, NULL - current_timestamp()
-updated_at: timestamp, NULL - current_timestamp()
-deleted_at: datetime, NULL
-Indexes:
-PRIMARY (id)
-name_UNIQUE (name) - Unique
-grant_code_UNIQUE (grant\_code) - Unique
-idx_grants_deleted_at (deleted\_at)
-Foreign Keys: None explicitly listed/implied here, but budgets.grant_id points here.
+Column	Type	Null	Default	Comments
+id (Primary)	int(11)	No
+name	varchar(255)	No		-- Unique
+grant_code	varchar(100)	Yes	NULL	-- Unique
+description	text	Yes	NULL
+start_date	date	Yes	NULL
+end_date	date	Yes	NULL
+created_at	timestamp	Yes	current_timestamp()
+updated_at	timestamp	Yes	current_timestamp()
+deleted_at	datetime	Yes	NULL
+Indexes
+Keyname	Type	Unique	Packed	Column	Cardinality	Collation	Null	Comment
+PRIMARY	BTREE	Yes	No	id	0	A	No
+name_UNIQUE	BTREE	Yes	No	name	0	A	No
+grant_code_UNIQUE	BTREE	Yes	No	grant_code	0	A	Yes
+idx_grants_deleted_at	BTREE	No	No	deleted_at	0	A	Yes
+
+-- --------------------------------------------------------
+-- Table: questions
+-- Comments: Site-specific check-in questions (YES/NO). (Note: Potential naming confusion with `site_questions`. Schema 1 suggests this might be legacy or for a specific type of question vs `site_questions` linking global ones. Verify usage.)
+-- Foreign Keys: site_id -> sites.id (Implicit)
+-- --------------------------------------------------------
 questions
-Comments: Site-specific check-in questions (YES/NO) (Note: Living Plan v1.51 Section 7 uses site_questions for this purpose, possibly a naming inconsistency)
-Columns:
-id: int(11), NOT NULL (Primary) - Unique Question ID
-site_id: int(11), NOT NULL - FK to the site this question belongs to
-question_text: text, NOT NULL - The actual text of the question
-question_title: varchar(20), NOT NULL
-display_order: int(11), NULL - 0 - Order on form (0 first, then 1, etc.)
-is_active: tinyint(1), NULL - 1 - Is this question shown on the form?
-created_at: timestamp, NOT NULL - current_timestamp()
-Indexes:
-PRIMARY (id)
-site_id (site\_id)
-Foreign Keys: site_id -> sites.id (Implicit from comment/index)
+Column	Type	Null	Default	Comments
+id (Primary)	int(11)	No		Unique Question ID
+site_id	int(11)	No		FK to the site this question belongs to
+question_text	text	No		The actual text of the question
+question_title	varchar(20)	No
+display_order	int(11)	Yes	0	Order on form (0 first, then 1, etc.)
+is_active	tinyint(1)	Yes	1	Is this question shown on the form?
+created_at	timestamp	No	current_timestamp()
+Indexes
+Keyname	Type	Unique	Packed	Column	Cardinality	Collation	Null	Comment
+PRIMARY	BTREE	Yes	No	id	0	A	No
+site_id	BTREE	No	No	site_id	0	A	No	-- Index supporting FK
+
+-- --------------------------------------------------------
+-- Table: sites
+-- Comments: List of physical Arizona@Work sites. Referenced by users, clients, check_ins, questions, site_ads, site_configurations, site_questions, staff_notifications.
+-- --------------------------------------------------------
 sites
-Comments: List of physical Arizona@Work sites
-Columns:
-id: int(11), NOT NULL (Primary) - Unique Site ID
-name: varchar(100), NOT NULL - Name of the site (e.g., Sierra Vista)
-email_collection_desc: varchar(255), NULL
-is_active: tinyint(1), NULL - 1 - Is this site currently active?
-Indexes:
-PRIMARY (id)
-name (name) - Unique
-Foreign Keys: None explicitly listed/implied here, but users.site_id, clients.site_id, check_ins.site_id, questions.site_id, site_ads.site_id, site_configurations.site_id, site_questions.site_id, staff_notifications.site_id point here.
+Column	Type	Null	Default	Comments
+id (Primary)	int(11)	No		Unique Site ID
+name	varchar(100)	No		Name of the site (e.g., Sierra Vista) -- Unique
+email_collection_desc	varchar(255)	Yes	NULL	Description shown if email collection is enabled for check-in
+is_active	tinyint(1)	Yes	1	Is this site currently active?
+Indexes
+Keyname	Type	Unique	Packed	Column	Cardinality	Collation	Null	Comment
+PRIMARY	BTREE	Yes	No	id	4	A	No
+name	BTREE	Yes	No	name	4	A	No
+
+-- --------------------------------------------------------
+-- Table: site_ads
+-- Comments: Maps global ads to specific sites, controlling display order and activation. (Note: Living Plan v1.51 Section 7 might have more comments)
+-- Foreign Keys: site_id -> sites.id (Implicit), global_ad_id -> global_ads.id (Implicit)
+-- --------------------------------------------------------
 site_ads
-Comments: None provided in dump (Note: Living Plan v1.51 Section 7 has comments)
-Columns:
-id: int(11), NOT NULL (Primary)
-site_id: int(11), NOT NULL
-global_ad_id: int(11), NOT NULL
-display_order: int(11), NOT NULL - 0
-is_active: tinyint(1), NOT NULL - 1
-created_at: timestamp, NULL - current_timestamp()
-updated_at: timestamp, NULL - current_timestamp()
-Indexes:
-PRIMARY (id)
-site_global_ad_unique (site\_id, global\_ad\_id) - Unique
-global_ad_id (global\_ad\_id)
-Foreign Keys:
-site_id -> sites.id (Implicit from index name/comment)
-global_ad_id -> global_ads.id (Implicit from index name/comment)
+Column	Type	Null	Default	Comments
+id (Primary)	int(11)	No
+site_id	int(11)	No		-- FK to sites.id
+global_ad_id	int(11)	No		-- FK to global_ads.id
+display_order	int(11)	No	0
+is_active	tinyint(1)	No	1
+created_at	timestamp	Yes	current_timestamp()
+updated_at	timestamp	Yes	current_timestamp()
+Indexes
+Keyname	Type	Unique	Packed	Column	Cardinality	Collation	Null	Comment
+PRIMARY	BTREE	Yes	No	id	4	A	No
+site_global_ad_unique	BTREE	Yes	No	site_id	2	A	No	-- Ensures unique mapping per site/ad
+global_ad_id	4	A	No
+global_ad_id	BTREE	No	No	global_ad_id	4	A	No	-- Index supporting FK
+
+-- --------------------------------------------------------
+-- Table: site_configurations
+-- Comments: Stores site-specific settings (key-value pairs).
+-- Foreign Keys: site_id -> sites.id (Implicit)
+-- --------------------------------------------------------
 site_configurations
-Comments: Stores site-specific settings
-Columns:
-id: int(11), NOT NULL (Primary)
-site_id: int(11), NOT NULL - FK to sites table
-config_key: varchar(50), NOT NULL - Configuration setting name (e.g., allow_email_collection)
-config_value: text, NULL - Configuration value (can be boolean, string, etc.)
-created_at: timestamp, NOT NULL - current_timestamp()
-updated_at: timestamp, NOT NULL - current_timestamp()
-Indexes:
-PRIMARY (id)
-site_key_unique (site\_id, config\_key) - Unique
-Foreign Keys: site_id -> sites.id (Implicit from comment/index)
+Column	Type	Null	Default	Comments
+id (Primary)	int(11)	No
+site_id	int(11)	No		FK to sites table
+config_key	varchar(50)	No		Configuration setting name (e.g., allow_email_collection) -- Unique per site_id
+config_value	text	Yes	NULL	Configuration value (can be boolean, string, etc.)
+created_at	timestamp	No	current_timestamp()
+updated_at	timestamp	No	current_timestamp()
+Indexes
+Keyname	Type	Unique	Packed	Column	Cardinality	Collation	Null	Comment
+PRIMARY	BTREE	Yes	No	id	11	A	No
+site_key_unique	BTREE	Yes	No	site_id	11	A	No	-- Ensures unique key per site
+config_key	11	A	No
+
+-- --------------------------------------------------------
+-- Table: site_questions
+-- Comments: Maps global questions to specific sites, controlling display order and activation. (Note: Living Plan v1.51 Section 7 uses this for site-specific dynamic questions, potentially overlapping/conflicting with `questions` table based on S1 notes).
+-- Foreign Keys: site_id -> sites.id (Implicit), global_question_id -> global_questions.id (Implicit)
+-- --------------------------------------------------------
 site_questions
-Comments: None provided in dump (Note: Living Plan v1.51 Section 7 uses this for site-specific dynamic questions)
-Columns:
-id: int(11), NOT NULL (Primary)
-site_id: int(11), NOT NULL
-global_question_id: int(11), NOT NULL
-display_order: int(11), NULL - 0
-is_active: tinyint(1), NULL - 1
-created_at: timestamp, NOT NULL - current_timestamp()
-Indexes:
-PRIMARY (id)
-uq_site_question (site\_id, global\_question\_id) - Unique
-global_question_id (global\_question\_id)
-Foreign Keys:
-site_id -> sites.id (Implicit from index name/comment)
-global_question_id -> global_questions.id (Implicit from index name/comment)
+Column	Type	Null	Default	Comments
+id (Primary)	int(11)	No
+site_id	int(11)	No		-- FK to sites.id
+global_question_id	int(11)	No		-- FK to global_questions.id
+display_order	int(11)	Yes	0
+is_active	tinyint(1)	Yes	1
+created_at	timestamp	No	current_timestamp()
+Indexes
+Keyname	Type	Unique	Packed	Column	Cardinality	Collation	Null	Comment
+PRIMARY	BTREE	Yes	No	id	22	A	No
+uq_site_question	BTREE	Yes	No	site_id	11	A	No	-- Ensures unique mapping per site/question
+global_question_id	22	A	No
+global_question_id	BTREE	No	No	global_question_id	22	A	No	-- Index supporting FK
+
+-- --------------------------------------------------------
+-- Table: staff_notifications
+-- Comments: Staff available in check-in email notifier dropdown per site.
+-- Foreign Keys: site_id -> sites.id (Implicit). Referenced by check_ins.notified_staff_id.
+-- --------------------------------------------------------
 staff_notifications
-Comments: Staff available in check-in email notifier dropdown per site
-Columns:
-id: int(11), NOT NULL (Primary) - Unique Staff Notifier ID
-site_id: int(11), NOT NULL - FK to the site this staff can be notified for
-staff_name: varchar(100), NOT NULL - Display name in dropdown
-staff_email: varchar(255), NOT NULL - Email address for notification
-is_active: tinyint(1), NULL - 1 - Show this staff in the dropdown?
-Indexes:
-PRIMARY (id)
-site_id (site\_id)
-Foreign Keys:
-site_id -> sites.id (Implicit from comment/index)
-check_ins.notified_staff_id points here (Implicit from comment/index)
+Column	Type	Null	Default	Comments
+id (Primary)	int(11)	No		Unique Staff Notifier ID
+site_id	int(11)	No		FK to the site this staff can be notified for
+staff_name	varchar(100)	No		Display name in dropdown
+staff_email	varchar(255)	No		Email address for notification
+is_active	tinyint(1)	Yes	1	Show this staff in the dropdown?
+Indexes
+Keyname	Type	Unique	Packed	Column	Cardinality	Collation	Null	Comment
+PRIMARY	BTREE	Yes	No	id	1	A	No
+site_id	BTREE	No	No	site_id	1	A	No	-- Index supporting FK
+
+-- --------------------------------------------------------
+-- Table: system_context
+-- Comments: Stores global system-wide key-value settings or context.
+-- --------------------------------------------------------
 system_context
-Comments: None provided in dump
-Columns:
-context_key: varchar(100), NOT NULL (Primary)
-context_value: text, NULL
-last_updated: timestamp, NOT NULL - current_timestamp()
-Indexes:
-PRIMARY (context\_key)
-Foreign Keys: None explicitly listed/implied here.
+Column	Type	Null	Default	Comments
+context_key (Primary)	varchar(100)	No
+context_value	text	Yes	NULL
+last_updated	timestamp	No	current_timestamp()
+Indexes
+Keyname	Type	Unique	Packed	Column	Cardinality	Collation	Null	Comment
+PRIMARY	BTREE	Yes	No	context_key	0	A	No
+
+-- --------------------------------------------------------
+-- Table: users
+-- Comments: User accounts for system access.
+-- Foreign Keys: site_id -> sites.id (Implicit), department_id -> departments.id (Implicit)
+-- --------------------------------------------------------
 users
-Comments: User accounts for system access
-Columns:
-id: int(11), NOT NULL (Primary) - Unique User ID
-username: varchar(50), NOT NULL - Login username
-password_hash: varchar(255), NOT NULL - Hashed password
-email: varchar(100), NOT NULL - User's email address
-role: enum('kiosk', 'azwk_staff', 'outside_staff', 'director', 'administrator'), NOT NULL - User's role
-site_id: int(11), NULL - FK to sites table, primary site for the user
-department_id: int(11), NULL - FK to departments table
-is_site_admin: tinyint(1), NOT NULL - 0 - 0 = No, 1 = Yes (Site-level admin privileges)
-created_at: timestamp, NOT NULL - current_timestamp() - When user account was created
-last_login: timestamp, NULL - Timestamp of last successful login
-deleted_at: datetime, NULL - Timestamp if account is soft-deleted
-Indexes:
-PRIMARY (id)
-username_UNIQUE (username) - Unique
-email_UNIQUE (email) - Unique
-fk_users_site_idx (site\_id)
-fk_users_department_idx (department\_id)
-idx_users_deleted_at (deleted\_at)
-Foreign Keys:
-site_id -> sites.id (Implicit from comment/index)
-department_id -> departments.id (Implicit from comment/index)
+Column	Type	Null	Default	Comments
+id (Primary)	int(11)	No		Unique User ID
+username	varchar(50)	No		Login username -- Unique
+full_name	varchar(100)	Yes	NULL	User full display name
+email	varchar(255)	Yes	NULL	User's email address (Note: Schema 1 had this as NOT NULL, UNIQUE)
+job_title	varchar(100)	Yes	NULL	User's job title
+department_id	int(11)	Yes	NULL	FK to departments table
+password_hash	varchar(255)	No		Hashed password
+role	enum('kiosk', 'azwk_staff', 'outside_staff', 'director', 'administrator')	No	kiosk	User's role
+is_site_admin	tinyint(1)	No	0	Flag indicating if user has site-level admin privileges (0=No, 1=Yes)
+site_id	int(11)	Yes	NULL	FK to sites. NULL for Director/Admin (all sites), required for Kiosk/Supervisor/azwk_staff/outside_staff. Primary site association.
+last_login	datetime	Yes	NULL	Timestamp of the last successful login
+deleted_at	datetime	Yes	NULL	Timestamp if account is soft-deleted
+is_active	tinyint(1)	Yes	1	Is the account active?
+created_at	timestamp	No	current_timestamp()	When user account was created
+Indexes
+Keyname	Type	Unique	Packed	Column	Cardinality	Collation	Null	Comment
+PRIMARY	BTREE	Yes	No	id	6	A	No
+username	BTREE	Yes	No	username	6	A	No
+site_id	BTREE	No	No	site_id	6	A	Yes	-- Index supporting FK
+fk_users_department_idx	BTREE	No	No	department_id	6	A	Yes	-- Index supporting FK
+
+-- --------------------------------------------------------
+-- Table: vendors
+-- Comments: Stores vendor information for budget allocations. (Note: Living Plan v1.51 Section 7 might have more comments). Referenced by budget_allocations.vendor_id.
+-- --------------------------------------------------------
 vendors
-Comments: None provided in dump (Note: Living Plan v1.51 Section 7 has comments)
-Columns:
-id: int(11), NOT NULL (Primary)
-name: varchar(255), NOT NULL
-contact_person: varchar(255), NULL
-email: varchar(255), NULL
-phone: varchar(20), NULL
-address: text, NULL
-created_at: timestamp, NULL - current_timestamp()
-updated_at: timestamp, NULL - current_timestamp()
-deleted_at: datetime, NULL
-Indexes:
-PRIMARY (id)
-name_UNIQUE (name) - Unique
-idx_vendors_deleted_at (deleted\_at)
-Foreign Keys: None explicitly listed/implied here, but budget_allocations.vendor_id points here.
-
---
--- NEW TABLE: agent_api_keys
---
--- Table structure for table `agent_api_keys`
---
--- Stores dedicated API keys for AI agents to access the Unified API Gateway.
---
-
-CREATE TABLE `agent_api_keys` (
-  `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  `agent_name` VARCHAR(255) NOT NULL COMMENT 'Descriptive name for the AI agent/client using the key',
-  `key_hash` VARCHAR(255) NOT NULL UNIQUE COMMENT 'Hashed version of the API key (do not store raw key)',
-  `associated_user_id` INT NULL COMMENT 'Optional: User ID in the main system this agent acts on behalf of',
-  `associated_site_id` INT NULL COMMENT 'Optional: Site ID this agent is primarily associated with',
-  `permissions` TEXT NULL COMMENT 'JSON encoded permissions structure for future granular control (Phase 2)',
-  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `last_used_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT 'Timestamp of the last successful use of this key',
-  `revoked_at` DATETIME NULL DEFAULT NULL COMMENT 'Timestamp if the key has been revoked',
-  CONSTRAINT `fk_agent_keys_user` FOREIGN KEY (`associated_user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL,
-  CONSTRAINT `fk_agent_keys_site` FOREIGN KEY (`associated_site_id`) REFERENCES `sites`(`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Stores dedicated API keys for AI agents to access the Unified API Gateway.';
+Column	Type	Null	Default	Comments
+id (Primary)	int(11)	No
+name	varchar(255)	No		-- Unique Vendor Name
+client_name_required	tinyint(1)	No	0	0 = No, 1 = Yes. Client name required in budget_allocations if this vendor is selected.
+is_active	tinyint(1)	No	1
+created_at	timestamp	Yes	current_timestamp()
+deleted_at	datetime	Yes	NULL
+Indexes
+Keyname	Type	Unique	Packed	Column	Cardinality	Collation	Null	Comment
+PRIMARY	BTREE	Yes	No	id	0	A	No
+name_UNIQUE	BTREE	Yes	No	name	0	A	No
+idx_vendors_active	BTREE	No	No	is_active	0	A	No
+idx_vendors_deleted_at	BTREE	No	No	deleted_at	0	A	Yes
