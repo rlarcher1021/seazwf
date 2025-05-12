@@ -400,6 +400,7 @@ function getCheckinsByFiltersPaginated(PDO $pdo, $site_filter_id, ?string $start
     // --- Step 1: Fetch Paginated Core Check-in Data ---
     $sql_checkins = "SELECT
                         ci.id, ci.first_name, ci.last_name, ci.check_in_time, ci.client_email,
+                        ci.q_veteran, ci.q_age, ci.q_interviewing, -- Added QR question columns
                         s.name as site_name, sn.staff_name as notified_staff
                     FROM
                         check_ins ci
@@ -470,8 +471,6 @@ function getCheckinsByFiltersPaginated(PDO $pdo, $site_filter_id, ?string $start
         // Extract IDs for the next query
         $checkin_ids = array_column($paginated_checkins, 'id');
 
-// Temporary Debug Log
-        error_log("DEBUG queryCheckins - Collected checkin_ids: " . print_r($checkin_ids, true));
     } catch (PDOException $e) {
         error_log("EXCEPTION in getCheckinsByFiltersPaginated (Checkins Query): " . $e->getMessage() . " | SQL: " . $sql_checkins);
         return [];
@@ -481,38 +480,33 @@ function getCheckinsByFiltersPaginated(PDO $pdo, $site_filter_id, ?string $start
     $answers_by_checkin_id = [];
     if (!empty($checkin_ids)) {
         $placeholders = implode(',', array_fill(0, count($checkin_ids), '?'));
-        $sql_answers = "SELECT ca.check_in_id, gq.question_title, ca.answer
+        $sql_answers = "SELECT ca.check_in_id, gq.question_text, ca.answer AS answer_text -- Fetch full text and alias answer
                         FROM checkin_answers ca
                         JOIN global_questions gq ON ca.question_id = gq.id
                         WHERE ca.check_in_id IN ({$placeholders})";
 
         try {
-// Temporary Debug Log - New
-        error_log("DEBUG queryCheckins - Answers SQL Query: " . $sql_answers);
             $stmt_answers = $pdo->prepare($sql_answers);
             if (!$stmt_answers) {
                 error_log("ERROR getCheckinsByFiltersPaginated (Answers Query): Prepare failed. PDO Error: " . implode(" | ", $pdo->errorInfo()));
                 // Continue without answers, but log the error
             } else {
                 $stmt_answers->execute($checkin_ids);
-// Temporary Debug Log - New
-                error_log("DEBUG queryCheckins - Answer Query Bind IDs: " . print_r($checkin_ids, true));
                 $answer_results = $stmt_answers->fetchAll(PDO::FETCH_ASSOC);
 
-// Temporary Debug Log
-                error_log("DEBUG queryCheckins - Fetched answer_results: " . print_r($answer_results, true));
-                // Group answers by check_in_id
+                // Group answers by check_in_id into the desired structure
                 foreach ($answer_results as $answer_row) {
                     $cid = $answer_row['check_in_id'];
                     if (!isset($answers_by_checkin_id[$cid])) {
                         $answers_by_checkin_id[$cid] = [];
                     }
-                    // Use question_title as the key for the answer
-                    $answers_by_checkin_id[$cid][$answer_row['question_title']] = $answer_row['answer'];
+                    // Append answer in the required format
+                    $answers_by_checkin_id[$cid][] = [
+                        'question_text' => $answer_row['question_text'],
+                        'answer_text' => $answer_row['answer_text'] // Use the alias from query
+                    ];
                 }
 
-                // Temporary Debug Log - New (Instruction 4b)
-                error_log("DEBUG getCheckinsByFiltersPaginated - Grouped answers_by_checkin_id (content): " . print_r($answers_by_checkin_id, true));
             }
         } catch (PDOException $e) {
             error_log("EXCEPTION in getCheckinsByFiltersPaginated (Answers Query): " . $e->getMessage() . " | SQL: " . $sql_answers);
@@ -520,25 +514,42 @@ function getCheckinsByFiltersPaginated(PDO $pdo, $site_filter_id, ?string $start
         }
     }
 
-    // --- Step 3: Combine Check-in Data with Answers ---
-    $final_results = [];
-    foreach ($paginated_checkins as $checkin) {
-        // Proposed Logging Start
-        error_log("DEBUG getCheckinsByFiltersPaginated - Processing checkin ID: " . $checkin['id']);
-        // Log the grouped answers array to see if the grouping worked and if the current ID exists
-        // Temporary Debug Log - Verify/Ensure (Instruction 4c)
-        error_log("DEBUG getCheckinsByFiltersPaginated - Answers supposedly found for current checkin ID (" . $checkin['id'] . "): " . print_r($answers_by_checkin_id[$checkin['id']] ?? [], true));
-        error_log("DEBUG getCheckinsByFiltersPaginated - Grouped answers_by_checkin_id (all answers fetched and grouped): " . print_r($answers_by_checkin_id, true));
-        error_log("DEBUG getCheckinsByFiltersPaginated - Answers supposedly found for current checkin ID (" . $checkin['id'] . "): " . print_r($answers_by_checkin_id[$checkin['id']] ?? [], true));
-        // Proposed Logging End
-        // Add the dynamic answers array (empty if no answers found or query failed)
-        $checkin['dynamic_answers'] = $answers_by_checkin_id[$checkin['id']] ?? [];
+    // --- Step 3: Combine Check-in Data with Answers from both sources ---
+    // Hardcoded mapping for QR question columns to their text
+    $qr_question_map = [
+        'q_veteran' => "Are you a veteran?",
+        'q_age' => "Are you 18-24 years old?",
+        'q_interviewing' => "Are you here for an interview?" // Assuming this is the correct text
+    ];
 
-        // Proposed Logging Start
-        error_log("DEBUG getCheckinsByFiltersPaginated - dynamic_answers array for checkin ID (" . $checkin['id'] . ") after assignment: " . print_r($checkin['dynamic_answers'], true));
-        // Proposed Logging End
-        $final_results[] = $checkin;
+    // Use reference to modify the array directly
+    foreach ($paginated_checkins as &$checkin) {
+        $checkin_id = $checkin['id'];
+
+        // Initialize dynamic_answers with answers from checkin_answers table (already in correct format)
+        $checkin['dynamic_answers'] = $answers_by_checkin_id[$checkin_id] ?? [];
+        error_log("DEBUG Checkin ID {$checkin_id} - Initial Answers from checkin_answers: " . print_r($checkin['dynamic_answers'], true));
+
+        // Add answers from q_* columns if they exist
+        error_log("DEBUG Checkin ID " . $checkin_id . " - QR Answers Raw: Veteran=" . ($checkin['q_veteran'] ?? 'NULL') . ", Age=" . ($checkin['q_age'] ?? 'NULL') . ", Interviewing=" . ($checkin['q_interviewing'] ?? 'NULL'));
+        foreach ($qr_question_map as $column_name => $question_text) {
+            // Check if the column exists in the fetched data and is not empty/null/whitespace
+            if (isset($checkin[$column_name]) && trim($checkin[$column_name]) !== '') {
+                 // Append answer in the required format
+                $checkin['dynamic_answers'][] = [
+                    'question_text' => $question_text,
+                    'answer_text' => $checkin[$column_name]
+                ];
+            }
+        }
+
+        // Log the final combined answers for this checkin
+        error_log("DEBUG Checkin ID {$checkin_id} - Final Combined Answers: " . print_r($checkin['dynamic_answers'], true));
     }
+    unset($checkin); // Unset reference after loop
+
+    // The $paginated_checkins array now contains the combined answers
+    $final_results = $paginated_checkins; // Assign the modified array to final results
 
 // Temporary Debug Log
     error_log("DEBUG queryCheckins - paginated_checkins before return: " . print_r($final_results, true));
