@@ -516,8 +516,18 @@ function getCheckinsByFiltersPaginated(PDO $pdo, $site_filter_id, ?string $start
     // --- Step 3: Combine Check-in Data with Answers ---
     $final_results = [];
     foreach ($paginated_checkins as $checkin) {
+        // Proposed Logging Start
+        error_log("DEBUG getCheckinsByFiltersPaginated - Processing checkin ID: " . $checkin['id']);
+        // Log the grouped answers array to see if the grouping worked and if the current ID exists
+        error_log("DEBUG getCheckinsByFiltersPaginated - Grouped answers_by_checkin_id (all answers fetched and grouped): " . print_r($answers_by_checkin_id, true));
+        error_log("DEBUG getCheckinsByFiltersPaginated - Answers supposedly found for current checkin ID (" . $checkin['id'] . "): " . print_r($answers_by_checkin_id[$checkin['id']] ?? [], true));
+        // Proposed Logging End
         // Add the dynamic answers array (empty if no answers found or query failed)
         $checkin['dynamic_answers'] = $answers_by_checkin_id[$checkin['id']] ?? [];
+
+        // Proposed Logging Start
+        error_log("DEBUG getCheckinsByFiltersPaginated - dynamic_answers array for checkin ID (" . $checkin['id'] . ") after assignment: " . print_r($checkin['dynamic_answers'], true));
+        // Proposed Logging End
         $final_results[] = $checkin;
     }
 
