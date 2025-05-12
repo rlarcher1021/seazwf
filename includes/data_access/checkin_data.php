@@ -487,12 +487,16 @@ function getCheckinsByFiltersPaginated(PDO $pdo, $site_filter_id, ?string $start
                         WHERE ca.check_in_id IN ({$placeholders})";
 
         try {
+// Temporary Debug Log - New
+        error_log("DEBUG queryCheckins - Answers SQL Query: " . $sql_answers);
             $stmt_answers = $pdo->prepare($sql_answers);
             if (!$stmt_answers) {
                 error_log("ERROR getCheckinsByFiltersPaginated (Answers Query): Prepare failed. PDO Error: " . implode(" | ", $pdo->errorInfo()));
                 // Continue without answers, but log the error
             } else {
                 $stmt_answers->execute($checkin_ids);
+// Temporary Debug Log - New
+                error_log("DEBUG queryCheckins - Answer Query Bind IDs: " . print_r($checkin_ids, true));
                 $answer_results = $stmt_answers->fetchAll(PDO::FETCH_ASSOC);
 
 // Temporary Debug Log
