@@ -401,16 +401,17 @@ function getCheckinsByFiltersPaginated(PDO $pdo, $site_filter_id, ?string $start
     // Corrected SQL query structure (Attempt 2)
     // Corrected SQL query structure (Attempt 4 - Join users table)
     $sql_checkins = "SELECT
-            ci.id, ci.first_name, ci.last_name, ci.check_in_time, ci.client_email,
-            ci.q_veteran, ci.q_age, ci.q_interviewing,
-            s.name as site_name,
-            u.name AS notified_staff_name -- Select staff name from users table
-        FROM
-            check_ins ci
-        LEFT JOIN
-            sites s ON ci.site_id = s.id
-        LEFT JOIN
-            users u ON ci.notified_staff_id = u.id"; // Join users table on notified_staff_id
+                ci.id, ci.first_name, ci.last_name, ci.check_in_time, ci.client_email, ci.client_id, ci.additional_data,
+                ci.q_unemployment_assistance, ci.q_age, ci.q_veteran, ci.q_school, ci.q_employment_layoff,
+                ci.q_unemployment_claim, ci.q_employment_services, ci.q_equus, ci.q_seasonal_farmworker,
+                s.name AS site_name,
+                u.full_name AS notified_staff_name
+            FROM
+                check_ins ci
+            LEFT JOIN
+                sites s ON ci.site_id = s.id
+            LEFT JOIN
+                users u ON ci.notified_staff_id = u.id";
 
     // Build WHERE clause and params for check-ins
     $params_checkins = [];
