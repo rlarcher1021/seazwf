@@ -37,6 +37,7 @@ require_once __DIR__ . '/data_access/allocation_data_api.php'; // Uses $pdo
 require_once __DIR__ . '/handlers/report_handler.php'; // Uses $pdo, auth_functions, error_handler
 require_once __DIR__ . '/handlers/forum_handler.php'; // Uses $pdo, auth_functions, error_handler, includes/data_access/forum_data.php
 require_once __DIR__ . '/handlers/client_handler.php'; // Uses $pdo, auth_functions, error_handler
+require_once __DIR__ . '/../../includes/data_access/checkin_data.php'; // Uses $pdo, for /checkins endpoint
 
 // --- Global Error Handling ---
 // Set a top-level exception handler to catch unhandled errors
@@ -716,10 +717,141 @@ if ($requestMethod === 'GET' && preg_match('#^/checkins/(\d+)$#', $routePath, $m
         }
         break; // End case '/clients'
 
-    // Add more cases here for future endpoints in Phase 2
-    // case '/checkins':
-    //     if ($requestMethod === 'GET') { /* ... */ }
-    //     break;
+    // --- Route: Query Check-ins ---
+    case '/checkins':
+        if ($requestMethod === 'GET') {
+            // --- Authentication ---
+            $apiKeyData = authenticateApiKey($pdo);
+            if (!$apiKeyData) {
+                sendJsonError(401, "Authentication failed. Invalid or missing API Key.", "AUTH_FAILED");
+                exit;
+            }
+
+            // --- Authorization ---
+            $canReadAll = checkApiKeyPermission('read:all_checkin_data', $apiKeyData);
+            $canReadSite = checkApiKeyPermission('read:site_checkin_data', $apiKeyData);
+
+            if (!$canReadAll && !$canReadSite) {
+                sendJsonError(403, "Permission denied. API key requires 'read:all_checkin_data' or 'read:site_checkin_data'.", "AUTH_FORBIDDEN");
+                exit;
+            }
+
+            // --- Parameter Validation & Filtering ---
+            $filters = [];
+            $errors = [];
+
+            // Site ID filtering based on API key scope
+            $apiKeySiteId = $apiKeyData['associated_site_id'] ?? null;
+            if ($apiKeySiteId && !$canReadAll) {
+                $filters['site_id'] = (int)$apiKeySiteId;
+            }
+
+            // Site ID from query parameter
+            if (isset($_GET['site_id'])) {
+                $querySiteId = filter_var($_GET['site_id'], FILTER_VALIDATE_INT, ["options" => ["min_range" => 1]]);
+                if ($querySiteId === false) {
+                    $errors[] = "Invalid 'site_id' parameter: must be a positive integer.";
+                } else {
+                    if (isset($filters['site_id']) && $filters['site_id'] !== $querySiteId) {
+                        // API key scope restricts site, and query param tries to override it
+                        sendJsonError(403, "Permission denied. API key is scoped to site_id " . $filters['site_id'] . " and cannot query for site_id " . $querySiteId . ".", "AUTH_FORBIDDEN_SITE_OVERRIDE");
+                        exit;
+                    }
+                    $filters['site_id'] = $querySiteId;
+                }
+            }
+            
+            // Start Date
+            if (isset($_GET['start_date'])) {
+                if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['start_date']) || !DateTime::createFromFormat('Y-m-d', $_GET['start_date'])) {
+                    $errors[] = "Invalid 'start_date' format. Expected YYYY-MM-DD.";
+                } else {
+                    $filters['start_date'] = $_GET['start_date'];
+                }
+            }
+
+            // End Date
+            if (isset($_GET['end_date'])) {
+                if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['end_date']) || !DateTime::createFromFormat('Y-m-d', $_GET['end_date'])) {
+                    $errors[] = "Invalid 'end_date' format. Expected YYYY-MM-DD.";
+                } else {
+                    $filters['end_date'] = $_GET['end_date'];
+                }
+            }
+            
+            // Limit
+            $limit = isset($_GET['limit']) ? filter_var($_GET['limit'], FILTER_VALIDATE_INT, ["options" => ["min_range" => 1, "max_range" => 500]]) : 100;
+            if ($limit === false) {
+                 $errors[] = "Invalid 'limit' parameter: must be an integer between 1 and 500.";
+            } elseif (!isset($_GET['limit'])) {
+                $limit = 100; // Default if not provided
+            }
+
+
+            // Page
+            $page = isset($_GET['page']) ? filter_var($_GET['page'], FILTER_VALIDATE_INT, ["options" => ["min_range" => 1]]) : 1;
+            if ($page === false) {
+                $errors[] = "Invalid 'page' parameter: must be a positive integer.";
+            } elseif (!isset($_GET['page'])) {
+                $page = 1; // Default if not provided
+            }
+
+            if (!empty($errors)) {
+                sendJsonError(400, implode(" ", $errors), "INVALID_PARAMETERS", ['details' => $errors]);
+                exit;
+            }
+
+            // --- Data Fetching ---
+            try {
+                $site_filter_param = $filters['site_id'] ?? 'all';
+                $start_date_param = $filters['start_date'] ?? null;
+                $end_date_param = $filters['end_date'] ?? null;
+                $offset = ($page - 1) * $limit;
+
+                $totalRecords = getCheckinCountByFilters($pdo, $site_filter_param, $start_date_param, $end_date_param);
+                $checkins = getCheckinsByFiltersPaginated($pdo, $site_filter_param, $start_date_param, $end_date_param, $limit, $offset);
+
+                $totalPages = ($limit > 0 && $totalRecords > 0) ? ceil($totalRecords / $limit) : 0;
+                if ($page > $totalPages && $totalRecords > 0) {
+                     // Requested page is out of bounds
+                    sendJsonError(404, "Page not found. Requested page {$page} exceeds total pages {$totalPages}.", "PAGE_NOT_FOUND", [
+                        'requested_page' => $page,
+                        'total_pages' => $totalPages,
+                        'total_records' => $totalRecords
+                    ]);
+                    exit;
+                }
+
+
+                // --- Response ---
+                header('Content-Type: application/json; charset=utf-8');
+                http_response_code(200);
+                echo json_encode([
+                    'pagination' => [
+                        'total_records' => (int)$totalRecords,
+                        'records_per_page' => (int)$limit,
+                        'current_page' => (int)$page,
+                        'total_pages' => (int)$totalPages
+                    ],
+                    'checkins' => $checkins
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+
+            } catch (PDOException $e) {
+                error_log("API Database Error (GET /checkins): " . $e->getMessage());
+                sendJsonError(500, 'Database error occurred while fetching check-ins.', 'DB_ERROR');
+            } catch (InvalidArgumentException $e) { // Catch specific argument errors from data access
+                sendJsonError(400, $e->getMessage(), 'DATA_ACCESS_INVALID_ARG');
+            } catch (Exception $e) {
+                error_log("API Logic Error (GET /checkins): " . $e->getMessage());
+                sendJsonError(500, 'An unexpected error occurred processing the request.', 'UNEXPECTED_ERROR');
+            }
+            exit;
+
+        } else {
+            sendJsonError(405, "Method Not Allowed. Only GET is supported for /checkins.", "METHOD_NOT_ALLOWED");
+        }
+        break; // End case '/checkins'
+
     // case '/checkins/{id}/notes': // Need more sophisticated routing for path parameters
     //     if ($requestMethod === 'POST') { /* ... */ }
     //     break;
