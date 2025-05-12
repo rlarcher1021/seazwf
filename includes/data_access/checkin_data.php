@@ -470,6 +470,8 @@ function getCheckinsByFiltersPaginated(PDO $pdo, $site_filter_id, ?string $start
         // Extract IDs for the next query
         $checkin_ids = array_column($paginated_checkins, 'id');
 
+// Temporary Debug Log
+        error_log("DEBUG queryCheckins - Collected checkin_ids: " . print_r($checkin_ids, true));
     } catch (PDOException $e) {
         error_log("EXCEPTION in getCheckinsByFiltersPaginated (Checkins Query): " . $e->getMessage() . " | SQL: " . $sql_checkins);
         return [];
@@ -493,6 +495,8 @@ function getCheckinsByFiltersPaginated(PDO $pdo, $site_filter_id, ?string $start
                 $stmt_answers->execute($checkin_ids);
                 $answer_results = $stmt_answers->fetchAll(PDO::FETCH_ASSOC);
 
+// Temporary Debug Log
+                error_log("DEBUG queryCheckins - Fetched answer_results: " . print_r($answer_results, true));
                 // Group answers by check_in_id
                 foreach ($answer_results as $answer_row) {
                     $cid = $answer_row['check_in_id'];
@@ -517,6 +521,8 @@ function getCheckinsByFiltersPaginated(PDO $pdo, $site_filter_id, ?string $start
         $final_results[] = $checkin;
     }
 
+// Temporary Debug Log
+    error_log("DEBUG queryCheckins - paginated_checkins before return: " . print_r($final_results, true));
     return $final_results;
 }
 
