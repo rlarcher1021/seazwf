@@ -398,16 +398,19 @@ function getCheckinCountByFilters(PDO $pdo, $site_filter_id, ?string $start_date
 function getCheckinsByFiltersPaginated(PDO $pdo, $site_filter_id, ?string $start_date, ?string $end_date, int $limit, int $offset): array
 {
     // --- Step 1: Fetch Paginated Core Check-in Data ---
+    // Corrected SQL query structure (Attempt 2)
     $sql_checkins = "SELECT
-                        ci.id, ci.first_name, ci.last_name, ci.check_in_time, ci.client_email,
-                        ci.q_veteran, ci.q_age, ci.q_interviewing, -- Added QR question columns
-                        s.name as site_name, sn.staff_name as notified_staff
-                    FROM
-                        check_ins ci
-                    JOIN
-                        sites s ON ci.site_id = s.id
-                    LEFT JOIN
-                        staff_notifications sn ON ci.notified_staff_id = sn.id"; // Assuming staff_notifications table exists
+            ci.id, ci.first_name, ci.last_name, ci.check_in_time, ci.client_email, ci.notified_staff,
+            ci.q_veteran, ci.q_age, ci.q_interviewing,
+            s.name as site_name,
+            sn.staff_name as notified_staff_name
+            -- Add any other necessary ci.* columns here if they exist
+        FROM
+            check_ins ci
+        LEFT JOIN
+            sites s ON ci.site_id = s.id
+        LEFT JOIN
+            staff_notifications sn ON ci.id = sn.checkin_id";
 
     // Build WHERE clause and params for check-ins
     $params_checkins = [];
