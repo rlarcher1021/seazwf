@@ -506,6 +506,9 @@ function getCheckinsByFiltersPaginated(PDO $pdo, $site_filter_id, ?string $start
                     // Use question_title as the key for the answer
                     $answers_by_checkin_id[$cid][$answer_row['question_title']] = $answer_row['answer'];
                 }
+
+                // Temporary Debug Log - New (Instruction 4b)
+                error_log("DEBUG getCheckinsByFiltersPaginated - Grouped answers_by_checkin_id (content): " . print_r($answers_by_checkin_id, true));
             }
         } catch (PDOException $e) {
             error_log("EXCEPTION in getCheckinsByFiltersPaginated (Answers Query): " . $e->getMessage() . " | SQL: " . $sql_answers);
@@ -519,6 +522,8 @@ function getCheckinsByFiltersPaginated(PDO $pdo, $site_filter_id, ?string $start
         // Proposed Logging Start
         error_log("DEBUG getCheckinsByFiltersPaginated - Processing checkin ID: " . $checkin['id']);
         // Log the grouped answers array to see if the grouping worked and if the current ID exists
+        // Temporary Debug Log - Verify/Ensure (Instruction 4c)
+        error_log("DEBUG getCheckinsByFiltersPaginated - Answers supposedly found for current checkin ID (" . $checkin['id'] . "): " . print_r($answers_by_checkin_id[$checkin['id']] ?? [], true));
         error_log("DEBUG getCheckinsByFiltersPaginated - Grouped answers_by_checkin_id (all answers fetched and grouped): " . print_r($answers_by_checkin_id, true));
         error_log("DEBUG getCheckinsByFiltersPaginated - Answers supposedly found for current checkin ID (" . $checkin['id'] . "): " . print_r($answers_by_checkin_id[$checkin['id']] ?? [], true));
         // Proposed Logging End
