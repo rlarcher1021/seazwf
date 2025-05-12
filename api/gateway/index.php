@@ -342,6 +342,15 @@ switch ($action) {
             }
         }
         
+// --- ADDED DEBUG LOGS FOR queryCheckins ---
+        log_gateway_debug("queryCheckins - Authenticated agent associated_site_id: " . ($authenticated_agent_info['associated_site_id'] ?? 'NOT SET'));
+
+        $log_internal_api_url = INTERNAL_API_V1_BASE_URL . '/checkins';
+        if (!empty($v1QueryParams)) {
+            $log_internal_api_url .= '?' . http_build_query($v1QueryParams);
+        }
+        log_gateway_debug("queryCheckins - Calling internal API URL: " . $log_internal_api_url);
+        // --- END DEBUG LOGS FOR queryCheckins ---
         $internalResponse = call_internal_api('GET', '/checkins', $v1QueryParams);
 
         if (isset($internalResponse['error'])) {
