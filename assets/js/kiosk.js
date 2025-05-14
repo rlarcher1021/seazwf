@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function sendCheckinRequest(identifier) {
-        const apiUrl = '/public_html/kiosk/qr_checkin.php'; // The PHP handler endpoint (Explicit path)
+        const apiUrl = '/kiosk/qr_checkin.php'; // The PHP handler endpoint
 
         fetch(apiUrl, {
             method: 'POST',

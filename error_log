@@ -279,3 +279,9 @@
 [14-May-2025 23:55:49 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
 [14-May-2025 23:55:49 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
 [14-May-2025 23:55:49 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
+[14-May-2025 23:56:30 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[14-May-2025 23:56:30 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[14-May-2025 23:56:30 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
+[14-May-2025 23:56:50 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[14-May-2025 23:56:50 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[14-May-2025 23:56:50 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
