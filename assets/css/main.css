@@ -4,30 +4,30 @@
     justify-content: space-between;
     align-items: flex-start; /* Align items to the top */
     padding: 20px;
-    gap: 10px; /* Reduced space between columns */
+    gap: 20px; 
 }
 
 .camera-column {
-    flex: 0 0 350px; /* Increased width for camera column */
+    flex: 0 0 320px; 
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding-top: 20px; /* Add some padding at the top */
+    padding-top: 20px; 
 }
 
 .main-content-column {
-    flex-grow: 1; /* Allows the main content to take up remaining space */
+    flex-grow: 1; 
     display: flex;
     flex-direction: column;
-    align-items: center; /* Center logo and form */
+    align-items: center; 
 }
 
 .ads-column-right {
-    flex: 0 0 350px; /* Increased width for ads column */
+    flex: 0 0 300px; 
     display: flex;
-    flex-direction: column; /* Stack ads vertically */
-    gap: 15px; /* Space between ads */
-    padding-top: 20px; /* Add some padding at the top */
+    flex-direction: column; 
+    gap: 15px; 
+    padding-top: 20px; 
 }
 
 .ad-content-wrapper {
@@ -35,51 +35,44 @@
     padding: 10px;
     background-color: #f9f9f9;
     border-radius: 4px;
-    width: 100%; /* Make ad wrappers take full width of the column */
+    width: 100%; 
 }
 
 .ad-content-wrapper img {
     max-width: 100%;
     height: auto;
     display: block;
-    margin: 0 auto; /* Center image if it's smaller than wrapper */
+    margin: 0 auto; 
 }
 
 /* Ensure checkin-logo and checkin-container in the middle column are centered */
 .checkin-logo {
-    margin-bottom: 10px; /* Reduced space below logo */
-    width: 100%; /* Allow it to be constrained by max-width */
-    max-width: 600px; /* Match the form container's max-width */
-    display: flex; /* To center the image if it's smaller than max-width */
-    justify-content: center; /* Center the image horizontally */
+    margin-bottom: 20px; /* Reverted space below logo */
 }
 
-.checkin-logo img {
-    max-width: 100%; /* Make image responsive within the logo container */
-    height: auto; /* Maintain aspect ratio */
-}
+/* .checkin-logo img rule removed */
 
 .checkin-container {
-    width: 100%; /* Make form container take full width of its column */
-    max-width: 600px; /* Max width for the form itself */
+    width: 100%; 
+    max-width: 600px; 
 }
 
 /* Responsive adjustments if needed */
 @media (max-width: 1024px) {
     .page-wrapper-with-ads {
         flex-direction: column;
-        align-items: center; /* Center columns when stacked */
+        align-items: center; 
     }
     .camera-column,
     .ads-column-right {
-        flex-basis: auto; /* Allow them to take full width when stacked */
+        flex-basis: auto; 
         width: 100%;
-        max-width: 500px; /* Limit width on smaller screens */
+        max-width: 500px; 
         margin-bottom: 20px;
     }
     .main-content-column {
          width: 100%;
-         max-width: 600px; /* Limit width on smaller screens */
+         max-width: 600px; 
     }
 }
 /*

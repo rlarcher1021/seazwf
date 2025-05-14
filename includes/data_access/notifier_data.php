@@ -9,24 +9,20 @@
  *
  * @param PDO $pdo The PDO database connection object.
  * @param int $site_id The ID of the site.
- * @return array An associative array [staff_id => ['id' => ..., 'staff_name' => ..., 'staff_email' => ...]], or empty array on failure.
+ * @return array An associative array [notifier_id => ['notifier_id' => ..., 'staff_name' => ..., 'staff_email' => ...]], or empty array on failure.
  */
 function getActiveStaffNotifiersForSite(PDO $pdo, int $site_id): array
 {
-    // Join with users table to get the actual user ID and ensure user is active
-    // Assumes users table has id, email, name, is_active columns
-    // Assumes staff_notifications.staff_email links to users.email
-    // Join with users table to get the actual user ID and ensure user is active and not deleted
-    // Assumes users table has id, email, full_name, is_active, deleted_at columns
-    // Assumes staff_notifications.staff_email links to users.email
-    $sql = "SELECT u.id, u.full_name as staff_name, u.email as staff_email
+    // Join with users table to get the user's full name and ensure user is active
+    // The key of the returned array will be staff_notifications.id
+    $sql = "SELECT sn.id as notifier_id, u.full_name as staff_name, u.email as staff_email
             FROM staff_notifications sn
             JOIN users u ON sn.staff_email = u.email
             WHERE sn.site_id = :site_id
               AND sn.is_active = TRUE
               AND u.is_active = TRUE      -- Ensure the linked user is active
               AND u.deleted_at IS NULL  -- Ensure the linked user is not soft-deleted
-            ORDER BY u.full_name ASC";   // Removed trailing comment
+            ORDER BY u.full_name ASC";
 
     try {
         $stmt = $pdo->prepare($sql);
@@ -41,13 +37,13 @@ function getActiveStaffNotifiersForSite(PDO $pdo, int $site_id): array
             return [];
         }
 
-        // Fetch as associative array and manually key by user ID
+        // Fetch as associative array and manually key by staff_notifications.id (aliased as notifier_id)
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         $keyed_results = [];
         foreach ($results as $row) {
-            // Use the user's ID (aliased as 'id' in the SELECT) as the key
-            if (isset($row['id'])) {
-                 $keyed_results[$row['id']] = $row;
+            // Use the staff_notifications ID (aliased as 'notifier_id' in the SELECT) as the key
+            if (isset($row['notifier_id'])) {
+                 $keyed_results[$row['notifier_id']] = $row;
             }
         }
         return $keyed_results;

@@ -267,3 +267,15 @@
 [14-May-2025 23:29:17 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
 [14-May-2025 23:29:17 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
 [14-May-2025 23:29:17 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
+[14-May-2025 23:31:48 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
+[14-May-2025 23:31:48 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[14-May-2025 23:31:48 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
+[14-May-2025 23:33:19 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
+[14-May-2025 23:33:19 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[14-May-2025 23:33:19 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
+[14-May-2025 23:34:50 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
+[14-May-2025 23:34:50 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[14-May-2025 23:34:50 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
+[14-May-2025 23:55:49 Europe/Berlin] Checkin: Using manual_site_id 4 for role administrator
+[14-May-2025 23:55:49 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
+[14-May-2025 23:55:49 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
