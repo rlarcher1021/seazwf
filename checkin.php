@@ -213,20 +213,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     // Validate dynamic questions
-    $question_answers = [];
+    $question_answers_for_check_ins = []; // For existing q_* columns in check_ins table
+    $question_answers_for_checkin_answers_table = []; // For the separate checkin_answers table
+
     foreach ($assigned_questions as $question) {
-        $q_key = 'q_' . $question['id']; // Use 'id' as aliased in getActiveQuestionsForSite
-        $answer = filter_input(INPUT_POST, $q_key, FILTER_SANITIZE_SPECIAL_CHARS);
+        $original_question_id = $question['id']; // Actual question_id
+        $q_input_key = 'q_' . $original_question_id; // Input name from the form e.g. q_1, q_2
+        $answer = filter_input(INPUT_POST, $q_input_key, FILTER_SANITIZE_SPECIAL_CHARS);
+        
         $question_title_base = $question['question_title'];
 
-        if (empty($question_title_base)) {
-            error_log("Checkin Warning: Global Question ID {$question['id']} missing title/base_name for site {$site_id}."); // Use 'id' here as well
-            continue;
-        }
-        $db_column_name = 'q_' . sanitize_title_to_base_name($question_title_base);
-
         if ($answer === 'YES' || $answer === 'NO') {
-            $question_answers[$db_column_name] = $answer;
+            // For checkin_answers table (uses actual question_id)
+            $question_answers_for_checkin_answers_table[$original_question_id] = $answer;
+
+            // For existing q_* columns in check_ins table (uses sanitized title)
+            if (!empty($question_title_base)) {
+                $db_column_name_for_check_ins = 'q_' . sanitize_title_to_base_name($question_title_base);
+                $question_answers_for_check_ins[$db_column_name_for_check_ins] = $answer;
+            } else {
+                error_log("Checkin Warning: Global Question ID {$original_question_id} missing title/base_name for site {$site_id}. Cannot form q_* column name for check_ins table.");
+            }
         } else {
             $errors[] = "Please answer the question: \"" . htmlspecialchars($question['question_text']) . "\"";
         }
@@ -260,7 +267,8 @@ error_log("[DEBUG checkin.php POST] \$staff_notifiers array structure: " . print
             'check_in_time' => $check_in_time, // Use defined time
             'notified_staff_id' => $notified_staff_id,
             'client_email' => $client_email,
-            'question_answers' => $question_answers
+            'question_answers' => $question_answers_for_check_ins, // This is for the q_* columns in check_ins
+            'answers_for_separate_table' => $question_answers_for_checkin_answers_table // This is for checkin_answers table
         ];
 
         // Call the data access function to save the check-in
@@ -540,58 +548,32 @@ error_log("[DEBUG checkin.php POST] \$staff_notifiers array structure: " . print
      <!-- ================== NEW WRAPPER ================== -->
     <div class="page-wrapper-with-ads">
 
-        <!-- == NEW LEFT AD SIDEBAR == -->
-        <div class="ad-sidebar ad-left">
-            <?php if ($left_ad): ?>
-                <div class="ad-content">
-                    <?php if ($left_ad['ad_type'] === 'text' && !empty($left_ad['ad_text'])): ?>
-                        <?php echo nl2br(htmlspecialchars($left_ad['ad_text'])); // Display text ad, convert newlines ?>
-                    <?php elseif ($left_ad['ad_type'] === 'image' && !empty($left_ad['image_path'])):
-                        $image_url = htmlspecialchars($left_ad['image_path']);
-                        // Basic path correction (adjust if needed)
-                        if (!filter_var($image_url, FILTER_VALIDATE_URL) && $image_url[0] !== '/' && strpos($image_url, '://') === false) {
-                            $image_url = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/') . '/' . AD_UPLOAD_URL_BASE . basename($image_url); // Use constant
-                        }
-                    ?>
-                        <img src="<?php echo $image_url; ?>" alt="<?php echo htmlspecialchars($left_ad['ad_title'] ?: 'Advertisement'); ?>">
-                    <?php endif; ?>
-                </div>
-            <?php else: ?>
-                 <!-- Optional: Placeholder if no ad -->
-                 <!-- <div class="ad-placeholder"></div> -->
-            <?php endif; ?>
+        <!-- Camera Column (Left) -->
+        <div class="camera-column">
+            <!-- QR Code Reader Placeholder -->
+            <div id="qr-reader" style="width: 300px; margin: 15px auto; border: 1px solid #ccc;"></div>
+            <div id="qr-reader-results" class="mt-3 text-center"></div>
         </div>
-        <!-- == END LEFT AD SIDEBAR == -->
 
-
-        <!-- == NEW MAIN CONTENT COLUMN WRAPPER == -->
+        <!-- Main Content Column (Center) -->
         <div class="main-content-column">
-
-            <!-- Existing Logo (Now inside central column) -->
+            <!-- Logo -->
             <div class="checkin-logo">
                 <img src="assets/img/logo.jpg" alt="Arizona@Work Logo">
             </div>
-
-            <!-- Existing Form Container (Now inside central column) -->
-<!-- QR Code Reader Placeholder -->
-            <div id="qr-reader" style="width: 500px; margin: 15px auto; border: 1px solid #ccc;"></div>
-            <div id="qr-reader-results" class="mt-3 text-center"></div> <!-- Area for results/messages -->
+            <!-- Form Container -->
             <div class="checkin-container" id="checkin-form-container">
                 <h1>Welcome to Arizona@Work <?php echo htmlspecialchars($site_name); ?>!</h1>
                 <h2>Please Check In</h2>
 
-                <!-- Existing Message Area -->
                 <?php if (!empty($submission_message)): ?>
                     <div class="message-area message-<?php echo htmlspecialchars($message_type); ?>" id="submission-message">
                         <?php echo $submission_message; ?>
                     </div>
                 <?php endif; ?>
 
-                <!-- Existing Form -->
                 <form method="POST" action="checkin.php<?php echo $manual_site_id ? '?manual_site_id='.$manual_site_id : ''; ?>" id="checkin-form">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
-                    <!-- ... (ALL your existing form fields: first name, last name, questions, email, notifier, button) ... -->
-                     <!-- Fixed Fields -->
                     <div class="form-row">
                         <div class="form-group">
                             <label for="first_name" class="form-label">First Name:</label>
@@ -603,13 +585,11 @@ error_log("[DEBUG checkin.php POST] \$staff_notifiers array structure: " . print
                         </div>
                     </div>
 
-                    <!-- Separator -->
                     <?php if (!empty($assigned_questions) || ($allow_notifier && !empty($staff_notifiers)) || $allow_email_collection): ?><hr><?php endif; ?>
 
-                    <!-- Dynamic Questions -->
                     <?php if (!empty($assigned_questions)): ?>
                         <?php foreach ($assigned_questions as $question):
-                            $q_key = 'q_' . $question['id']; // Use the alias 'id' from getActiveQuestionsForSite query
+                            $q_key = 'q_' . $question['id'];
                             $current_answer = $form_data[$q_key] ?? null; ?>
                             <div class="form-group">
                                 <label class="form-label"><?php echo htmlspecialchars($question['question_text']); ?>:</label>
@@ -621,47 +601,62 @@ error_log("[DEBUG checkin.php POST] \$staff_notifiers array structure: " . print
                         <?php endforeach; ?>
                     <?php endif; ?>
 
-                    <!-- Optional Notifier -->
                     <?php if ($allow_notifier && !empty($staff_notifiers)): $selected_notifier = $form_data['notify_staff'] ?? ''; ?>
                          <?php if ($allow_email_collection): ?><hr><?php endif; ?>
                         <div class="form-group"><label for="notify_staff" class="form-label">Notify Staff Member (Optional):</label><div class="description">Select staff member if you need specific assistance.</div><select id="notify_staff" name="notify_staff" class="form-control"><option value="">-- No Specific Staff Needed --</option><?php foreach ($staff_notifiers as $id => $data): ?><option value="<?php echo $id; ?>" <?php echo ($selected_notifier == $id) ? 'selected' : ''; ?>><?php echo htmlspecialchars($data['staff_name']); ?></option><?php endforeach; ?></select></div>
                     <?php endif; ?>
 
-                     <!-- Optional Email -->
                     <?php if ($allow_email_collection): ?>
                          <hr><div class="form-group"><label for="collect_email" class="form-label"><?php echo htmlspecialchars($site_email_description); ?> (Optional)</label><input type="email" id="collect_email" name="collect_email" class="form-control" value="<?php echo htmlspecialchars($form_data['collect_email'] ?? ''); ?>" placeholder="your.email@example.com" pattern="[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$" title="Please enter a valid email address."></div>
                     <?php endif; ?>
 
-                    <!-- Submission Button -->
                     <button type="submit" class="btn btn-primary">Check In</button>
                 </form>
             </div> <!-- End .checkin-container -->
+        </div> <!-- END Main Content Column (Center) -->
 
-        </div> <!-- == END MAIN CONTENT COLUMN WRAPPER == -->
+        <!-- Ads Column (Right) -->
+        <div class="ads-column-right">
+            <!-- Ad 1 (formerly $left_ad) -->
+            <div class="ad-content-wrapper mb-3"> <!-- Added mb-3 for spacing -->
+                <?php if ($left_ad): ?>
+                    <div class="ad-content">
+                        <?php if ($left_ad['ad_type'] === 'text' && !empty($left_ad['ad_text'])): ?>
+                            <?php echo nl2br(htmlspecialchars($left_ad['ad_text'])); ?>
+                        <?php elseif ($left_ad['ad_type'] === 'image' && !empty($left_ad['image_path'])):
+                            $image_url_1 = htmlspecialchars($left_ad['image_path']); // Use different var name
+                            if (!filter_var($image_url_1, FILTER_VALIDATE_URL) && $image_url_1[0] !== '/' && strpos($image_url_1, '://') === false) {
+                                $image_url_1 = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/') . '/' . AD_UPLOAD_URL_BASE . basename($image_url_1);
+                            }
+                        ?>
+                            <img src="<?php echo $image_url_1; ?>" alt="<?php echo htmlspecialchars($left_ad['ad_title'] ?: 'Advertisement 1'); ?>">
+                        <?php endif; ?>
+                    </div>
+                <?php else: ?>
+                    <!-- <div class="ad-placeholder">Ad 1 Placeholder</div> -->
+                <?php endif; ?>
+            </div>
 
-
-        <!-- == NEW RIGHT AD SIDEBAR == -->
-        <div class="ad-sidebar ad-right">
-             <?php if ($right_ad): ?>
-                <div class="ad-content">
-                    <?php if ($right_ad['ad_type'] === 'text' && !empty($right_ad['ad_text'])): ?>
-                        <?php echo nl2br(htmlspecialchars($right_ad['ad_text'])); ?>
-                    <?php elseif ($right_ad['ad_type'] === 'image' && !empty($right_ad['image_path'])):
-                        $image_url = htmlspecialchars($right_ad['image_path']);
-                        // Basic path correction (adjust if needed)
-                        if (!filter_var($image_url, FILTER_VALIDATE_URL) && $image_url[0] !== '/' && strpos($image_url, '://') === false) {
-                            $image_url = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/') . '/' . AD_UPLOAD_URL_BASE . basename($image_url); // Use constant
-                        }
-                    ?>
-                        <img src="<?php echo $image_url; ?>" alt="<?php echo htmlspecialchars($right_ad['ad_title'] ?: 'Advertisement'); ?>">
-                    <?php endif; ?>
-                </div>
-            <?php else: ?>
-                 <!-- Optional: Placeholder if no ad -->
-                 <!-- <div class="ad-placeholder"></div> -->
-            <?php endif; ?>
-        </div>
-        <!-- == END RIGHT AD SIDEBAR == -->
+            <!-- Ad 2 (formerly $right_ad) -->
+            <div class="ad-content-wrapper">
+                <?php if ($right_ad): ?>
+                    <div class="ad-content">
+                        <?php if ($right_ad['ad_type'] === 'text' && !empty($right_ad['ad_text'])): ?>
+                            <?php echo nl2br(htmlspecialchars($right_ad['ad_text'])); ?>
+                        <?php elseif ($right_ad['ad_type'] === 'image' && !empty($right_ad['image_path'])):
+                            $image_url_2 = htmlspecialchars($right_ad['image_path']); // Use different var name
+                            if (!filter_var($image_url_2, FILTER_VALIDATE_URL) && $image_url_2[0] !== '/' && strpos($image_url_2, '://') === false) {
+                                $image_url_2 = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/') . '/' . AD_UPLOAD_URL_BASE . basename($image_url_2);
+                            }
+                        ?>
+                            <img src="<?php echo $image_url_2; ?>" alt="<?php echo htmlspecialchars($right_ad['ad_title'] ?: 'Advertisement 2'); ?>">
+                        <?php endif; ?>
+                    </div>
+                <?php else: ?>
+                    <!-- <div class="ad-placeholder">Ad 2 Placeholder</div> -->
+                <?php endif; ?>
+            </div>
+        </div> <!-- END Ads Column (Right) -->
 
     </div> <!-- ================== END page-wrapper-with-ads ================== -->
     <!-- Footer (Optional, if you have one) -->

@@ -766,12 +766,33 @@ function saveCheckin(PDO $pdo, array $checkin_data): int|false
         $insert_success = $stmt_insert->execute($values);
 
         if ($insert_success) {
-             $check_in_id = $pdo->lastInsertId();
-             $pdo->commit(); // Commit transaction
-             return (int)$check_in_id;
+             $check_in_id = (int)$pdo->lastInsertId(); // Cast to int
+
+             // Now, save answers to the checkin_answers table
+             $answers_for_separate_table = $checkin_data['answers_for_separate_table'] ?? [];
+
+             if (!empty($answers_for_separate_table)) {
+                 error_log("saveCheckin: Attempting to save answers to checkin_answers table for check_in_id: {$check_in_id}");
+                 $all_separate_answers_saved = saveCheckinAnswers($pdo, $check_in_id, $answers_for_separate_table);
+
+                 if ($all_separate_answers_saved) {
+                     error_log("saveCheckin: Successfully saved answers to checkin_answers for check_in_id: {$check_in_id}");
+                     $pdo->commit(); // Commit transaction only if both saves are successful
+                     return $check_in_id;
+                 } else {
+                     error_log("ERROR saveCheckin: Failed to save answers to checkin_answers table for check_in_id: {$check_in_id}. Rolling back transaction.");
+                     $pdo->rollBack(); // Rollback transaction
+                     return false;
+                 }
+             } else {
+                 // No separate answers to save, main check-in was successful
+                 error_log("saveCheckin: No answers provided for checkin_answers table for check_in_id: {$check_in_id}. Committing main check-in.");
+                 $pdo->commit(); // Commit transaction for main check-in
+                 return $check_in_id;
+             }
         } else {
              $errorInfo = $stmt_insert->errorInfo();
-             error_log("ERROR saveCheckin: Execute failed. SQLSTATE[{$errorInfo[0]}] Driver Error[{$errorInfo[1]}]: {$errorInfo[2]} --- Query: {$sql_insert} --- Values: " . print_r($values, true));
+             error_log("ERROR saveCheckin: Execute failed for main check_ins insert. SQLSTATE[{$errorInfo[0]}] Driver Error[{$errorInfo[1]}]: {$errorInfo[2]} --- Query: {$sql_insert} --- Values: " . print_r($values, true));
              $pdo->rollBack(); // Rollback transaction
              return false;
         }
@@ -902,54 +923,110 @@ function getCheckinDataForExport(PDO $pdo, ?int $site_filter_id, string $start_d
  */
 function saveCheckinAnswers(PDO $pdo, int $checkinId, array $answers): bool
 {
+    error_log("saveCheckinAnswers: Called for checkin_id: {$checkinId} with answers: " . print_r($answers, true));
+
+    if ($checkinId <= 0) {
+        error_log("saveCheckinAnswers: Invalid checkin_id ({$checkinId}). Returning false.");
+        return false;
+    }
     if (empty($answers)) {
-        return true; // Nothing to save
+        error_log("saveCheckinAnswers: No answers provided to save for checkin_id {$checkinId}. Returning true (vacuously successful).");
+        return true;
     }
 
-    // Use ON DUPLICATE KEY UPDATE to handle potential re-submissions or edge cases gracefully.
-    $sql = "INSERT INTO checkin_answers (check_in_id, question_id, answer) VALUES (:check_in_id, :question_id, :answer)
+    $sql = "INSERT INTO checkin_answers (check_in_id, question_id, answer, created_at)
+            VALUES (:check_in_id, :question_id, :answer, NOW())
             ON DUPLICATE KEY UPDATE answer = VALUES(answer)";
+    error_log("saveCheckinAnswers: SQL for checkin_id {$checkinId}: {$sql}");
+
+    $weStartedTransaction = false;
+    $atLeastOneExecuteAttemptedAndSuccessful = false;
+    $anySkipped = false;
 
     try {
-        $stmt = $pdo->prepare($sql);
-        if (!$stmt) {
-            error_log("ERROR saveCheckinAnswers: Prepare failed. PDO Error: " . implode(" | ", $pdo->errorInfo()));
-            return false;
+        if (!$pdo->inTransaction()) {
+            $pdo->beginTransaction();
+            $weStartedTransaction = true;
+            error_log("saveCheckinAnswers: Began OUR transaction for checkin_id: {$checkinId}");
+        } else {
+            error_log("saveCheckinAnswers: Already in an existing transaction for checkin_id: {$checkinId}");
         }
 
-        // Use a transaction for atomicity: all answers save or none do.
-        $pdo->beginTransaction();
+        $stmt = $pdo->prepare($sql);
+        if (!$stmt) {
+            error_log("ERROR saveCheckinAnswers: Prepare failed for checkin_id {$checkinId}. PDO Error: " . implode(" | ", $pdo->errorInfo()));
+            if ($weStartedTransaction && $pdo->inTransaction()) {
+                $pdo->rollBack();
+                error_log("saveCheckinAnswers: Rolled back OUR transaction for checkin_id: {$checkinId} due to prepare failure.");
+            }
+            return false;
+        }
+        error_log("saveCheckinAnswers: Statement prepared successfully for checkin_id: {$checkinId}");
 
-        foreach ($answers as $questionId => $answer) {
-            // Basic validation for question ID and answer format
-            if (!is_numeric($questionId) || !in_array($answer, ['Yes', 'No'], true)) {
-                 error_log("WARNING saveCheckinAnswers: Invalid data skipped for checkin ID {$checkinId}. Question ID: {$questionId}, Answer: {$answer}");
-                 continue; // Skip invalid entries, but don't fail the whole batch unless execute fails
+        foreach ($answers as $questionIdKey => $answerValue) {
+            // Ensure questionIdKey is a positive integer.
+            $currentQuestionId = filter_var($questionIdKey, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+
+            // Detailed validation logging
+            $is_id_valid_check = ($currentQuestionId !== false); // True if filter_var succeeded with a positive int
+            // Corrected case for answer validation to match form submission ('YES', 'NO')
+            $is_answer_valid_check = in_array($answerValue, ['YES', 'NO'], true);
+            error_log("saveCheckinAnswers: Validation PRE-CHECK for QID key '{$questionIdKey}': currentQuestionId (after filter_var) = " . var_export($currentQuestionId, true) . ", is_id_valid_check = " . ($is_id_valid_check ? 'TRUE' : 'FALSE') . "; answerValue = '{$answerValue}', is_answer_valid_check = " . ($is_answer_valid_check ? 'TRUE' : 'FALSE'));
+
+            error_log("saveCheckinAnswers: Processing original_question_id_key: '{$questionIdKey}', validated_int_id: " . ($currentQuestionId === false ? 'FALSE' : $currentQuestionId) . ", answer: '{$answerValue}' for checkin_id: {$checkinId}");
+
+            // Revised validation: ID must be a positive integer, answer must be 'YES' or 'NO'.
+            if (!$is_id_valid_check || !$is_answer_valid_check) { // If ID is NOT valid OR answer is NOT valid
+                 error_log("WARNING saveCheckinAnswers: Invalid data skipped for checkin ID {$checkinId}. Validated Question ID: " . ($currentQuestionId === false ? 'INVALID_OR_NON_POSITIVE' : $currentQuestionId) . " (Original key: '{$questionIdKey}'), Answer: '{$answerValue}'. Reason: ID_VALID=" . ($is_id_valid_check?'T':'F') . ", ANSWER_VALID=" . ($is_answer_valid_check?'T':'F'));
+                 $anySkipped = true;
+                 continue;
             }
 
             $params = [
                 ':check_in_id' => $checkinId,
-                ':question_id' => (int)$questionId,
-                ':answer' => $answer
+                ':question_id' => $currentQuestionId,
+                ':answer' => $answerValue
             ];
+            error_log("saveCheckinAnswers: Params for execute: " . print_r($params, true));
 
             if (!$stmt->execute($params)) {
-                // Log specific error for the failed execution
-                error_log("ERROR saveCheckinAnswers: Execute failed for checkin ID {$checkinId}, question ID {$questionId}. PDO Error: " . implode(" | ", $stmt->errorInfo()));
-                $pdo->rollBack(); // Rollback the transaction on any failure
-                return false;
+                $errorInfo = $stmt->errorInfo();
+                error_log("ERROR saveCheckinAnswers: Execute failed for question_id {$currentQuestionId}, checkin_id {$checkinId}. PDO Error: " . implode(" | ", $errorInfo) . " SQLSTATE: " . $errorInfo[0]);
+                if ($weStartedTransaction && $pdo->inTransaction()) {
+                    $pdo->rollBack();
+                    error_log("saveCheckinAnswers: Rolled back OUR transaction for checkin_id: {$checkinId} due to execute failure.");
+                }
+                return false; // Fail fast
+            } else {
+                $rowCount = $stmt->rowCount();
+                error_log("saveCheckinAnswers: Execute successful for question_id {$currentQuestionId}, checkin_id {$checkinId}. Rows affected: {$rowCount}");
+                // An insert or update (on duplicate) counts as a successful operation.
+                // rowCount can be 0 for an UPDATE that results in no change, but 1 for INSERT, 2 for INSERT...ON DUPLICATE KEY UPDATE if update occurs.
+                // For simplicity, if execute didn't throw and wasn't false, we count it.
+                $atLeastOneExecuteAttemptedAndSuccessful = true;
             }
         }
 
-        // If all executions succeeded, commit the transaction
-        $pdo->commit();
-        return true;
+        if ($weStartedTransaction && $pdo->inTransaction()) {
+            $pdo->commit();
+            error_log("saveCheckinAnswers: Committed OUR transaction for checkin_id: {$checkinId}");
+        }
+        
+        // If $answers was not empty, return true only if at least one answer was processed without error.
+        // If all answers were skipped, this means $atLeastOneExecuteAttemptedAndSuccessful is false.
+        // If $answers was empty, we returned true at the top.
+        if (!empty($answers) && !$atLeastOneExecuteAttemptedAndSuccessful && $anySkipped) {
+            error_log("saveCheckinAnswers: All provided answers were skipped due to validation for checkin_id {$checkinId}. Returning false as no valid data was processed.");
+            return false; // No valid data was actually processed.
+        }
+        
+        return true; // Reached end without critical error, or successfully processed some data.
 
     } catch (PDOException $e) {
-        error_log("EXCEPTION in saveCheckinAnswers for checkin ID {$checkinId}: " . $e->getMessage());
-        // Ensure rollback if an exception occurs during the transaction
-        if ($pdo->inTransaction()) {
+        error_log("EXCEPTION in saveCheckinAnswers for checkin ID {$checkinId}: " . $e->getMessage() . ". SQL: {$sql}");
+        if ($weStartedTransaction && $pdo->inTransaction()) {
             $pdo->rollBack();
+            error_log("saveCheckinAnswers: Rolled back OUR transaction for checkin_id: {$checkinId} due to PDOException.");
         }
         return false;
     }
