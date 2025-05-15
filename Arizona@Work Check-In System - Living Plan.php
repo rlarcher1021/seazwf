@@ -1,15 +1,15 @@
 Arizona@Work Check-In System - Living Project Plan
-Version: 1.57
-Date: 2025-05-14
+Version: 1.58
+Date: 2025-05-15
 (This Living Plan document is the "Single Source of Truth". User Responsibility: Maintain locally, provide current code, request plan updates. Developer (AI) Responsibility: Use plan/code context, focus on single tasks, provide code, assist plan updates.)
 1. Project Goal:
-Develop a web-based check-in and tracking system for Arizona@Work sites. Implement role-based access control (RBAC) using User Roles (including a site-scoped administrative capability via is_site_admin flag) in combination with Department assignments to manage feature access for staff. Incorporate a comprehensive Budget tracking module. Develop a secure API layer (V1) to enable programmatic access for internal system components and the Unified API Gateway, with initial endpoints and the reports endpoint tested and verified. Implement a Unified API Gateway to serve as a single, secure access point for external systems (e.g., AI agents), simplifying their interaction and enhancing system flexibility. Implement a parallel client check-in system featuring client accounts (associated with a primary site), profile management using dynamic site-specific questions, QR code check-in via authenticated kiosks (where key answers are copied to the check-in record), and an option for continued anonymous manual check-in (also using dynamic site-specific questions), aimed at improving data quality and check-in efficiency.
+Develop a web-based check-in and tracking system for Arizona@Work sites. Implement role-based access control (RBAC) using User Roles (including a site-scoped administrative capability via is_site_admin flag) in combination with Department assignments to manage feature access for staff. Incorporate a comprehensive Budget tracking module. Develop a secure API layer (V1) to enable programmatic access for internal system components and the Unified API Gateway, with initial endpoints and the reports endpoint tested and verified. Implement a Unified API Gateway to serve as a single, secure access point for external systems (e.g., AI agents), simplifying their interaction and enhancing system flexibility. Implement a parallel client check-in system featuring client accounts (associated with a primary site), profile management using dynamic site-specific questions, QR code check-in via authenticated kiosks, and an option for continued anonymous manual check-in, with all dynamic check-in answers consolidated into the checkin_answers table for historical tracking and API retrieval, aimed at improving data quality and check-in efficiency.
 2. System Roles and Access Control (Web UI - Staff/Admin Focus):
 Core Roles Involved (Staff): kiosk, azwk_staff, director, administrator (as defined in users.role enum). users table now also includes is_site_admin flag. (Future: user_outreach_sites table - see Section 15).
 Core Departments Involved (Staff): AZ@Work operational departments, Finance Department (referenced by users.department_id FK to departments.id).
 Permission Logic (Staff): Access and actions within Staff/Admin modules (e.g., Budget Module) are determined by the user's assigned Role AND their assigned Department (from the users table, stored in session). Permissions for site-level administration (User Mgmt, Site Config, Client Edit) now also check the is_site_admin flag AND compare the user's assigned site_id with the resource's site_id. (Future: Modified to include checks for user_outreach_sites table).
 Role Definitions (Staff):
-kiosk: Highly restricted role. Can log into the designated Kiosk interface (checkins.php). Can initiate check-ins via QR Scan or Manual Entry only. Cannot access other modules. Crucially, the active kiosk session (including its associated site_id) is required for server-side validation of QR code check-ins and determining questions for manual check-in.
+kiosk: Highly restricted role. Can log into the designated Kiosk interface (checkin.php). Can initiate check-ins via QR Scan or Manual Entry only. Cannot access other modules. Crucially, the active kiosk session (including its associated site_id) is required for server-side validation of QR code check-ins and determining questions for manual check-in.
 azwk_staff (assigned to an AZ@Work Department): Permissions as defined previously (Web UI - Budget: Add/Edit assigned Staff budgets, staff fields only, see core columns). Access to other standard staff features. Can also have is_site_admin=true (granting additional site-scoped admin powers) or future outreach assignments.
 azwk_staff (assigned to the Finance Department): Permissions as defined previously (Web UI - Budget: Add Admin allocations, Edit Staff fin_* fields, Edit Admin all fields, Delete Admin allocations, see all columns). Access to other standard staff features. Can also have is_site_admin=true (granting additional site-scoped admin powers) or future outreach assignments.
 outside_staff: Role exists, permissions TBC. Likely no budget access.
@@ -56,7 +56,7 @@ Method: GET
 Path: /checkins
 Auth Required: Yes. Permissions: read:all_checkin_data or read:site_checkin_data.
 Query Parameters: site_id, start_date, end_date, limit, page.
-Response (200 OK): JSON with pagination and check-in objects, including dynamic answers from checkin_answers and check_ins.q_*.
+Response (200 OK): JSON with pagination and check-in objects, including dynamic answers sourced SOLELY from checkin_answers.
 Query Allocations:
 Method: GET
 Path: /allocations
@@ -121,7 +121,7 @@ Gateway-to-Internal-V1-API: The Gateway uses its own dedicated, permissioned API
 Internal API Mapping & Granular Permissions (Example action mappings in Technical Design Doc):
 The gateway maps the action string from the agent's request to specific internal V1 API endpoints and methods (as per Section 5).
 For granular permissions (e.g., an agent action corresponding to read:site_checkin_data or read:own:allocation_data), the gateway uses the authenticated agent's associated_user_id and/or associated_site_id to add necessary filtering parameters (e.g., user_id={id}, site_id={id}) to the internal V1 API calls. The V1 APIs are expected to enforce these filters based on the parameters provided by the gateway. Full implementation for all actions and granular permission logic based on agent identity is now complete as of Phase 2.
-Error Handling: The gateway handles its own errors (e.g., invalid agent request format, unmappable action) and relays errors from the internal V1 APIs in a standardized format to the agent, without exposing sensitive internal details. Basic error handling implemented and verified in Phase 1. Refined in Phase 2.
+Error Handling: The gateway handles its own errors (e.g., invalid agent request format, unmappable action) and relays errors from the internal V1 APIs in a standardized format to the agent, without exposing sensitive internal details. Basic error handling implemented in Phase 1. Refined in Phase 2.
 Scalability: Designed to be extensible. New agent-accessible functionalities can be added by:
 Ensuring the underlying capability exists as an internal V1 API (Section 5).
 Defining a new action string for the agent.
@@ -146,14 +146,14 @@ client_login.php: Public page for client login.
 client_portal/profile.php: Client landing page for profile/question management.
 client_portal/services.php: Displays service information.
 client_portal/qr_code.php: Displays client's QR code.
-Kiosk Interface (checkins.php - accessed by kiosk role):
+Kiosk Interface (checkin.php - accessed by kiosk role):
 Primary Kiosk Interface file.
 Handles both "Scan QR Code" and "Manual Check-in" options.
 Handles QR scan via JS library and AJAX to /kiosk/qr_checkin.
 Handles Manual check-in form submission directly (POSTs to itself or an internal handler within the file).
 Kiosk Handlers:
-/kiosk/qr_checkin (PHP): Verifies kiosk session, client QR, creates check_ins record, copies dynamic answers from client_answers to check_ins.q_* columns and potentially checkin_answers.
-Manual Check-in Handler (within checkins.php or an included file): Handles manual check-in data submission, creates check_ins record, collects dynamic answers from the form and saves them to the checkin_answers table.
+/kiosk/qr_checkin (PHP): Verifies kiosk session, client QR, creates check_ins record, saves dynamic answers to the checkin_answers table. (Logic to save to check_ins.q_* removed).
+Manual Check-in Handler (within checkin.php or an included file): Handles manual check-in data submission, creates check_ins record, collects dynamic answers from the form and saves them to the checkin_answers table. (Logic to save to check_ins.q_* removed).
 Includes: header.php, footer.php, modals/ (staff modals).
 Redundant Files (Deleted from Server): kiosk_checkin.php, kiosk_manual_handler.php.
 8. Database Schema (MySQL):
@@ -176,14 +176,14 @@ api_keys: (Stores internal V1 API keys, including the one used by the Gateway)
 Columns: id, api_key_hash (UNIQUE), name, permissions, associated_user_id, associated_site_id, created_at, last_used_at, revoked_at.
 Foreign Keys: associated_user_id -> users(id), associated_site_id -> sites(id).
 budgets, budget_allocations: Unchanged.
-check_ins: Includes client_id (FK), q_veteran, q_age, q_interviewing, etc., additional_data. Unchanged.
+check_ins: Includes client_id (FK), q_veteran, q_age, q_interviewing, etc., additional_data. Note: q_* columns are now deprecated for dynamic answers but remain in the schema.
 checkin_answers:
-Comments: Stores answers to dynamic questions for individual check-ins (manual or client). Now confirmed to be populated by manual check-ins.
+Comments: Stores answers to dynamic questions for individual check-ins (manual or client). Now populated by both manual and QR check-ins.
 Columns: id (Primary), check_in_id (FK), question_id (FK), answer (enum), created_at.
 Indexes: PRIMARY, idx_checkin_question_unique, fk_checkin_answers_checkin_idx, fk_checkin_answers_question_idx.
 checkin_notes: Unchanged.
 client_answers: Unchanged.
-checkin_profile_audit_log: Unchanged.
+client_profile_audit_log: Unchanged.
 clients: Unchanged.
 departments: Unchanged.
 finance_department_access: Unchanged.
@@ -193,7 +193,7 @@ users: Includes is_site_admin flag. Unchanged.
 vendors: Unchanged.
 (Future Table) user_outreach_sites: (See Section 15).
 9. File Management Structure:
-Root: budget_settings.php, budgets.php, index.php, checkins.php, client_register.php, client_login.php, client_editor.php, reports.php.
+Root: budget_settings.php, budgets.php, index.php, checkin.php, client_register.php, client_login.php, client_editor.php, reports.php.
 ajax_handlers/: Various AJAX handlers.
 api/v1/: Internal V1 API entry point (index.php), includes, handlers. openapi.yaml (for V1).
 api/gateway/: Contains index.php (entry point for Unified API Gateway) and any necessary includes/handlers specific to the gateway logic. Directory and index.php created in Phase 1.
@@ -202,14 +202,14 @@ client_portal/: Client-facing pages.
 config/: DB connection, constants.
 includes/: Common includes (header, footer, modals, helpers).
 config_panels/: Configuration page tabs (including api_keys_panel.php for V1 keys).
-data_access/: DAL classes/functions (includes/data_access/checkin_data.php modified to read dynamic answers from checkin_answers and check_ins.q_*).
+data_access/: DAL classes/functions (includes/data_access/checkin_data.php modified to read dynamic answers SOLELY from checkin_answers).
 kiosk/: QR check-in handler logic (/kiosk/qr_checkin).
 assets/: CSS, JS, images.
 Deleted Files (from Server): kiosk_checkin.php, kiosk_manual_handler.php.
 10. Design Specification (Web UI):
 Core staff layout: Bootstrap v4.5.2. Consistent tabbed navigation.
 Client Portal: Clean, simple design (Bootstrap v4.5.2 with distinct styling).
-Kiosk Interface (checkins.php): Clear, large buttons/targets. Visual feedback. Handles both QR and Manual check-in forms.
+Kiosk Interface (checkin.php): Clear, large buttons/targets. Visual feedback. Handles both QR and Manual check-in forms.
 API Key Admin UI (configurations.php tab): For managing internal V1 API keys. (Management of agent_api_keys for the Gateway is TBD - initially manual DB entries, potentially future UI).
 11. Technical Specifications:
 PHP 8.4, MySQL/MariaDB on GoDaddy.
@@ -234,7 +234,7 @@ Audit Logging for client data changes.
 13. Compliance and Legal:
 Data Retention, PII Handling, Email Opt-In (email_preference_jobs).
 14. Current Status & Next Steps:
-Completed/Resolved (Summary from v1.56):
+Completed/Resolved (Summary from v1.57):
 Core Staff features (Budget, User/Site Admin) largely functional.
 Client Account / QR Check-in / Service Info system functional.
 V1 API Foundation and specified endpoints (incl. /reports, Forum Read, Client Lookup) implemented and verified.
@@ -245,17 +245,20 @@ Unified API Gateway (Phase 1 - Core Functionality) Developed and Verified.
 Unified API Gateway (Phase 2 - Full Mapping & Granular Permissions) Developed.
 SQL syntax error in getCheckinsByFiltersPaginated resolved.
 Internal V1 API endpoint /api/v1/checkins updated to read dynamic answers from checkin_answers and check_ins.q_*.
-NEW: Dynamic answer saving to checkin_answers table during manual check-in via checkins.php fixed and verified.
-NEW: Redundant files kiosk_checkin.php and kiosk_manual_handler.php identified and deleted from the server.
+Dynamic answer saving to checkin_answers table during manual check-in via checkin.php fixed and verified.
+Redundant files kiosk_checkin.php and kiosk_manual_handler.php identified and deleted from the server.
+NEW: Dynamic answer saving consolidated to checkin_answers table for BOTH manual and QR check-ins (logic to save to check_ins.q_* for dynamic questions removed).
+NEW: Internal V1 API endpoint /api/v1/checkins updated to read dynamic answers SOLELY from checkin_answers table.
+NEW: Verification of API retrieval of dynamic answers from checkin_answers (for new manual check-ins) and from check_ins.q_* (for older QR check-ins) is successful.
 Known Issues: None critical not listed as pending.
 Required User Action:
 Perform system backup.
-Review and approve this Living Plan v1.57.
-Verify API Retrieval of Dynamic Answers from checkin_answers: Perform Test 7 again (Query Check-ins with associated_site_id = NULL) using a date range that includes the new manual check-in(s) you performed. Verify that the dynamic_answers array in the API response for those new check-ins is correctly populated with data from the checkin_answers table.
-Verify API Retrieval of Dynamic Answers from check_ins.q_*: Perform a test using a date range that includes older QR check-ins (if you have any where q_* columns were populated). Verify that the dynamic_answers array for those check-ins is correctly populated from the q_* columns.
+Review and approve this Living Plan v1.58.
 Continue to manually manage agent_api_keys in the database for testing/setup until a UI is developed (Future Enhancement).
 Ensure the dedicated internal API key for the Gateway (in api_keys table) remains configured with necessary V1 permissions.
+Optional: Verify that older QR check-ins (performed before the consolidation fix) still show their dynamic answers in the API response (as they were saved to q_* and the API previously read from there). The API now reads only from checkin_answers. If older QR check-ins did not also save to checkin_answers, their dynamic answers might no longer appear. This is an acceptable consequence of consolidation, but worth noting.
 Required Developer Action (Next Focus - PRIORITY ORDER):
+Remove Temporary Logging: Remove the temporary logging added during the dynamic answer consolidation task from kiosk/qr_checkin.php, checkin.php, and includes/data_access/checkin_data.php.
 Refinements to existing Staff UI modules as needed or if critical bugs arise (ongoing/as needed).
 (Deferred to near Deployment):
 Complete Pending Security Items (from Section 12): Upload Directory Hardening, XSS review, Robust FK error handling.
@@ -275,9 +278,10 @@ Develop functionality for "Custom Report Builder" tab.
 User Lookup API Endpoints (V1 internal, exposed via Gateway action).
 Site Information API Endpoints (V1 internal, exposed via Gateway action).
 Expand Gateway capabilities as new internal V1 APIs are developed.
+Deprecate check_ins.q_* columns: As dynamic answers are now stored and retrieved solely from checkin_answers, the q_* columns in check_ins are deprecated for this purpose and can be considered for removal in a future database migration/cleanup.
 16. Implementation Plan & Process:
-Use Living Plan v1.57 as Single Source of Truth.
-Priority: User testing and verification of the API's ability to retrieve dynamic answers from both checkin_answers and check_ins.q_* is the immediate priority. Developer focus shifts to general refinements and deferred security items once testing is complete.
+Use Living Plan v1.58 as Single Source of Truth.
+Priority: Developer to remove temporary logging. User to review and approve v1.58.
 Iterative development for the Gateway: Phase 1 (core functionality, few actions - COMPLETED), Phase 2 (full action mapping, granular permissions - COMPLETED).
 Require clear code comments, especially around gateway logic (action mapping, auth, internal API calls), V1 API permission logic, session checks, data handling, and security measures.
 User (Robert) responsible for providing context, testing, reporting results, and requesting plan updates.
