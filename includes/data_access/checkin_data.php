@@ -402,8 +402,8 @@ function getCheckinsByFiltersPaginated(PDO $pdo, $site_filter_id, ?string $start
     // Corrected SQL query structure (Attempt 4 - Join users table)
     $sql_checkins = "SELECT
                 ci.id, ci.first_name, ci.last_name, ci.check_in_time, ci.client_email, ci.client_id, ci.additional_data,
-                ci.q_unemployment_assistance, ci.q_age, ci.q_veteran, ci.q_school, ci.q_employment_layoff,
-                ci.q_unemployment_claim, ci.q_employment_services, ci.q_equus, ci.q_seasonal_farmworker,
+                -- ci.q_unemployment_assistance, ci.q_age, ci.q_veteran, ci.q_school, ci.q_employment_layoff, -- Deprecated q_* columns
+                -- ci.q_unemployment_claim, ci.q_employment_services, ci.q_equus, ci.q_seasonal_farmworker, -- Deprecated q_* columns
                 s.name AS site_name,
                 u.full_name AS notified_staff_name
             FROM
@@ -488,6 +488,7 @@ function getCheckinsByFiltersPaginated(PDO $pdo, $site_filter_id, ?string $start
                         FROM checkin_answers ca
                         JOIN global_questions gq ON ca.question_id = gq.id
                         WHERE ca.check_in_id IN ({$placeholders})";
+        error_log("getCheckinsByFiltersPaginated: SQL to fetch answers from checkin_answers: " . $sql_answers . " with IDs: " . print_r($checkin_ids, true));
 
         try {
             $stmt_answers = $pdo->prepare($sql_answers);
@@ -497,6 +498,7 @@ function getCheckinsByFiltersPaginated(PDO $pdo, $site_filter_id, ?string $start
             } else {
                 $stmt_answers->execute($checkin_ids);
                 $answer_results = $stmt_answers->fetchAll(PDO::FETCH_ASSOC);
+                error_log("getCheckinsByFiltersPaginated: Fetched " . count($answer_results) . " rows from checkin_answers.");
 
                 // Group answers by check_in_id into the desired structure
                 foreach ($answer_results as $answer_row) {
@@ -519,12 +521,12 @@ function getCheckinsByFiltersPaginated(PDO $pdo, $site_filter_id, ?string $start
     }
 
     // --- Step 3: Combine Check-in Data with Answers from both sources ---
-    // Hardcoded mapping for QR question columns to their text
-    $qr_question_map = [
-        'q_veteran' => "Are you a veteran?",
-        'q_age' => "Are you 18-24 years old?",
-        'q_interviewing' => "Are you here for an interview?" // Assuming this is the correct text
-    ];
+    // Hardcoded mapping for QR question columns to their text - DEPRECATED
+    // $qr_question_map = [
+    //     'q_veteran' => "Are you a veteran?",
+    //     'q_age' => "Are you 18-24 years old?",
+    //     'q_interviewing' => "Are you here for an interview?" // Assuming this is the correct text
+    // ];
 
     // Use reference to modify the array directly
     foreach ($paginated_checkins as &$checkin) {
@@ -532,23 +534,25 @@ function getCheckinsByFiltersPaginated(PDO $pdo, $site_filter_id, ?string $start
 
         // Initialize dynamic_answers with answers from checkin_answers table (already in correct format)
         $checkin['dynamic_answers'] = $answers_by_checkin_id[$checkin_id] ?? [];
-        error_log("DEBUG Checkin ID {$checkin_id} - Initial Answers from checkin_answers: " . print_r($checkin['dynamic_answers'], true));
+        // error_log("DEBUG Checkin ID {$checkin_id} - Initial Answers from checkin_answers: " . print_r($checkin['dynamic_answers'], true)); // Original log
+        error_log("getCheckinsByFiltersPaginated: Checkin ID {$checkin_id} - Dynamic answers sourced SOLELY from checkin_answers: " . print_r($checkin['dynamic_answers'], true));
 
-        // Add answers from q_* columns if they exist
-        error_log("DEBUG Checkin ID " . $checkin_id . " - QR Answers Raw: Veteran=" . ($checkin['q_veteran'] ?? 'NULL') . ", Age=" . ($checkin['q_age'] ?? 'NULL') . ", Interviewing=" . ($checkin['q_interviewing'] ?? 'NULL'));
-        foreach ($qr_question_map as $column_name => $question_text) {
-            // Check if the column exists in the fetched data and is not empty/null/whitespace
-            if (isset($checkin[$column_name]) && trim($checkin[$column_name]) !== '') {
-                 // Append answer in the required format
-                $checkin['dynamic_answers'][] = [
-                    'question_text' => $question_text,
-                    'answer_text' => $checkin[$column_name]
-                ];
-            }
-        }
+
+        // Add answers from q_* columns if they exist - THIS BLOCK IS NOW DEPRECATED
+        // error_log("DEBUG Checkin ID " . $checkin_id . " - QR Answers Raw: Veteran=" . ($checkin['q_veteran'] ?? 'NULL') . ", Age=" . ($checkin['q_age'] ?? 'NULL') . ", Interviewing=" . ($checkin['q_interviewing'] ?? 'NULL'));
+        // foreach ($qr_question_map as $column_name => $question_text) {
+        //     // Check if the column exists in the fetched data and is not empty/null/whitespace
+        //     if (isset($checkin[$column_name]) && trim($checkin[$column_name]) !== '') {
+        //          // Append answer in the required format
+        //         $checkin['dynamic_answers'][] = [
+        //             'question_text' => $question_text,
+        //             'answer_text' => $checkin[$column_name]
+        //         ];
+        //     }
+        // }
 
         // Log the final combined answers for this checkin
-        error_log("DEBUG Checkin ID {$checkin_id} - Final Combined Answers: " . print_r($checkin['dynamic_answers'], true));
+        // error_log("DEBUG Checkin ID {$checkin_id} - Final Combined Answers: " . print_r($checkin['dynamic_answers'], true)); // Original log
     }
     unset($checkin); // Unset reference after loop
 
@@ -711,7 +715,9 @@ function saveCheckin(PDO $pdo, array $checkin_data): int|false
     $check_in_time = $checkin_data['check_in_time'] ?? date('Y-m-d H:i:s');
     $notified_staff_id = $checkin_data['notified_staff_id'] ?? null;
     $client_email = $checkin_data['client_email'] ?? null;
-    $question_answers = $checkin_data['question_answers'] ?? [];
+    // $question_answers = $checkin_data['question_answers'] ?? []; // Deprecated: q_* columns are no longer populated with dynamic answers here.
+    // The 'question_answers' key might still be passed by older QR checkin logic if not updated,
+    // but the loop below that uses it will be removed.
 
     // Basic validation of required fields
     if (empty($site_id) || empty($first_name) || empty($last_name)) {
@@ -731,24 +737,27 @@ function saveCheckin(PDO $pdo, array $checkin_data): int|false
         ':client_email' => $client_email ?: null // Ensure NULL if empty
     ];
 
-    // Add dynamic question columns and placeholders
-    foreach ($question_answers as $column_name => $answer) {
-        // **Crucial Validation** for column names before including in SQL
-        if (!empty($column_name) && preg_match('/^q_[a-z0-9_]+$/', $column_name) && strlen($column_name) <= 64) {
-            // Validate answer value
-            if ($answer === 'YES' || $answer === 'NO') {
-                $columns[] = "`" . $column_name . "`"; // Backticks for safety
-                $placeholder_name = ':' . $column_name; // Create placeholder like :q_needs_help
-                $placeholders[] = $placeholder_name;
-                $values[$placeholder_name] = $answer;
-            } else {
-                 error_log("WARNING saveCheckin: Invalid answer value '{$answer}' for column '{$column_name}'. Skipping column.");
-                 // Optionally handle this differently, e.g., set to NULL or return false
-            }
-        } else {
-            error_log("WARNING saveCheckin: Skipping potentially invalid dynamic column name '{$column_name}' during INSERT build.");
-        }
-    }
+    // Add dynamic question columns and placeholders - THIS BLOCK IS NOW DEPRECATED
+    // The 'question_answers' key in $checkin_data was intended for these q_* columns.
+    // Since we are no longer populating q_* columns with dynamic answers, this loop is removed.
+    // error_log("saveCheckin: The loop for populating q_* columns from 'question_answers' is now removed/commented out.");
+    // foreach ($question_answers as $column_name => $answer) {
+    //     // **Crucial Validation** for column names before including in SQL
+    //     if (!empty($column_name) && preg_match('/^q_[a-z0-9_]+$/', $column_name) && strlen($column_name) <= 64) {
+    //         // Validate answer value
+    //         if ($answer === 'YES' || $answer === 'NO') {
+    //             $columns[] = "`" . $column_name . "`"; // Backticks for safety
+    //             $placeholder_name = ':' . $column_name; // Create placeholder like :q_needs_help
+    //             $placeholders[] = $placeholder_name;
+    //             $values[$placeholder_name] = $answer;
+    //         } else {
+    //              error_log("WARNING saveCheckin: Invalid answer value '{$answer}' for column '{$column_name}'. Skipping column.");
+    //              // Optionally handle this differently, e.g., set to NULL or return false
+    //         }
+    //     } else {
+    //         error_log("WARNING saveCheckin: Skipping potentially invalid dynamic column name '{$column_name}' during INSERT build.");
+    //     }
+    // }
 
     $sql_insert = "INSERT INTO check_ins (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")";
 

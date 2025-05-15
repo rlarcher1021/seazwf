@@ -106,23 +106,22 @@ try {
         $client_id = $client['id'];
         $client_first_name = $client['first_name'];
 
-        // --- Fetch Client Answers ---
-        $sql_get_answers = "SELECT gq.question_title, ca.answer
+        // --- Fetch Client Answers (including question_id and title) ---
+        $sql_get_answers = "SELECT gq.id AS question_id, gq.question_title, ca.answer
                             FROM client_answers ca
                             JOIN global_questions gq ON ca.question_id = gq.id
                             WHERE ca.client_id = :client_id";
         $stmt_answers = $pdo->prepare($sql_get_answers);
         $stmt_answers->bindParam(':client_id', $client_id, PDO::PARAM_INT);
         $stmt_answers->execute();
-$clientAnswersRaw = $stmt_answers->fetchAll(PDO::FETCH_ASSOC);
+        $processedClientAnswers = $stmt_answers->fetchAll(PDO::FETCH_ASSOC);
 
-// Process into a map [question_title => answer]
-        $clientAnswersMap = [];
-        if ($clientAnswersRaw) { // Check if fetchAll returned data
-            foreach ($clientAnswersRaw as $row) {
-                // Ensure both title and answer are set before adding to map
+        // Prepare a map for q_ columns in check_ins for convenience
+        $clientAnswersForCheckInsMap = [];
+        if ($processedClientAnswers) {
+            foreach ($processedClientAnswers as $row) {
                 if (isset($row['question_title']) && isset($row['answer'])) {
-                     $clientAnswersMap[$row['question_title']] = $row['answer'];
+                    $clientAnswersForCheckInsMap[$row['question_title']] = $row['answer'];
                 }
             }
         }
@@ -133,14 +132,25 @@ $clientAnswersRaw = $stmt_answers->fetchAll(PDO::FETCH_ASSOC);
             'site_id' => $kiosk_site_id,
             'first_name' => $client['first_name'],
             'last_name' => $client['last_name'],
-            'client_email' => $client['client_email'] ?? null, // Handle potential null email from client table
+            'client_email' => $client['client_email'] ?? null,
             'client_id' => $client_id,
-            // Map answers from client_answers, defaulting to NULL if not found
-            // Using specific question titles as requested
-            'q_veteran' => $clientAnswersMap['veteran'] ?? null,
-            'q_age' => $clientAnswersMap['age'] ?? null,
-            'q_interviewing' => $clientAnswersMap['interviewing'] ?? null,
+            // Map answers for existing q_ columns, defaulting to NULL if not found
+            // 'q_veteran' => $clientAnswersForCheckInsMap['veteran'] ?? null, // Deprecated: q_* columns no longer populated for dynamic answers
+            // 'q_age' => $clientAnswersForCheckInsMap['age'] ?? null, // Deprecated: q_* columns no longer populated for dynamic answers
+            // 'q_interviewing' => $clientAnswersForCheckInsMap['interviewing'] ?? null, // Column does not exist
+            // Add other existing q_ columns from your check_ins table here if needed
+            // e.g. 'q_unemployment_assistance' => $clientAnswersForCheckInsMap['unemployment_assistance'] ?? null, // Deprecated
+            //      'q_school' => $clientAnswersForCheckInsMap['school'] ?? null, // Deprecated
+            //      'q_employment_layoff' => $clientAnswersForCheckInsMap['employment_layoff'] ?? null, // Deprecated
+            //      'q_unemployment_claim' => $clientAnswersForCheckInsMap['unemployment_claim'] ?? null, // Deprecated
+            //      'q_employment_services' => $clientAnswersForCheckInsMap['employment_services'] ?? null, // Deprecated
+            //      'q_equus' => $clientAnswersForCheckInsMap['equus'] ?? null, // Deprecated
+            //      'q_seasonal_farmworker' => $clientAnswersForCheckInsMap['seasonal_farmworker'] ?? null, // Deprecated
         ];
+        // Filter out null values to only include actual q_ columns that have answers
+        // or if you want to explicitly set them to NULL, keep them.
+        // For now, we assume any q_ column listed should be in the insert.
+        error_log("Kiosk QR Check-in: Data prepared for check_ins (q_* columns intentionally omitted): " . print_r($check_in_data, true));
 
         // Build INSERT statement dynamically based on available fields
         $columns = implode(', ', array_keys($check_in_data));
@@ -172,7 +182,30 @@ $clientAnswersRaw = $stmt_answers->fetchAll(PDO::FETCH_ASSOC);
             $rowCount = $stmt_insert->rowCount();
 
             if ($rowCount > 0) {
-                // Check-in successful and row inserted
+                $new_check_in_id = $pdo->lastInsertId();
+
+                // --- Save answers to checkin_answers table ---
+                if ($processedClientAnswers && $new_check_in_id) {
+                    error_log("Kiosk QR Check-in: Preparing to insert into checkin_answers for check_in_id $new_check_in_id. Data: " . print_r($processedClientAnswers, true));
+                    $sql_insert_checkin_answer = "INSERT INTO checkin_answers (check_in_id, question_id, answer)
+                                                  VALUES (:check_in_id, :question_id, :answer)";
+                    $stmt_insert_answer = $pdo->prepare($sql_insert_checkin_answer);
+
+                    foreach ($processedClientAnswers as $answer_row) {
+                        if (isset($answer_row['question_id']) && isset($answer_row['answer'])) {
+                            $stmt_insert_answer->bindParam(':check_in_id', $new_check_in_id, PDO::PARAM_INT);
+                            $stmt_insert_answer->bindParam(':question_id', $answer_row['question_id'], PDO::PARAM_INT);
+                            $stmt_insert_answer->bindParam(':answer', $answer_row['answer'], PDO::PARAM_STR); // Assuming answer is 'Yes'/'No'
+                            
+                            if (!$stmt_insert_answer->execute()) {
+                                // Log error but don't necessarily stop the whole check-in success response
+                                error_log("Kiosk QR Check-in Warning: Failed to insert into checkin_answers for check_in_id $new_check_in_id, question_id {$answer_row['question_id']}. PDO Error: " . implode(":", $stmt_insert_answer->errorInfo()));
+                            }
+                        }
+                    }
+                }
+                // --- End Save answers to checkin_answers table ---
+
                 // --- Placeholder Triggers ---
                 // TODO: Trigger automatic AI enrollment based on client email ($client['client_email'])
                 // TODO: Trigger enhanced notifications (e.g., to specific staff based on client needs or site rules)

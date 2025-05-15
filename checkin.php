@@ -227,13 +227,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             // For checkin_answers table (uses actual question_id)
             $question_answers_for_checkin_answers_table[$original_question_id] = $answer;
 
-            // For existing q_* columns in check_ins table (uses sanitized title)
-            if (!empty($question_title_base)) {
-                $db_column_name_for_check_ins = 'q_' . sanitize_title_to_base_name($question_title_base);
-                $question_answers_for_check_ins[$db_column_name_for_check_ins] = $answer;
-            } else {
-                error_log("Checkin Warning: Global Question ID {$original_question_id} missing title/base_name for site {$site_id}. Cannot form q_* column name for check_ins table.");
-            }
+            // For existing q_* columns in check_ins table (uses sanitized title) - DEPRECATED
+            // if (!empty($question_title_base)) {
+            //     $db_column_name_for_check_ins = 'q_' . sanitize_title_to_base_name($question_title_base);
+            //     $question_answers_for_check_ins[$db_column_name_for_check_ins] = $answer;
+            // } else {
+            //     error_log("Checkin Warning: Global Question ID {$original_question_id} missing title/base_name for site {$site_id}. Cannot form q_* column name for check_ins table.");
+            // }
+            // error_log("Checkin Manual: q_* column data for check_ins table is no longer populated for question ID {$original_question_id}.");
         } else {
             $errors[] = "Please answer the question: \"" . htmlspecialchars($question['question_text']) . "\"";
         }
@@ -259,6 +260,9 @@ error_log("[DEBUG checkin.php POST] \$notified_staff_id (staff_notifications.id 
 error_log("[DEBUG checkin.php POST] \$staff_notifiers array structure (should be keyed by staff_notifications.id): " . print_r($staff_notifiers, true));
     // If no validation errors, proceed to save
     if (empty($errors)) {
+        error_log("Checkin Manual: Data being prepared for checkin_answers table: " . print_r($question_answers_for_checkin_answers_table, true));
+        error_log("Checkin Manual: Data for q_* columns in check_ins (should be empty or not used for q_* population): " . print_r($question_answers_for_check_ins, true));
+
         // Prepare data array for the saveCheckin function
         $checkin_data_to_save = [
             'site_id' => $site_id,
@@ -267,7 +271,7 @@ error_log("[DEBUG checkin.php POST] \$staff_notifiers array structure (should be
             'check_in_time' => $check_in_time, // Use defined time
             'notified_staff_id' => $notified_staff_id,
             'client_email' => $client_email,
-            'question_answers' => $question_answers_for_check_ins, // This is for the q_* columns in check_ins
+            'question_answers' => [], // Pass empty array as q_* columns are deprecated for dynamic answers
             'answers_for_separate_table' => $question_answers_for_checkin_answers_table // This is for checkin_answers table
         ];
 
@@ -766,6 +770,8 @@ error_log("[DEBUG checkin.php POST] \$staff_notifiers array structure (should be
     <!-- ============ End JavaScript for Sticky Sidebar Centering (Removed) ============ -->
 </script>
 
+<!-- Define Base URL Path for JavaScript -->
+    <script>;window.APP_BASE_URL_PATH = '/public_html';</script>
 <!-- QR Code Library -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 

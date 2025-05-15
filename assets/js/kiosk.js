@@ -90,7 +90,15 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function sendCheckinRequest(identifier) {
-        const apiUrl = '/kiosk/qr_checkin.php'; // The PHP handler endpoint
+        // Determine the base path for the API URL.
+        // This allows flexibility for different deployment environments (e.g., localhost/subfolder vs. root on live).
+        // Define window.APP_BASE_URL_PATH in your main HTML (e.g., checkin.php) if a subfolder is used.
+        // Example for localhost: <script>window.APP_BASE_URL_PATH = '/public_html';</script>
+        // Example for live (root): <script>window.APP_BASE_URL_PATH = '';</script> or simply don't define it.
+        const basePath = typeof window.APP_BASE_URL_PATH === 'string' ? window.APP_BASE_URL_PATH : '';
+        const apiUrl = basePath + '/kiosk/qr_checkin.php'; // The PHP handler endpoint
+        console.log('Kiosk.js - basePath:', basePath);
+        console.log('Kiosk.js - apiUrl:', apiUrl);
 
         fetch(apiUrl, {
             method: 'POST',
