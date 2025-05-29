@@ -783,10 +783,14 @@ function saveCheckin(PDO $pdo, array $checkin_data): int|false
     $placeholders = ":" . implode(", :", array_keys($insert_data));
     $sql = "INSERT INTO check_ins ({$columns}, `check_in_time`) VALUES ({$placeholders}, NOW())";
 
+    $pdo->beginTransaction();
     try {
         $stmt = $pdo->prepare($sql);
         if (!$stmt) {
             error_log("ERROR saveCheckin (Prepare): " . implode(" | ", $pdo->errorInfo()));
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
             return false;
         }
 
@@ -800,12 +804,29 @@ function saveCheckin(PDO $pdo, array $checkin_data): int|false
         }
 
         if ($stmt->execute()) {
-            return (int)$pdo->lastInsertId();
+            $new_check_in_id = (int)$pdo->lastInsertId();
+
+            // Save dynamic question answers from 'answers_for_separate_table'
+            if (isset($checkin_data['answers_for_separate_table']) && is_array($checkin_data['answers_for_separate_table']) && !empty($checkin_data['answers_for_separate_table'])) {
+                $answers_for_separate_table = $checkin_data['answers_for_separate_table'];
+                if (!saveCheckinAnswers($pdo, $new_check_in_id, $answers_for_separate_table)) {
+                    $pdo->rollBack();
+                    error_log("saveCheckin: Failed to save dynamic answers from 'answers_for_separate_table' for check-in ID {$new_check_in_id}. Transaction rolled back.");
+                    return false;
+                }
+            }
+
+            $pdo->commit();
+            return $new_check_in_id;
         } else {
             error_log("ERROR saveCheckin (Execute): " . implode(" | ", $stmt->errorInfo()) . " SQL: " . $sql . " Data: " . print_r($insert_data, true));
+            $pdo->rollBack(); // Rollback on execute failure
             return false;
         }
     } catch (PDOException $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
         error_log("EXCEPTION in saveCheckin: " . $e->getMessage() . " Data: " . print_r($insert_data,true));
         return false;
     }
@@ -1043,11 +1064,18 @@ function saveCheckinAnswers(PDO $pdo, int $checkinId, array $answers): bool
             VALUES (:check_in_id, :question_id, :answer, NOW())";
 
     try {
-        $pdo->beginTransaction();
+        $transactionOwner = false;
+        if (!$pdo->inTransaction()) {
+            $pdo->beginTransaction();
+            $transactionOwner = true;
+        }
+
         $stmt = $pdo->prepare($sql);
         if (!$stmt) {
             error_log("ERROR saveCheckinAnswers (Prepare): " . implode(" | ", $pdo->errorInfo()));
-            $pdo->rollBack();
+            if ($transactionOwner) {
+                $pdo->rollBack();
+            }
             return false;
         }
 
@@ -1071,17 +1099,23 @@ function saveCheckinAnswers(PDO $pdo, int $checkinId, array $answers): bool
 
             if (!$stmt->execute($params)) {
                 error_log("ERROR saveCheckinAnswers (Execute for question_id {$question_id}): " . implode(" | ", $stmt->errorInfo()));
-                $pdo->rollBack();
+                if ($transactionOwner) {
+                    $pdo->rollBack();
+                }
                 return false;
             }
         }
 
-        $pdo->commit();
+        if ($transactionOwner) {
+            $pdo->commit();
+        }
         return true;
 
     } catch (PDOException $e) {
         error_log("EXCEPTION in saveCheckinAnswers for checkinId {$checkinId}: " . $e->getMessage() . " Answers: " . print_r($answers, true));
-        if ($pdo->inTransaction()) {
+        // Check inTransaction() first because the transaction might have been rolled back by the caller
+        // if $transactionOwner is false.
+        if ($transactionOwner && $pdo->inTransaction()) {
             $pdo->rollBack();
         }
         return false;

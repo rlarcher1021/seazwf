@@ -217,28 +217,40 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $question_answers_for_checkin_answers_table = []; // For the separate checkin_answers table
 
     foreach ($assigned_questions as $question) {
-        $original_question_id = $question['id']; // Actual question_id
-        $q_input_key = 'q_' . $original_question_id; // Input name from the form e.g. q_1, q_2
-        $answer = filter_input(INPUT_POST, $q_input_key, FILTER_SANITIZE_SPECIAL_CHARS);
-        $answer = $answer ? strtoupper($answer) : null; // Convert to uppercase for consistent validation
+        $original_question_id = $question['id'];
+        $q_input_key = 'q_' . $original_question_id;
+        // Sanitize raw input first. FILTER_SANITIZE_SPECIAL_CHARS is suitable for text that might be displayed or logged.
+        $raw_answer_value = filter_input(INPUT_POST, $q_input_key, FILTER_SANITIZE_SPECIAL_CHARS);
         
-        $question_title_base = $question['question_title'];
-
-        if ($answer === 'YES' || $answer === 'NO') {
-            // For checkin_answers table (uses actual question_id)
-            $question_answers_for_checkin_answers_table[$original_question_id] = $answer;
-
-            // For existing q_* columns in check_ins table (uses sanitized title) - DEPRECATED
-            // if (!empty($question_title_base)) {
-            //     $db_column_name_for_check_ins = 'q_' . sanitize_title_to_base_name($question_title_base);
-            //     $question_answers_for_check_ins[$db_column_name_for_check_ins] = $answer;
-            // } else {
-            //     error_log("Checkin Warning: Global Question ID {$original_question_id} missing title/base_name for site {$site_id}. Cannot form q_* column name for check_ins table.");
-            // }
-            // error_log("Checkin Manual: q_* column data for check_ins table is no longer populated for question ID {$original_question_id}.");
-        } else {
-            $errors[] = "Please answer the question: \"" . htmlspecialchars($question['question_text']) . "\"";
+        $processed_answer_value = null;
+        if ($raw_answer_value !== null) {
+            // Trim whitespace and convert to uppercase for comparison
+            $processed_answer_value = strtoupper(trim($raw_answer_value));
         }
+
+        // $question_title_base = $question['question_title']; // This line is not strictly needed for the new logic here.
+
+        if ($processed_answer_value === 'YES') {
+            // Store with exact casing 'Yes' for ENUM compatibility
+            $question_answers_for_checkin_answers_table[$original_question_id] = 'Yes';
+        } elseif ($processed_answer_value === 'NO') {
+            // Store with exact casing 'No' for ENUM compatibility
+            $question_answers_for_checkin_answers_table[$original_question_id] = 'No';
+        } else {
+            // The answer was not 'YES' or 'NO'.
+            // This includes cases where the question was not answered (raw_answer_value is null)
+            // or an unexpected value was submitted.
+
+            // Log if an actual unexpected value was submitted (and it wasn't just an empty string after processing)
+            if ($raw_answer_value !== null && $processed_answer_value !== '' && $processed_answer_value !== null) {
+                error_log("Checkin Info: Unexpected value received for dynamic question ID {$original_question_id} for site {$site_id}. Raw Value: '{$raw_answer_value}'. Processed Value: '{$processed_answer_value}'. This answer will be skipped for saving.");
+            }
+            
+            // Add to errors array. This ensures that if a question is mandatory,
+            // submitting an invalid answer or no answer is still treated as a validation error for the user.
+            $errors[] = "Please answer the question: \"" . htmlspecialchars($question['question_text']) . "\" with 'Yes' or 'No'.";
+        }
+        // The deprecated q_* column logic for the check_ins table remains outside this modification's scope.
     }
 
     // Validate selected staff notifier

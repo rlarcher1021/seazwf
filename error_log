@@ -1,113 +1,23 @@
-[29-May-2025 15:23:38 Europe/Berlin] Admin action: Error log cleared by user ID: 1
-[29-May-2025 15:23:39 Europe/Berlin] Dashboard Check-ins Over Time Raw Data for site 'all': Array
+[29-May-2025 17:51:25 Europe/Berlin] Admin action: Error log cleared by user ID: 1
+[29-May-2025 17:51:38 Europe/Berlin] Checkin Manual: Data being prepared for checkin_answers table: Array
+(
+    [9] => Yes
+    [11] => Yes
+    [3] => Yes
+)
+
+[29-May-2025 17:51:38 Europe/Berlin] Checkin Manual: Data for q_* columns in check_ins (should be empty or not used for q_* population): Array
+(
+)
+
+[29-May-2025 17:51:49 Europe/Berlin] Dashboard Check-ins Over Time Raw Data for site 'all': Array
 (
     [2025-05-28] => 4
-    [2025-05-29] => 3
+    [2025-05-29] => 5
 )
 
-[29-May-2025 15:23:39 Europe/Berlin] AJAX Report Handler Received Request:
-[29-May-2025 15:23:39 Europe/Berlin] Method: POST
-[29-May-2025 15:23:56 Europe/Berlin] Dashboard Check-ins Over Time Raw Data for site 'all': Array
-(
-    [2025-05-28] => 4
-    [2025-05-29] => 3
-)
-
-[29-May-2025 15:23:56 Europe/Berlin] AJAX Report Handler Received Request:
-[29-May-2025 15:23:56 Europe/Berlin] Method: POST
-[29-May-2025 15:23:59 Europe/Berlin] AJAX Report Handler Received Request:
-[29-May-2025 15:23:59 Europe/Berlin] Method: POST
-[29-May-2025 15:24:12 Europe/Berlin] Dashboard Check-ins Over Time Raw Data for site 'all': Array
-(
-    [2025-05-28] => 4
-    [2025-05-29] => 3
-)
-
-[29-May-2025 15:24:12 Europe/Berlin] AJAX Report Handler Received Request:
-[29-May-2025 15:24:12 Europe/Berlin] Method: POST
-[29-May-2025 15:24:15 Europe/Berlin] AJAX Report Handler Received Request:
-[29-May-2025 15:24:15 Europe/Berlin] Method: POST
-[29-May-2025 15:26:12 Europe/Berlin] AJAX Report Handler Received Request:
-[29-May-2025 15:26:12 Europe/Berlin] Method: POST
-[29-May-2025 15:26:36 Europe/Berlin] Dashboard Check-ins Over Time Raw Data for site 'all': Array
-(
-    [2025-05-28] => 4
-    [2025-05-29] => 3
-)
-
-[29-May-2025 15:26:36 Europe/Berlin] AJAX Report Handler Received Request:
-[29-May-2025 15:26:36 Europe/Berlin] Method: POST
-[29-May-2025 15:26:53 Europe/Berlin] AJAX Report Handler Received Request:
-[29-May-2025 15:26:53 Europe/Berlin] Method: POST
-[29-May-2025 15:27:03 Europe/Berlin] AJAX Report Handler Received Request:
-[29-May-2025 15:27:03 Europe/Berlin] Method: POST
-[29-May-2025 15:31:15 Europe/Berlin] Dashboard Check-ins Over Time Raw Data for site 'all': Array
-(
-    [2025-05-28] => 4
-    [2025-05-29] => 3
-)
-
-[29-May-2025 15:31:15 Europe/Berlin] AJAX Report Handler Received Request:
-[29-May-2025 15:31:15 Europe/Berlin] Method: POST
-[29-May-2025 15:31:20 Europe/Berlin] AJAX Report Handler Received Request:
-[29-May-2025 15:31:20 Europe/Berlin] Method: POST
-[29-May-2025 15:31:28 Europe/Berlin] AJAX Report Handler Received Request:
-[29-May-2025 15:31:28 Europe/Berlin] Method: POST
-[29-May-2025 15:31:44 Europe/Berlin] AJAX Report Handler Received Request:
-[29-May-2025 15:31:44 Europe/Berlin] Method: POST
-[29-May-2025 15:43:21 Europe/Berlin] Dashboard Check-ins Over Time Raw Data for site 'all': Array
-(
-    [2025-05-28] => 4
-    [2025-05-29] => 3
-)
-
-[29-May-2025 15:46:40 Europe/Berlin] Dashboard Check-ins Over Time Raw Data for site '1': Array
-(
-    [2025-05-28] => 3
-    [2025-05-29] => 3
-)
-
-[29-May-2025 15:46:40 Europe/Berlin] AJAX Report Handler Received Request:
-[29-May-2025 15:46:40 Europe/Berlin] Method: POST
-[29-May-2025 15:46:51 Europe/Berlin] AJAX Report Handler Received Request:
-[29-May-2025 15:46:51 Europe/Berlin] Method: POST
-[29-May-2025 15:50:22 Europe/Berlin] Dashboard Check-ins Over Time Raw Data for site '1': Array
-(
-    [2025-05-28] => 3
-    [2025-05-29] => 3
-)
-
-[29-May-2025 15:50:23 Europe/Berlin] AJAX Report Handler Received Request:
-[29-May-2025 15:50:23 Europe/Berlin] Method: POST
-[29-May-2025 15:50:25 Europe/Berlin] AJAX Report Handler Received Request:
-[29-May-2025 15:50:25 Europe/Berlin] Method: POST
-[29-May-2025 15:50:29 Europe/Berlin] AJAX Report Handler Received Request:
-[29-May-2025 15:50:29 Europe/Berlin] Method: POST
-[29-May-2025 15:50:31 Europe/Berlin] AJAX Report Handler Received Request:
-[29-May-2025 15:50:31 Europe/Berlin] Method: POST
-[29-May-2025 16:01:56 Europe/Berlin] Dashboard Check-ins Over Time Raw Data for site '1': Array
-(
-    [2025-05-28] => 3
-    [2025-05-29] => 3
-)
-
-[29-May-2025 16:01:56 Europe/Berlin] AJAX Report Handler Received Request:
-[29-May-2025 16:01:56 Europe/Berlin] Method: POST
-[29-May-2025 16:49:46 Europe/Berlin] Dashboard Check-ins Over Time Raw Data for site '1': Array
-(
-    [2025-05-28] => 3
-    [2025-05-29] => 3
-)
-
-[29-May-2025 16:49:47 Europe/Berlin] AJAX Report Handler Received Request:
-[29-May-2025 16:49:47 Europe/Berlin] Method: POST
-[29-May-2025 16:49:56 Europe/Berlin] Dashboard Check-ins Over Time Raw Data for site 'all': Array
-(
-    [2025-05-28] => 4
-    [2025-05-29] => 3
-)
-
-[29-May-2025 16:49:56 Europe/Berlin] AJAX Report Handler Received Request:
-[29-May-2025 16:49:56 Europe/Berlin] Method: POST
-[29-May-2025 16:50:03 Europe/Berlin] AJAX Report Handler Received Request:
-[29-May-2025 16:50:03 Europe/Berlin] Method: POST
+[29-May-2025 17:51:49 Europe/Berlin] AJAX Report Handler Received Request:
+[29-May-2025 17:51:49 Europe/Berlin] Method: POST
+[29-May-2025 17:51:54 Europe/Berlin] [DEBUG] get_checkin_details_handler: Received check_in_id: 99
+[29-May-2025 17:51:54 Europe/Berlin] [DEBUG] get_checkin_details_handler: Site ID from checkin_data: 1
+[29-May-2025 17:51:54 Europe/Berlin] [DEBUG] get_checkin_details_handler: Successfully prepared response data.
