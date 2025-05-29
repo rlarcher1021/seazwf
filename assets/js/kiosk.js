@@ -95,35 +95,36 @@ document.addEventListener('DOMContentLoaded', function () {
         // Define window.APP_BASE_URL_PATH in your main HTML (e.g., checkin.php) if a subfolder is used.
         // Example for localhost: <script>window.APP_BASE_URL_PATH = '/public_html';</script>
         // Example for live (root): <script>window.APP_BASE_URL_PATH = '';</script> or simply don't define it.
-        // Determine the base path for the API URL.
-        // This allows flexibility for different deployment environments.
-        let basePath = typeof window.APP_BASE_URL_PATH === 'string' ? window.APP_BASE_URL_PATH.trim() : '';
+        // Existing log for raw input
+        console.log('Kiosk.js - window.APP_BASE_URL_PATH (raw input):', typeof window.APP_BASE_URL_PATH !== 'undefined' ? window.APP_BASE_URL_PATH : '[not set]');
 
-        // Ensure basePath is correctly formatted as a path segment (e.g., "" or "/subfolder")
-        // An empty basePath means the app is at the root.
-        if (basePath) { // If basePath is not an empty string (i.e., app is in a subfolder)
-            if (!basePath.startsWith('/')) {
-                basePath = '/' + basePath; // Ensure leading slash
+        let appBaseUrlPath = (typeof window.APP_BASE_URL_PATH === 'string') ? window.APP_BASE_URL_PATH.trim() : '';
+        let webBasePathForApi;
+
+        // If APP_BASE_URL_PATH is '/public_html' (case-insensitive), treat the web base as root ('') for API calls.
+        // Otherwise, use APP_BASE_URL_PATH, ensuring it's formatted correctly.
+        if (appBaseUrlPath.toLowerCase() === '/public_html') {
+            webBasePathForApi = ''; // API path is relative to domain root
+        } else {
+            webBasePathForApi = appBaseUrlPath;
+            // Ensure it starts with a '/' if it's not empty
+            if (webBasePathForApi && !webBasePathForApi.startsWith('/')) {
+                webBasePathForApi = '/' + webBasePathForApi;
             }
-            if (basePath.endsWith('/')) {
-                basePath = basePath.slice(0, -1); // Remove trailing slash
+            // Ensure it does not end with a '/' if it's not just "/" or empty
+            if (webBasePathForApi.length > 1 && webBasePathForApi.endsWith('/')) {
+                webBasePathForApi = webBasePathForApi.slice(0, -1);
             }
         }
-        // Now, basePath is either "" (for root) or like "/subfolder" (no trailing slash).
 
-        const endpointPath = '/kiosk/qr_checkin.php'; // Path to the actual PHP handler from the app's base
-        
-        // fullPath will be like "/kiosk/qr_checkin.php" or "/subfolder/kiosk/qr_checkin.php"
-        const fullPath = basePath + endpointPath; 
+        // Update or add a log for the processed base path used for API URL construction
+        console.log('Kiosk.js - Processed webBasePathForApi for URL construction:', webBasePathForApi);
 
-        // Construct the absolute URL using the current host's origin.
-        // This ensures the AJAX request goes to the same server that served the page,
-        // regardless of <base href> tags or other ambiguities.
-        const apiUrl = window.location.origin + fullPath;
+        const apiServicePath = '/kiosk/qr_checkin.php'; // The actual service endpoint from domain root
+        // Construct the apiUrl using the URL constructor
+        const apiUrl = new URL(apiServicePath, window.location.origin + webBasePathForApi).href;
 
-        // Enhanced logging for clarity
-        console.log('Kiosk.js - window.APP_BASE_URL_PATH (raw input):', typeof window.APP_BASE_URL_PATH !== 'undefined' ? window.APP_BASE_URL_PATH : '[not set]');
-        console.log('Kiosk.js - Processed basePath for URL construction:', basePath);
+        // Log for final URL
         console.log('Kiosk.js - Final constructed apiUrl:', apiUrl);
 
         fetch(apiUrl, {
