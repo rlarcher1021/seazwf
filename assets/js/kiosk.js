@@ -95,10 +95,36 @@ document.addEventListener('DOMContentLoaded', function () {
         // Define window.APP_BASE_URL_PATH in your main HTML (e.g., checkin.php) if a subfolder is used.
         // Example for localhost: <script>window.APP_BASE_URL_PATH = '/public_html';</script>
         // Example for live (root): <script>window.APP_BASE_URL_PATH = '';</script> or simply don't define it.
-        const basePath = typeof window.APP_BASE_URL_PATH === 'string' ? window.APP_BASE_URL_PATH : '';
-        const apiUrl = basePath + '/kiosk/qr_checkin.php'; // The PHP handler endpoint
-        console.log('Kiosk.js - basePath:', basePath);
-        console.log('Kiosk.js - apiUrl:', apiUrl);
+        // Determine the base path for the API URL.
+        // This allows flexibility for different deployment environments.
+        let basePath = typeof window.APP_BASE_URL_PATH === 'string' ? window.APP_BASE_URL_PATH.trim() : '';
+
+        // Ensure basePath is correctly formatted as a path segment (e.g., "" or "/subfolder")
+        // An empty basePath means the app is at the root.
+        if (basePath) { // If basePath is not an empty string (i.e., app is in a subfolder)
+            if (!basePath.startsWith('/')) {
+                basePath = '/' + basePath; // Ensure leading slash
+            }
+            if (basePath.endsWith('/')) {
+                basePath = basePath.slice(0, -1); // Remove trailing slash
+            }
+        }
+        // Now, basePath is either "" (for root) or like "/subfolder" (no trailing slash).
+
+        const endpointPath = '/kiosk/qr_checkin.php'; // Path to the actual PHP handler from the app's base
+        
+        // fullPath will be like "/kiosk/qr_checkin.php" or "/subfolder/kiosk/qr_checkin.php"
+        const fullPath = basePath + endpointPath; 
+
+        // Construct the absolute URL using the current host's origin.
+        // This ensures the AJAX request goes to the same server that served the page,
+        // regardless of <base href> tags or other ambiguities.
+        const apiUrl = window.location.origin + fullPath;
+
+        // Enhanced logging for clarity
+        console.log('Kiosk.js - window.APP_BASE_URL_PATH (raw input):', typeof window.APP_BASE_URL_PATH !== 'undefined' ? window.APP_BASE_URL_PATH : '[not set]');
+        console.log('Kiosk.js - Processed basePath for URL construction:', basePath);
+        console.log('Kiosk.js - Final constructed apiUrl:', apiUrl);
 
         fetch(apiUrl, {
             method: 'POST',
@@ -158,9 +184,25 @@ document.addEventListener('DOMContentLoaded', function () {
     function startScanner() {
          // Ensure scanner instance exists and is not already scanning
          if (html5QrCode && typeof html5QrCode.getState === 'function' && html5QrCode.getState() === Html5QrcodeScannerState.SCANNING) {
-            console.log("Scanner already running.");
+            // console.log("Scanner already running."); // Log removed
             return;
          }
+
+         // Log dimensions for debugging - REMOVED
+         // if (qrReaderElement) {
+         //    console.log("QR Reader Element:", qrReaderElement);
+         //    console.log("QR Reader offsetWidth:", qrReaderElement.offsetWidth, "offsetHeight:", qrReaderElement.offsetHeight);
+         //    if (qrReaderElement.parentElement) {
+         //        console.log("QR Reader Parent offsetWidth:", qrReaderElement.parentElement.offsetWidth, "offsetHeight:", qrReaderElement.parentElement.offsetHeight);
+         //        // Assuming the parent is the 'camera-column'
+         //        const cameraColumn = qrReaderElement.closest('.camera-column');
+         //        if (cameraColumn) {
+         //            console.log("Camera Column offsetWidth:", cameraColumn.offsetWidth, "offsetHeight:", cameraColumn.offsetHeight);
+         //        } else {
+         //            console.log("Camera column not found as parent.");
+         //        }
+         //    }
+         // }
 
          // Check if camera permission was previously denied or is unavailable
          Html5Qrcode.getCameras().then(cameras => {
@@ -172,11 +214,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Attempt to start the scanner
             qrResultElement.innerHTML = 'Please align the QR code within the frame.'; // Reset message
+            const qrBoxConfig = { width: 250, height: 250 };
+            // console.log("Starting scanner with qrbox config:", qrBoxConfig); // Log removed
             html5QrCode.start(
                 { facingMode: "environment" }, // Use rear camera if available
                 {
                     fps: 10,                // Optional frame rate
-                    qrbox: { width: 250, height: 250 } // Optional scan box size
+                    qrbox: qrBoxConfig // Optional scan box size
                 },
                 onScanSuccess,
                 onScanFailure

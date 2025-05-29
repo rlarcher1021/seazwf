@@ -46,11 +46,21 @@ function send_html_response($html) {
 
 
 // --- Basic Request Validation ---
-if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['action'])) {
-    send_error_response("Invalid Request Method or Missing Action.", 400);
+error_log("AJAX Report Handler Received Request:");
+error_log("Method: " . $_SERVER['REQUEST_METHOD']);
+// error_log("POST data: " . print_r($_POST, true));
+// error_log("GET data: " . print_r($_GET, true));
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    send_error_response("Invalid Request Method. Expected POST, got " . $_SERVER['REQUEST_METHOD'] . ".", 405); // 405 Method Not Allowed
 }
 
-$action = $_POST['action'];
+// Action is expected in the GET parameters as per frontend fetch URL
+if (!isset($_GET['action'])) {
+    send_error_response("Missing 'action' parameter in GET request.", 400);
+}
+
+$action = $_GET['action'];
 
 // --- Action: Generate Custom Report ---
 if ($action === 'generate_custom_report') {
@@ -58,7 +68,7 @@ if ($action === 'generate_custom_report') {
     // --- Permission Check (Moved inside the action block) ---
     $allowedRoles = ['director', 'administrator']; // Only Director/Admin can use custom builder
     if (!isset($_SESSION['active_role']) || !in_array($_SESSION['active_role'], $allowedRoles)) {
-        send_error_response("Permission Denied for Custom Report.", 403); // More specific error
+        send_error_response("Permission Denied for Custom Report.", 403, true); // More specific error
     }
     // --- End Permission Check ---
 
@@ -74,13 +84,13 @@ if ($action === 'generate_custom_report') {
     // Validate Site ID
     if ($site_id !== 'all') {
         if (!is_numeric($site_id)) {
-            send_error_response("Invalid Site ID format.");
+            send_error_response("Invalid Site ID format.", 400, true);
         }
         $site_id = intval($site_id);
          // Optional: Further check if this site ID is valid/accessible by the user, though main page load does this.
          // For simplicity here, assume valid if numeric.
     } elseif ($_SESSION['active_role'] !== 'administrator' && $_SESSION['active_role'] !== 'director') {
-         send_error_response("Insufficient permissions for 'All Sites'.", 403); // Should be caught by role check above, but double-check
+         send_error_response("Insufficient permissions for 'All Sites'.", 403, true); // Should be caught by role check above, but double-check
     }
 
 
@@ -92,7 +102,7 @@ if ($action === 'generate_custom_report') {
 
     // Validate Metrics
     if (empty($metrics)) {
-        send_error_response("Please select at least one metric.");
+        send_error_response("Please select at least one metric.", 400, true);
     }
     $validated_metrics = [];
     $question_metric_columns = []; // Store only the q_... column names
@@ -134,7 +144,7 @@ if ($action === 'generate_custom_report') {
         }
     }
      if (empty($validated_metrics)) {
-         send_error_response("No valid metrics selected or found.");
+         send_error_response("No valid metrics selected or found.", 400, true);
      }
 
     // Validate Group By
@@ -143,13 +153,13 @@ if ($action === 'generate_custom_report') {
         $allowed_group_by[] = 'site'; // Only allow group by site if viewing all sites
     }
     if (!in_array($group_by, $allowed_group_by)) {
-        send_error_response("Invalid Group By option selected.");
+        send_error_response("Invalid Group By option selected.", 400, true);
     }
 
     // Validate Output Type
     $allowed_output_types = ['table', 'bar', 'line'];
     if (!in_array($output_type, $allowed_output_types)) {
-        send_error_response("Invalid Output Type selected.");
+        send_error_response("Invalid Output Type selected.", 400, true);
     }
 
     // --- Build SQL Query ---
@@ -242,7 +252,7 @@ if ($action === 'generate_custom_report') {
     // Log the SQL that *would* be built here, for comparison/debugging with the function
     error_log("--- Custom Report Handler Debug (Context SQL) ---");
     error_log("Context SQL: " . $sql);
-    error_log("Context SQL Parameters: " . print_r($params, true));
+    // error_log("Context SQL Parameters: " . print_r($params, true));
 
 
     // --- Execute Query using Data Access Function ---
@@ -262,15 +272,19 @@ if ($action === 'generate_custom_report') {
     $grouping_column_alias = $grouping_column_alias_out;
 
     if ($results === null) { // Check for failure from the function
-        send_error_response("Database query failed executing custom report.", 500);
+        send_error_response("Database query failed executing custom report.", 500, true);
     }
     error_log("Custom Report Handler - Grouping Alias Used: " . ($grouping_column_alias ?? 'none'));
-    error_log("Custom Report Handler - Raw DB Results: " . print_r($results, true));
+    // error_log("Custom Report Handler - Raw DB Results: " . print_r($results, true));
 
     // --- Format and Send Response ---
     if (empty($results)) {
-         // Send back a 'no results' message suitable for the container
-         send_html_response('<p class="text-center text-muted">No data found matching the selected criteria.</p>');
+         // Send back a JSON response indicating no data
+         send_json_response([
+            'report_type' => 'nodata',
+            'html' => '<p class="text-center text-muted">No data found matching the selected criteria.</p>',
+            'message' => 'No data found matching the selected criteria.'
+        ]);
     }
 
     // ** Output: Table **
@@ -313,7 +327,7 @@ if ($action === 'generate_custom_report') {
         }
         $html .= '</tbody></table>';
         $html .= '</div>';
-        send_html_response($html);
+        send_json_response(['report_type' => 'table', 'html' => $html]);
     }
 
     // ** Output: Chart (Bar or Line) **
@@ -380,21 +394,19 @@ if ($action === 'generate_custom_report') {
 
         // Prepare JSON Response for Chart
         $responseJson = [
-            'html' => '<canvas id="custom-report-chart" class="w-100" style="max-height: 400px;"></canvas>', // Canvas HTML
+            'html' => '<canvas id="custom-report-chart" class="w-100 chart-canvas-max-height"></canvas>', // Canvas HTML
             'chartType' => $output_type, // 'bar' or 'line'
             'chartData' => [
                 'labels' => $labels,
                 'datasets' => $chart_datasets
             ]
         ];
-        // Send the JSON directly without the 'success/data' wrapper
-        header('Content-Type: application/json');
-        echo json_encode($responseJson);
-        exit;
+        // Send the JSON using the consistent helper function
+        send_json_response($responseJson);
     }
 
     // Should not reach here if output type is valid
-    send_error_response("An unexpected error occurred processing the report type.", 500);
+    send_error_response("An unexpected error occurred processing the report type.", 500, true);
 
 // --- Action: Get Check-in Detail Data (Paginated) ---
 } elseif ($action === 'get_checkin_detail_data') {
@@ -549,6 +561,9 @@ if ($action === 'generate_custom_report') {
     // --- Fetch Data using Data Access Function ---
     $chart_data = getAggregatedQuestionResponses($pdo, $validated_site_id, $time_frame);
 
+    // Log the fetched data
+    // error_log("AJAX Question Responses Data for site '{$validated_site_id}' and timeframe '{$time_frame}': " . print_r($chart_data, true));
+
     if ($chart_data === null) {
         // Function indicated an error during fetch
         send_error_response("Failed to retrieve question response data.", 500, true);
@@ -622,7 +637,7 @@ if ($action === 'generate_custom_report') {
     send_json_response($response_data);
 } else {
     // --- Unknown Action ---
-    send_error_response("Unknown action specified.", 400);
+    send_error_response("Unknown action specified.", 400, true);
 }
 
 ?>

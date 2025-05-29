@@ -1,0 +1,131 @@
+/*
+ * Kiosk Specific Styles
+ * Arizona@Work Check-In System
+ *
+ * This file contains styles specifically for the kiosk interface (checkin.php).
+ */
+
+/* Styles for the main check-in container and error messages */
+.checkin-container-max-width {
+    max-width: 600px;
+}
+
+/* Styles for the QR Code Reader element */
+#qr-reader { /* Corrected ID selector */
+    width: 100%; /* Make it take the full width of its parent column */
+    /* max-width: 300px; /* Maintain a max width if desired, can be adjusted - Commented out to allow filling height */
+    height: 100%; /* Ensure it takes full height of parent container */
+    /* min-height: 250px; /* Replaced by height: 100% */
+    border: 1px solid #ccc; /* Bootstrap .border can be used, but color #ccc is specific */
+    display: flex; /* Helps in centering the video element if library adds one */
+    justify-content: center;
+    align-items: center;
+    overflow: hidden; /* Added to contain video with object-fit: cover */
+}
+
+#qr-reader video { /* Target the video element directly if the library creates one */
+    width: 100%;  /* Fill width of #qr-reader */
+    height: 100%; /* Fill height of #qr-reader */
+    object-fit: cover; /* Maintain aspect ratio, cover area, crop if needed */
+}
+/* Fix for radio button alignment in checkin form */
+/* assets/css/kiosk.css */
+form#checkin-form .form-group.row .col-md-2.d-flex.justify-content-start > .form-check.form-check-inline {
+    margin-left: 0 !important;       /* Ensure no left margin on the inline form group */
+    padding-left: 0 !important;      /* Ensure no left padding within the inline form group */
+    justify-content: flex-start !important; /* Align items (input, label) within the inline form group to its start */
+}
+
+/* Ensure the column itself counteracts inherited text-align */
+form#checkin-form .form-group.row .col-md-2.d-flex.justify-content-start {
+    text-align: left !important;
+}
+/* Align label text to the left within the specific form structure */
+form#checkin-form .form-group.row .col-md-2.d-flex.justify-content-start > .form-check.form-check-inline > label.form-check-label {
+    text-align: left !important;
+    margin-left: 0 !important; /* Just in case */
+    padding-left: 0 !important; /* Just in case */
+    display: inline-block !important; /* Override display: block from main.css */
+}
+/* Fix for parent .form-group overriding Bootstrap .row flex behavior */
+/* Target .form-group elements that are direct parents of question rows */
+form#checkin-form .form-group:has(> .form-group.row.align-items-center.mb-3) {
+    flex-direction: row !important; /* Override main.css's flex-direction: column */
+}
+/* Ensures the entire question block is not centered if its parent allows it to shrink */
+/* You might need to inspect the parent of .inline-question-group in checkin.php
+   If the parent is, for example, <div class="col-md-8 offset-md-2">, that's the issue.
+   The .inline-question-group should ideally be in a container that is naturally left-aligned. */
+
+.inline-question-group {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important; /* Key for left alignment of items within */
+    margin-bottom: 0.75rem !important; /* Increased spacing a bit */
+    /* border: 1px solid red; /* TEMPORARY: for debugging the bounds of this container */
+}
+
+.inline-question-group .question-text-label {
+    width: 350px !important; /* Fixed width for the label column */
+    margin-right: 10px !important;
+    margin-bottom: 0 !important;
+    padding: 0 !important; /* Remove all padding */
+    text-align: left !important; /* Ensure text within label is left */
+    white-space: normal !important; /* Allow text to wrap within the fixed width */
+    /* border: 1px solid orange; /* TEMPORARY: for debugging label width */
+}
+
+.inline-question-group .radio-options-wrapper {
+    display: flex !important;
+    align-items: center !important;
+    margin-bottom: 0 !important;
+    /* border: 1px solid green; /* TEMPORARY: for debugging */
+}
+
+.inline-question-group .form-check-inline {
+    margin-right: 10px !important;
+    margin-bottom: 0 !important;
+    padding-left: 0 !important; /* Remove Bootstrap's default padding */
+}
+/* Ensure the last form-check-inline doesn't have extra margin if not needed */
+.inline-question-group .form-check-inline:last-child {
+    margin-right: 0 !important;
+}
+
+.inline-question-group .form-check-label {
+    margin-bottom: 0 !important;
+}
+/* Custom styles for checkin.php input field borders */
+#checkin-form .form-control {
+    border-color: #adb5bd; /* A slightly darker gray than default Bootstrap */
+}
+
+/* --- Visual Adjustments (Task: Shrink Logo, Increase Camera) --- */
+
+/* 1. Shrink Logo Width by 20% */
+/* Assuming the logo is within .checkin-logo as per checkin.php */
+.checkin-logo img {
+    width: 80%; /* Reduces width to 80% of its containing block */
+    /* height: auto; /* Maintain aspect ratio, typically default browser behavior */
+}
+
+/* 2. Increase Camera View Size by 20% */
+/* Targeting the #qr-reader container */
+#qr-reader {
+    /* Current styles in kiosk.css are width: 100%; height: 100%; */
+    /* To increase by 20%, we'd conceptually want 120% of its current size. */
+    /* If its parent (.camera-column) doesn't also expand, this might lead to overflow */
+    /* or be constrained. Assuming the intent is to make it 20% larger if possible. */
+    width: 120% !important; /* Increase width by 20% relative to its parent's 100% */
+    height: 120% !important; /* Increase height by 20% relative to its parent's 100% */
+    /* We might need to adjust margins or use transform: scale(1.2) if layout breaks, */
+    /* but direct width/height change is requested. */
+    /* The existing #qr-reader rule already has: */
+    /* display: flex; justify-content: center; align-items: center; overflow: hidden; */
+    /* The !important is to ensure override if other specificities are higher, though unlikely here. */
+}
+
+/* Ensure the video inside also scales if #qr-reader itself doesn't truly expand its bounds */
+/* but rather its content area. The existing rule for #qr-reader video is already 100% width/height */
+/* of #qr-reader, so it should scale accordingly. No changes needed for #qr-reader video directly. */
+/* --- End Visual Adjustments --- */

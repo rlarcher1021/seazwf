@@ -121,7 +121,7 @@ try {
                                 <td><?php echo htmlspecialchars($budget['department_name']); ?></td>
                                 <td><?php echo htmlspecialchars($budget['fiscal_year_start']) . ' - ' . htmlspecialchars($budget['fiscal_year_end']); ?></td>
                                 <td><span class="badge bg-<?php echo $budget['budget_type'] === 'Admin' ? 'info' : 'secondary'; ?>"><?php echo htmlspecialchars($budget['budget_type']); ?></span></td>
-                                <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="<?php echo htmlspecialchars($budget['notes'] ?? ''); ?>">
+                                <td class="table-cell-truncate-200" title="<?php echo htmlspecialchars($budget['notes'] ?? ''); ?>">
                                     <?php echo nl2br(htmlspecialchars($budget['notes'] ?? '')); ?>
                                 </td>
                                 <td>
@@ -248,7 +248,7 @@ try {
                         <label for="add_budget_notes_panel" class="form-label">Notes</label>
                         <textarea class="form-control" id="add_budget_notes_panel" name="notes" rows="3"></textarea>
                     </div>
-                    <div id="addBudgetErrorPanel" class="text-danger mt-2" style="display: none;"></div>
+                    <div id="addBudgetErrorPanel" class="text-danger mt-2 d-none"></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -340,7 +340,7 @@ try {
                         <label for="edit_budget_notes_panel" class="form-label">Notes</label>
                         <textarea class="form-control" id="edit_budget_notes_panel" name="notes" rows="3"></textarea>
                     </div>
-                    <div id="editBudgetErrorPanel" class="text-danger mt-2" style="display: none;"></div>
+                    <div id="editBudgetErrorPanel" class="text-danger mt-2 d-none"></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>

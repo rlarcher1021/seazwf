@@ -342,7 +342,7 @@ require_once 'includes/header.php'; // Include the standard site header
              <form action="client_editor.php" method="GET" class="form-inline">
                  <div class="form-group mr-sm-3 mb-2">
                     <label for="search_term" class="sr-only">Search Term</label>
-                    <input type="text" class="form-control <?php echo isset($form_errors['search']) ? 'is-invalid' : ''; ?>" id="search_term" name="search_term" placeholder="Enter name or username" value="<?php echo htmlspecialchars($search_term); ?>" style="min-width: 250px;">
+                    <input type="text" class="form-control input-min-width-250 <?php echo isset($form_errors['search']) ? 'is-invalid' : ''; ?>" id="search_term" name="search_term" placeholder="Enter name or username" value="<?php echo htmlspecialchars($search_term); ?>">
                  </div>
                  <button type="submit" class="btn btn-primary mb-2">Search</button>
                  <?php if ($search_term): // Show clear button only if a search was made ?>

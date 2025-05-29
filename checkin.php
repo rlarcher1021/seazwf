@@ -60,7 +60,7 @@ if ($manual_site_id && in_array($current_role, ['administrator', 'director', 'az
         if (!empty($site_details['email_collection_desc'])) {
             $site_email_description = $site_details['email_collection_desc'];
         }
-        error_log("Checkin: Using manual_site_id {$site_id_for_checkin} for role {$current_role}");
+        // error_log("Checkin: Using manual_site_id {$site_id_for_checkin} for role {$current_role}");
     } else {
         // getActiveSiteDetailsById returns null on error or not found/inactive
         $config_error = "Error: Site specified (" . htmlspecialchars($manual_site_id) . ") invalid/inactive.";
@@ -80,7 +80,7 @@ if ($site_id_for_checkin === null && $config_error === null) {
             if (!empty($site_details['email_collection_desc'])) {
                 $site_email_description = $site_details['email_collection_desc'];
             }
-            error_log("Checkin: Using session_site_id {$site_id_for_checkin} for role {$current_role}");
+            // error_log("Checkin: Using session_site_id {$site_id_for_checkin} for role {$current_role}");
         } else {
             // getActiveSiteDetailsById returns null on error or not found/inactive
             $config_error = "Error: Your assigned site (ID: " . htmlspecialchars($session_site_id) . ") inactive/not found.";
@@ -94,7 +94,7 @@ if ($site_id_for_checkin === null || $config_error !== null) {
     ob_start();
     // Ensure main.css is linked even for error page
     echo '<!DOCTYPE html><html lang="en"><head><title>Error</title><link rel="stylesheet" href="assets/css/main.css?v='.filemtime(__DIR__ . '/assets/css/main.css').'"></head><body class="checkin-page">';
-    echo '<div class="message-area message-error" class="m-3 p-3 mx-auto bg-white" style="max-width: 600px;">'; // Style error box similar to checkin container
+    echo '<div class="message-area message-error m-3 p-3 mx-auto bg-white checkin-container-max-width">'; // Style error box similar to checkin container
     echo '<h1>Configuration Error</h1><p>' . htmlspecialchars($config_error ?: "Error: Cannot determine site context. Ref: SITE_CTX_FAIL") . '</p>';
     echo '<p><a href="index.php">Return to Login</a></p>';
     echo '</div></body></html>';
@@ -119,7 +119,7 @@ try {
     $checkin_configs = getSiteCheckinConfigFlags($pdo, $site_id);
     $allow_email_collection = $checkin_configs['allow_email_collection'];
     $allow_notifier = $checkin_configs['allow_notifier'];
-    error_log("[DEBUG checkin.php] Site {$site_id} Config Flags: AllowEmail=" . ($allow_email_collection ? '1' : '0') . ", AllowNotifier=" . ($allow_notifier ? '1' : '0'));
+    // error_log("[DEBUG checkin.php] Site {$site_id} Config Flags: AllowEmail=" . ($allow_email_collection ? '1' : '0') . ", AllowNotifier=" . ($allow_notifier ? '1' : '0'));
 
     // Fetch active questions assigned to this site using data access function
     $assigned_questions = getActiveQuestionsForSite($pdo, $site_id);
@@ -143,7 +143,7 @@ try {
             $right_ad = array_shift($active_site_ads); // Get the next random ad for right
         }
     }
-    error_log("Checkin Ad Fetch - Site ID {$site_id} - Left Ad: " . ($left_ad ? $left_ad['ad_title'] ?? $left_ad['ad_type'] : 'None') . ", Right Ad: " . ($right_ad ? $right_ad['ad_title'] ?? $right_ad['ad_type'] : 'None'));
+    // error_log("Checkin Ad Fetch - Site ID {$site_id} - Left Ad: " . ($left_ad ? $left_ad['ad_title'] ?? $left_ad['ad_type'] : 'None') . ", Right Ad: " . ($right_ad ? $right_ad['ad_title'] ?? $right_ad['ad_type'] : 'None'));
 
 
 } catch (PDOException $e) { // Catch potential PDO errors during fetch
@@ -220,6 +220,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $original_question_id = $question['id']; // Actual question_id
         $q_input_key = 'q_' . $original_question_id; // Input name from the form e.g. q_1, q_2
         $answer = filter_input(INPUT_POST, $q_input_key, FILTER_SANITIZE_SPECIAL_CHARS);
+        $answer = $answer ? strtoupper($answer) : null; // Convert to uppercase for consistent validation
         
         $question_title_base = $question['question_title'];
 
@@ -254,10 +255,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
          $notified_staff_id = null;
     }
 
-error_log("[DEBUG checkin.php POST] Site ID for checkin: " . $site_id);
-error_log("[DEBUG checkin.php POST] Raw \$_POST['notify_staff']: " . ($_POST['notify_staff'] ?? 'NOT SET'));
-error_log("[DEBUG checkin.php POST] \$notified_staff_id (staff_notifications.id or null) before save: " . print_r($notified_staff_id, true));
-error_log("[DEBUG checkin.php POST] \$staff_notifiers array structure (should be keyed by staff_notifications.id): " . print_r($staff_notifiers, true));
+// error_log("[DEBUG checkin.php POST] Site ID for checkin: " . $site_id);
+// error_log("[DEBUG checkin.php POST] Raw \$_POST['notify_staff']: " . ($_POST['notify_staff'] ?? 'NOT SET'));
+// error_log("[DEBUG checkin.php POST] \$notified_staff_id (staff_notifications.id or null) before save: " . print_r($notified_staff_id, true));
+// error_log("[DEBUG checkin.php POST] \$staff_notifiers array structure (should be keyed by staff_notifications.id): " . print_r($staff_notifiers, true));
     // If no validation errors, proceed to save
     if (empty($errors)) {
         error_log("Checkin Manual: Data being prepared for checkin_answers table: " . print_r($question_answers_for_checkin_answers_table, true));
@@ -534,6 +535,7 @@ error_log("[DEBUG checkin.php POST] \$staff_notifiers array structure (should be
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Link main stylesheet -->
     <link rel="stylesheet" href="assets/css/main.css?v=<?php echo filemtime(__DIR__ . '/assets/css/main.css'); ?>">
+    <link rel="stylesheet" href="assets/css/kiosk.css?v=<?php echo filemtime(__DIR__ . '/assets/css/kiosk.css'); ?>">
      <!-- Inline styles ONLY for Google Translate Widget -->
      <style type="text/css">
         /* Google Translate */
@@ -555,7 +557,7 @@ error_log("[DEBUG checkin.php POST] \$staff_notifiers array structure (should be
         <!-- Camera Column (Left) -->
         <div class="camera-column">
             <!-- QR Code Reader Placeholder -->
-            <div id="qr-reader" style="width: 300px; margin: 15px auto; border: 1px solid #ccc;"></div>
+            <div id="qr-reader" class="my-3 mx-auto"></div>
             <div id="qr-reader-results" class="mt-3 text-center"></div>
         </div>
 
@@ -595,13 +597,19 @@ error_log("[DEBUG checkin.php POST] \$staff_notifiers array structure (should be
                         <?php foreach ($assigned_questions as $question):
                             $q_key = 'q_' . $question['id'];
                             $current_answer = $form_data[$q_key] ?? null; ?>
-                            <div class="form-group">
-                                <label class="form-label"><?php echo htmlspecialchars($question['question_text']); ?>:</label>
-                                <div class="radio-group">
-                                    <label><input type="radio" name="<?php echo $q_key; ?>" value="YES" <?php echo ($current_answer === 'YES') ? 'checked' : ''; ?> required> Yes</label>
-                                    <label><input type="radio" name="<?php echo $q_key; ?>" value="NO" <?php echo ($current_answer === 'NO') ? 'checked' : ''; ?> required> No</label>
-                                </div>
-                            </div>
+                <div class="inline-question-group"> <!-- Simplified: removed form-group, col-form-label from direct children -->
+                    <label class="question-text-label" for="<?php echo $q_key; ?>_yes"><?php echo htmlspecialchars($question['question_text']); ?>:</label>
+                    <div class="radio-options-wrapper">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="<?php echo $q_key; ?>" id="<?php echo $q_key; ?>_yes" value="yes" <?php echo (isset($client_answers[$question['id']]) && $client_answers[$question['id']] == 'yes' || $current_answer === 'YES' || $current_answer === 'yes') ? 'checked' : ''; ?>>
+                            <label class="form-check-label" for="<?php echo $q_key; ?>_yes">Yes</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="<?php echo $q_key; ?>" id="<?php echo $q_key; ?>_no" value="no" <?php echo (isset($client_answers[$question['id']]) && $client_answers[$question['id']] == 'no' || $current_answer === 'NO' || $current_answer === 'no') ? 'checked' : ''; ?>>
+                            <label class="form-check-label" for="<?php echo $q_key; ?>_no">No</label>
+                        </div>
+                    </div>
+                </div>
                         <?php endforeach; ?>
                     <?php endif; ?>
 
@@ -776,6 +784,12 @@ error_log("[DEBUG checkin.php POST] \$staff_notifiers array structure (should be
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
     <!-- Kiosk Specific JavaScript -->
+    <script>
+        // Define the base path for the application, crucial for AJAX requests in subdirectories.
+        // This is specifically for XAMPP or similar environments where the project
+        // might not be at the server's document root.
+        window.APP_BASE_URL_PATH = '/public_html';
+    </script>
     <script src="assets/js/kiosk.js?v=<?php echo filemtime(__DIR__ . '/assets/js/kiosk.js'); ?>"></script>
 </body>
 </html>

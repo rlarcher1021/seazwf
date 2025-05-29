@@ -181,7 +181,7 @@ $panel_output = '';
 $tab_to_process = $active_tab; // Default to the tab determined by GET/session
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submitted_tab']) && isset($panel_files[$_POST['submitted_tab']])) {
     $tab_to_process = $_POST['submitted_tab']; // Override with submitted tab if valid
-    error_log("DEBUG configurations.php (POST): Prioritizing submitted_tab '{$tab_to_process}' for panel inclusion."); // Debug log
+    // error_log("DEBUG configurations.php (POST): Prioritizing submitted_tab '{$tab_to_process}' for panel inclusion."); // Debug log
 }
 
 // Process panel logic only if it's a valid tab AND user has access to it
@@ -200,8 +200,8 @@ if (isset($panel_files[$tab_to_process])) {
              $_SESSION['selected_config_tab'] = $active_tab;
          }
     } elseif (file_exists($panel_path)) {
-        error_log("DEBUG configurations.php ({$_SERVER['REQUEST_METHOD']}): Including panel '{$panel_path}'. Selected Site ID = {$selected_config_site_id}, Role = {$session_role}, IsSiteAdmin = {$is_site_admin}"); // Enhanced Debug log
-error_log("DEBUG configurations.php: Before panel include. Tab='{$tab_to_process}', Selected Site ID=" . var_export($selected_config_site_id, true) . ", Role='{$session_role}', IsSiteAdmin={$is_site_admin}");
+        // error_log("DEBUG configurations.php ({$_SERVER['REQUEST_METHOD']}): Including panel '{$panel_path}'. Selected Site ID = {$selected_config_site_id}, Role = {$session_role}, IsSiteAdmin = {$is_site_admin}"); // Enhanced Debug log
+// error_log("DEBUG configurations.php: Before panel include. Tab='{$tab_to_process}', Selected Site ID=" . var_export($selected_config_site_id, true) . ", Role='{$session_role}', IsSiteAdmin={$is_site_admin}");
 
         // Make necessary variables available to the panel scope
         // $pdo is already global via db_connect.php

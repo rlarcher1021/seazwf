@@ -316,7 +316,7 @@ $encoded_username = htmlspecialchars($input_data['username'], ENT_QUOTES, 'UTF-8
     <div class="container">
         <div class="register-container">
             <div class="text-center mb-4">
-                <img src="assets/img/logo.jpg" alt="Arizona@Work Logo" style="max-height: 70px;">
+                <img src="assets/img/logo.jpg" alt="Arizona@Work Logo" class="img-fluid register-logo-max-height">
                 <h2 class="mt-3">Client Registration</h2>
             </div>
 

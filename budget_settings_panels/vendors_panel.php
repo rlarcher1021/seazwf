@@ -116,7 +116,7 @@ $csrf_token = generateCsrfToken(); // Generate CSRF token
                         <label class="form-check-label" for="add_client_name_required">Client Name Required?</label>
                         <small class="form-text text-muted d-block">Check this if a client's name must be entered when selecting this vendor for an allocation.</small>
                     </div>
-                     <div id="addVendorError" class="text-danger mt-2" style="display: none;"></div>
+                     <div id="addVendorError" class="text-danger mt-2 d-none"></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -157,7 +157,7 @@ $csrf_token = generateCsrfToken(); // Generate CSRF token
                         <label class="form-check-label" for="edit_is_active">Is Active?</label>
                          <small class="form-text text-muted d-block">Inactive vendors cannot be selected for new allocations.</small>
                     </div>
-                    <div id="editVendorError" class="text-danger mt-2" style="display: none;"></div>
+                    <div id="editVendorError" class="text-danger mt-2 d-none"></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>

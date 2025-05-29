@@ -610,12 +610,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                 <table class="table table-striped table-hover">
                     <thead>
                         <tr>
-                            <th style="width: 5rem;">Order</th>
+                            <th class="th-width-5rem">Order</th>
                             <th>Question Text</th>
                             <th>Question Title</th> <!-- Added Title -->
-                            <th style="width: 6.25rem;">Status</th>
+                            <th class="th-width-6-25rem">Status</th>
                             <?php if ($can_manage_selected_site_questions): ?>
-                            <th style="width: 9.375rem;">Site Actions</th>
+                            <th class="th-width-9-375rem">Site Actions</th>
                             <?php endif; ?>
                         </tr>
                     </thead>
@@ -645,7 +645,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                                                     </button>
                                                 </form>
                                             <?php else: ?>
-                                                <span class="d-inline-block" style="width: 1.875rem;"></span> <!-- Placeholder for alignment -->
+                                                <span class="d-inline-block span-width-1-875rem"></span> <!-- Placeholder for alignment -->
                                             <?php endif; ?>
 
                                             <?php if (!$is_last): ?>
@@ -661,7 +661,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                                                     </button>
                                                 </form>
                                             <?php else: ?>
-                                                 <span class="d-inline-block" style="width: 1.875rem;"></span> <!-- Placeholder for alignment -->
+                                                 <span class="d-inline-block span-width-1-875rem"></span> <!-- Placeholder for alignment -->
                                             <?php endif; ?>
                                         <?php else: ?>
                                              <?php echo htmlspecialchars($sq['display_order']); // Show order number if cannot reorder ?>

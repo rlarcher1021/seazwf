@@ -80,7 +80,7 @@ try {
                             <tr>
                                 <td><?php echo htmlspecialchars($grant['name']); ?></td>
                                 <td><?php echo htmlspecialchars($grant['grant_code'] ?? 'N/A'); ?></td>
-                                <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="<?php echo htmlspecialchars($grant['description'] ?? ''); ?>">
+                                <td class="table-cell-truncate-300" title="<?php echo htmlspecialchars($grant['description'] ?? ''); ?>">
                                     <?php echo nl2br(htmlspecialchars($grant['description'] ?? '')); ?>
                                 </td>
                                 <td><?php echo htmlspecialchars($grant['start_date'] ?? 'N/A'); ?></td>
@@ -154,7 +154,7 @@ try {
                             <input type="date" class="form-control" id="add_grant_end_date_panel" name="end_date">
                         </div>
                     </div>
-                     <div id="addGrantErrorPanel" class="text-danger mt-2" style="display: none;"></div>
+                     <div id="addGrantErrorPanel" class="text-danger mt-2 d-none"></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -201,7 +201,7 @@ try {
                             <input type="date" class="form-control" id="edit_grant_end_date_panel" name="end_date">
                         </div>
                     </div>
-                     <div id="editGrantErrorPanel" class="text-danger mt-2" style="display: none;"></div>
+                     <div id="editGrantErrorPanel" class="text-danger mt-2 d-none"></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button> <?php // BS4 dismiss ?>

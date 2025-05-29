@@ -787,7 +787,7 @@ require_once 'includes/header.php';
                                 </select>
                                 <p class="form-description">Optional. Assign user to a department.</p>
                              </div>
-                             <div class="form-check mb-3" style="grid-column: 1 / -1;">
+                             <div class="form-check mb-3 grid-col-full-width">
                                  <input class="form-check-input" type="checkbox" name="is_active" value="1" id="add_is_active" <?php echo (!isset($form_data['action']) || !empty($form_data['is_active'])) ? 'checked' : ''; // Default checked on new form or if previously checked ?>>
                                  <label class="form-check-label" for="add_is_active">
                                      Active User
@@ -878,14 +878,14 @@ require_once 'includes/header.php';
                                 <p class="form-description">Optional. Assign user to a department.</p>
                             </div>
                             <!-- Site Administrator Checkbox (Restore) -->
-                            <div class="form-check mb-3" style="grid-column: 1 / -1;">
+                            <div class="form-check mb-3 grid-col-full-width">
                                 <input class="form-check-input" type="checkbox" name="is_site_admin" value="1" id="edit_is_site_admin" <?php echo ($edit_user_data['is_site_admin'] == 1) ? 'checked' : ''; ?>>
                                 <label class="form-check-label" for="edit_is_site_admin">
                                     Grant Site Administrator Privileges
                                 </label>
                                 <p class="form-description">Allows user to manage other users within their assigned site(s).</p>
                             </div>
-                             <div class="form-check mb-3" style="grid-column: 1 / -1;">
+                             <div class="form-check mb-3 grid-col-full-width">
                                  <input class="form-check-input" type="checkbox" name="is_active" value="1" id="edit_is_active" <?php echo ($edit_user_data['is_active'] == 1) ? 'checked' : ''; ?>>
                                  <label class="form-check-label" for="edit_is_active">
                                      Active User
@@ -909,7 +909,7 @@ require_once 'includes/header.php';
                          <input type="hidden" name="action" value="reset_password">
                          <input type="hidden" name="user_id" value="<?php echo $edit_user_id; ?>">
                          <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
-                         <div class="settings-form" style="grid-template-columns: 1fr;"> <!-- Single column for password -->
+                         <div class="settings-form grid-template-cols-1fr"> <!-- Single column for password -->
                               <div class="mb-3">
                                 <label for="reset_new_password" class="form-label">New Password:</label>
                                 <input type="password" id="reset_new_password" name="new_password" class="form-control" required minlength="8">

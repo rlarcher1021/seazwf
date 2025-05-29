@@ -1,0 +1,81 @@
+/*
+ * File: admin.css
+ * Path: /assets/css/admin.css
+ * Created: 2025-05-15
+ * Description: Styles specific to the admin interface of Arizona@Work Check-In System.
+ */
+
+/* Custom Report Chart Canvas Max Height */
+.chart-canvas-max-height {
+    max-height: 400px;
+}
+/* Styles for the alerts page error log container */
+.alerts-log-container {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+/* Style for truncating table cell content with a max-width of 200px */
+.table-cell-truncate-200 {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Style for truncating table cell content with a max-width of 300px */
+.table-cell-truncate-300 {
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+/* Style for input elements with a minimum width of 250px */
+.input-min-width-250 {
+    min-width: 250px;
+}
+/* Utility for elements spanning the full width of a CSS grid container */
+.grid-col-full-width {
+    grid-column: 1 / -1;
+}
+
+/* Specific height for chart containers in reports */
+.chart-container-height {
+    height: 300px;
+}
+
+/* Styles for the custom report output area in reports.php */
+.custom-report-output {
+    min-height: 100px;
+    border: 1px dashed var(--color-gray-light);
+}
+
+/* Styles for report meta text, like date ranges or secondary info */
+.report-meta-text {
+    font-size: 0.9em;
+    color: var(--color-gray);
+}
+/* Utility for grid containers to have a single column taking up all available space */
+.grid-template-cols-1fr {
+    grid-template-columns: 1fr;
+}
+/* Styles for specific widths in questions_panel.php */
+/* TH element for Order column */
+.th-width-5rem {
+    width: 5rem;
+}
+
+/* TH element for Status column */
+.th-width-6-25rem {
+    width: 6.25rem;
+}
+
+/* TH element for Site Actions column */
+.th-width-9-375rem {
+    width: 9.375rem;
+}
+
+/* Span element for reorder button placeholder */
+.span-width-1-875rem {
+    width: 1.875rem;
+}

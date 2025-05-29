@@ -42,7 +42,7 @@ if (isset($pdo)) { // Check if $pdo is available
                             </div>
                              <div class="col-md-5 mb-3">
                                 <label for="edit_vendor_id" class="form-label">Vendor <span class="text-danger">*</span></label>
-                                <select class="form-select form-select-sm select2-vendor-dropdown" id="edit_vendor_id" name="vendor_id" required style="width: 100%;"> <?php // Added class and style ?>
+                                <select class="form-select form-select-sm select2-vendor-dropdown w-100" id="edit_vendor_id" name="vendor_id" required> <?php // Added class and style ?>
                                     <option value="" disabled>Select Vendor...</option>
                                     <?php foreach ($edit_modal_active_vendors as $vendor): ?>
                                         <option value="<?php echo $vendor['id']; ?>" data-client-required="<?php echo $vendor['client_name_required']; ?>">
@@ -57,7 +57,7 @@ if (isset($pdo)) { // Check if $pdo is available
                              <div class="col-md-3 mb-3">
                                 <label for="edit_client_name" class="form-label">Client Name</label> <?php // Label doesn't have * initially ?>
                                 <input type="text" class="form-control form-control-sm" id="edit_client_name" name="client_name" maxlength="255">
-                                <small id="edit_client_name_help" class="form-text text-muted" style="display: none;">Required for selected vendor.</small> <?php // Help text, initially hidden ?>
+                                <small id="edit_client_name_help" class="form-text text-muted d-none">Required for selected vendor.</small> <?php // Help text, initially hidden ?>
                             </div>
                         </div>
                         <div class="row">
@@ -150,7 +150,7 @@ if (isset($pdo)) { // Check if $pdo is available
                         </div>
 
                         <!-- Finance Fields Section (Visibility/editability controlled by JS) -->
-                        <div id="edit-finance-fields" style="display: none;"> <!-- Initially hidden -->
+                        <div id="edit-finance-fields" class="d-none"> <!-- Initially hidden -->
                             <h6 class="mt-4">Finance Information</h6>
                             <hr class="mt-1 mb-3">
                             <div class="row">

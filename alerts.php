@@ -199,7 +199,7 @@ require_once 'includes/header.php';
          <?php elseif (empty($log_content)): ?>
              <p><em>Could not read log file content.</em></p>
          <?php else: ?>
-             <div class="error-log-display" class="bg-light border p-2 small lh-sm" style="max-height: 600px; overflow-y: auto;">
+             <div class="error-log-display bg-light border p-2 small lh-sm alerts-log-container">
                  <?php echo $log_content; // Content includes <pre> tags and is htmlspecialchars'd ?>
              </div>
          <?php endif; ?>

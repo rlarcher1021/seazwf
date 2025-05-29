@@ -90,6 +90,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <title>Client Login - Arizona@Work</title>
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+    <link rel="stylesheet" href="assets/css/client.css"> <!-- Link to custom client CSS -->
     <style>
         body {
             background-color: #f8f9fa;
@@ -122,8 +123,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </head>
 <body>
     <div class="login-container">
-        <div class="login-logo" style="text-align: center; margin-bottom: 20px;">
-            <img src="assets/img/logo.jpg" alt="Arizona@Work Logo" style="max-width: 220px; height: auto;">
+        <div class="login-logo text-center mb-4">
+            <img src="assets/img/logo.jpg" alt="Arizona@Work Logo" class="img-fluid login-img-max-width">
         </div>
         <div class="client-form-area"> <!-- Added wrapper similar to index.php's login-form-container -->
             <div class="login-header">

@@ -1,4 +1,4 @@
-<?php
+<![CDATA[<?php
 /*
  * File: reports.php
  * Path: /reports.php
@@ -117,7 +117,6 @@ $filter_end_date = preg_match("/^\d{4}-\d{2}-\d{2}$/", $filter_end_date) ? $filt
 
 // --- Fetch Active Questions & Columns Relevant to Filter ---
 $report_question_columns = []; // Stores sanitized column names WITH prefix (q_...) for data access
-$report_chart_labels = [];     // Stores FORMATTED labels (e.g., "Needs Assistance") for chart display
 $report_column_to_label_map = []; // Optional: Map prefixed name -> formatted label if needed elsewhere
 
 // Fetch active question base titles using data access function
@@ -137,7 +136,6 @@ if ($report_base_titles === []) {
                 if (preg_match('/^q_[a-z0-9_]+$/', $prefixed_col_name) && strlen($prefixed_col_name) <= 64) {
                     $formatted_label = format_base_name_for_display($sanitized_base); // Use utility function
                     $report_question_columns[] = $prefixed_col_name; // Store validated prefixed name
-                    $report_chart_labels[] = $formatted_label; // Store formatted label for charts
                     $report_column_to_label_map[$prefixed_col_name] = $formatted_label; // Map for custom builder options
                 } else {
                      error_log("Reports Warning: Generated prefixed column name '{$prefixed_col_name}' from base '{$base_title}' is invalid and was skipped.");
@@ -150,7 +148,6 @@ if ($report_base_titles === []) {
 }
 
 // Prepare JSON for JavaScript Chart Labels (using the formatted labels)
-$chart_labels_json = json_encode($report_chart_labels);
 
 // Log the *validated* prefixed column names (useful for debugging data fetching)
 // error_log("Reports Debug - Filter ID: {$selected_site_id} - Active VALID question columns for data fetch (prefixed): " . print_r($report_question_columns, true));
@@ -221,9 +218,6 @@ if ($selected_site_id !== null || ($selected_site_id === 'all' && $user_can_sele
 
 
 // --- Prepare Data for Charts (Placeholder - adapt later) ---
-$chart_labels_json = json_encode([]);
-$chart_data_checkins_json = json_encode([]);
-$chart_data_by_site_json = json_encode([]);
 // Add logic here later to process $report_data or run separate aggregate queries for charts
 
 // --- Fetch Data for Allocation Report Filters ---
@@ -236,6 +230,27 @@ $allocation_vendors = getActiveVendors($pdo);
 // --- Include Header ---
 require_once 'includes/header.php';
 ?>
+<style>
+#allocation-reports-pane .form-control-sm {
+    height: auto;
+    padding-top: 0.3rem;
+    padding-bottom: 0.3rem;
+    line-height: 1.6;
+}
+#custom_output_type { /* ID of the Output Type select element */
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important; /* Attempt to override default browser min-width */
+    box-sizing: border-box !important;
+}
+#customReportSelectRow {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row !important; /* Force row direction */
+    margin-right: -5px; /* Typical Bootstrap .row/.form-row negative margin */
+    margin-left: -5px;  /* Typical Bootstrap .row/.form-row negative margin */
+}
+</style>
 
             <!-- Page Header -->
             <div class="header">
@@ -273,9 +288,6 @@ require_once 'includes/header.php';
                 <li class="nav-item" role="presentation">
                     <a class="nav-link" id="custom-report-builder-tab" data-toggle="tab" href="#custom-report-builder-pane" role="tab" aria-controls="custom-report-builder-pane" aria-selected="false">Custom Report Builder</a>
                 </li>
-                <li class="nav-item" role="presentation">
-                    <a class="nav-link" id="checkin-data-tab" data-toggle="tab" href="#checkin-data-pane" role="tab" aria-controls="checkin-data-pane" aria-selected="false">Check-in Data</a>
-                </li>
             </ul>
             <div class="tab-content" id="reportTabContent">
                 <!-- Check-in Reports Tab Pane (Filters) -->
@@ -291,15 +303,17 @@ require_once 'includes/header.php';
                 <h2 class="section-title">Report Filters</h2>
                 <form method="GET" action="reports.php" id="report-filter-form" class="filter-form">
                     <input type="hidden" name="site_id" id="filter_site_id" value="<?php echo htmlspecialchars($selected_site_id ?? 'all'); ?>">
-                    <div class="form-group">
-                        <label for="start_date" class="form-label">Start Date:</label>
-                        <input type="date" id="start_date" name="start_date" class="form-control" value="<?php echo htmlspecialchars($filter_start_date); ?>">
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="start_date" class="form-label">Start Date:</label>
+                            <input type="date" id="start_date" name="start_date" class="form-control" value="<?php echo htmlspecialchars($filter_start_date); ?>">
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="end_date" class="form-label">End Date:</label>
+                            <input type="date" id="end_date" name="end_date" class="form-control" value="<?php echo htmlspecialchars($filter_end_date); ?>">
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="end_date" class="form-label">End Date:</label>
-                        <input type="date" id="end_date" name="end_date" class="form-control" value="<?php echo htmlspecialchars($filter_end_date); ?>">
-                    </div>
-                     <div class="form-actions" style="grid-column: 1 / -1;"> <!-- Ensure actions span columns -->
+                     <div class="form-actions grid-col-full-width"> <!-- Ensure actions span columns -->
                         <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Apply Filters</button>
                         <?php
                            $export_params = http_build_query(array_filter([ // array_filter removes null/empty values
@@ -317,105 +331,11 @@ require_once 'includes/header.php';
                 </form>
             </div>
 
-            <!-- Chart Section -->
-            <div class="content-section">
-                <h2 class="section-title">Visualizations</h2>
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="chart-container" style="position: relative; height:300px; width:100%">
-                             <canvas id="reportCheckinsChart"></canvas>
-                        </div>
-                        <p class="text-center small mt-1">Check-ins Over Time (Placeholder)</p>
-                    </div>
-                    <div class="col-md-6">
-                         <div class="chart-container" style="position: relative; height:300px; width:100%">
-                            <canvas id="reportQuestionsChart"></canvas>
-                         </div>
-                         <p class="text-center small mt-1">Question Responses (Yes Count)</p>
-                    </div>
-                </div>
-            </div>
-             <!-- End Chart Section -->
 
-        </div> <!-- End Check-in Reports Tab Pane (Filters & Charts) -->
-
-        <!-- Custom Report Builder Tab Pane -->
-        <div class="tab-pane fade" id="custom-report-builder-pane" role="tabpanel" aria-labelledby="custom-report-builder-tab">
-            <!-- Custom Report Builder Section -->
-            <?php if ($user_can_select_sites): // Show only to Admin/Director ?>
-            <div class="content-section" id="custom-report-builder">
-                <h2 class="section-title">Custom Report Builder</h2>
-                <form id="custom-report-form" class="settings-form" action="#" method="POST"> <!-- Use POST for AJAX, action="#" prevents default nav -->
-                    <div class="form-group">
-                        <label for="custom_metrics" class="form-label">Metrics:</label>
-                        <select id="custom_metrics" name="metrics[]" class="form-control" multiple required size="5"> <!-- Added size attribute -->
-                            <option value="total_checkins" selected>Total Check-ins</option>
-                            <?php
-                            // Dynamically populate with active questions for the current filter
-                            // We use the $report_column_to_label_map created earlier which maps q_[base_name] => Formatted Label
-                            if (!empty($report_column_to_label_map)) {
-                                foreach ($report_column_to_label_map as $prefixed_col => $formatted_label) {
-                                    // Value should be the *prefixed column name* for backend processing
-                                    echo '<option value="' . htmlspecialchars($prefixed_col) . '">Q: ' . htmlspecialchars($formatted_label) . ' (Yes Count)</option>';
-                                }
-                            } else {
-                                echo '<option value="" disabled>No questions active for current filter</option>';
-                            }
-                            ?>
-                        </select>
-                        <small class="form-text text-muted">Select one or more metrics (use Ctrl/Cmd to select multiple).</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="custom_group_by" class="form-label">Group By:</label>
-                        <select id="custom_group_by" name="group_by" class="form-control" required>
-                            <option value="none" selected>None (Overall Totals)</option>
-                            <option value="day">Day</option>
-                            <option value="week">Week</option>
-                            <option value="month">Month</option>
-                            <?php if ($selected_site_id === 'all'): ?>
-                                <option value="site">Site</option>
-                            <?php endif; ?>
-                            <!-- <option value="question">Question (Compare Metrics)</option> <-- More complex, add later if needed -->
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="custom_output_type" class="form-label">Output Type:</label>
-                        <select id="custom_output_type" name="output_type" class="form-control" required>
-                            <option value="table" selected>Data Table</option>
-                            <option value="bar">Bar Chart</option>
-                            <option value="line">Line Chart</option>
-                            <!-- Add Pie later if suitable -->
-                        </select>
-                         <small class="form-text text-muted">Line charts work best when grouping by time.</small>
-                    </div>
-
-                    <div class="form-actions" style="grid-column: 1 / -1;"> <!-- Ensure actions span columns -->
-                        <button type="submit" id="generate-custom-report-btn" class="btn btn-primary">
-                            <i class="fas fa-chart-bar"></i> Generate Report
-                        </button>
-                        <span id="custom-report-loading" class="d-none ms-2">
-                            <i class="fas fa-spinner fa-spin"></i> Generating...
-                        </span>
-                    </div>
-                </form>
-
-                <!-- Area to display the generated report -->
-                <div id="custom-report-output-area" class="content-section" style="margin-top: 20px; min-height: 100px; border: 1px dashed var(--color-gray-light); padding: 15px;">
-                    <!-- Report will be loaded here via AJAX -->
-                    <p class="text-center text-muted">Select options above and click "Generate Report".</p>
-                </div>
-            </div>
-            <?php endif; ?>
-        </div> <!-- End Custom Report Builder Tab Pane -->
-
-        <!-- Check-in Data Tab Pane -->
-        <div class="tab-pane fade" id="checkin-data-pane" role="tabpanel" aria-labelledby="checkin-data-tab">
             <!-- Report Data Table Section -->
             <div class="content-section">
                  <h2 class="section-title">Check-in Data
-                     <span style="font-weight: normal; font-size: 0.9em; color: var(--color-gray);">
+                     <span class="font-weight-normal report-meta-text">
                          (<?php echo htmlspecialchars($filter_start_date); ?> to <?php echo htmlspecialchars($filter_end_date); ?>)
                      </span>
                  </h2>
@@ -430,15 +350,7 @@ require_once 'includes/header.php';
                                 <th>Check-in Time</th>
                                 <th>Client Email</th>
                                 <th>Notified Staff</th>
-                                <?php
-                                // Dynamically generate question headers using the map (prefixed name => formatted label)
-                                // Use $report_column_to_label_map which was populated alongside $report_question_columns
-                                if (!empty($report_column_to_label_map)) {
-                                    foreach ($report_column_to_label_map as $prefixed_col => $formatted_label) {
-                                        echo "<th>" . htmlspecialchars($formatted_label) . "</th>";
-                                    }
-                                }
-                                ?>
+                                <th>Dynamic Answers</th> <!-- New column for dynamic answers -->
                                 <!--<th>Actions</th>-->
                             </tr>
                         </thead>
@@ -447,9 +359,10 @@ require_once 'includes/header.php';
                                 <tr>
                                      <?php
                                      // Calculate colspan dynamically
-                                     $fixed_cols = 5; // ID, Name, Time, Email, Notified
+                                     $fixed_cols = 6; // ID, Name, Time, Email, Notified, Dynamic Answers
                                      if ($selected_site_id === 'all') $fixed_cols++;
-                                     $total_cols = $fixed_cols + count($report_question_columns);
+                                     // $total_cols = $fixed_cols + count($report_question_columns); // Old calculation
+                                     $total_cols = $fixed_cols; // New calculation
                                      ?>
                                     <td colspan="<?php echo $total_cols; ?>" class="text-center">No records found for the selected criteria.</td>
                                 </tr>
@@ -463,17 +376,22 @@ require_once 'includes/header.php';
                                         <?php endif; ?>
                                         <td><?php echo date('Y-m-d H:i', strtotime($row['check_in_time'])); ?></td>
                                         <td><?php echo htmlspecialchars($row['client_email'] ?? 'N/A'); ?></td>
-                                        <td><?php echo htmlspecialchars($row['notified_staff'] ?? 'N/A'); ?></td>
-                                        <?php
-                                        // Dynamically output question answers using the prefixed column names
-                                        if (!empty($report_question_columns)) {
-                                            foreach ($report_question_columns as $q_col_name) { // $q_col_name is now 'q_coffee' etc.
-                                                // Check if column exists in the fetched row data using the prefixed name
-                                                $answer = array_key_exists($q_col_name, $row) ? $row[$q_col_name] : null;
-                                                echo "<td>" . htmlspecialchars($answer ?? '--') . "</td>";
+                                        <td><?php echo htmlspecialchars($row['notified_staff_name'] ?? 'N/A'); ?></td>
+                                        <td>
+                                            <?php
+                                            $dynamic_answers_display = [];
+                                            if (isset($row['dynamic_answers']) && is_array($row['dynamic_answers']) && !empty($row['dynamic_answers'])) {
+                                                foreach ($row['dynamic_answers'] as $answer_item) {
+                                                    if (isset($answer_item['question_text']) && isset($answer_item['answer_text'])) {
+                                                        $dynamic_answers_display[] = '<strong>' . htmlspecialchars($answer_item['question_text']) . ':</strong> ' . htmlspecialchars($answer_item['answer_text']);
+                                                    }
+                                                }
+                                                echo implode('<br>', $dynamic_answers_display);
+                                            } else {
+                                                echo 'N/A';
                                             }
-                                        }
-                                        ?>
+                                            ?>
+                                        </td>
                                         <!--<td><button class="btn btn-outline btn-sm">View</button></td>-->
                                     </tr>
                                 <?php endforeach; ?>
@@ -494,8 +412,8 @@ require_once 'includes/header.php';
                          <?php if ($total_pages > 1): ?>
                          <div class="table-pagination">
                                <?php
-                                $query_params = array_filter([ 'site_id' => $selected_site_id, 'start_date' => $filter_start_date, 'end_date' => $filter_end_date ]);
-                                $base_url = 'reports.php?' . http_build_query($query_params);
+                                 $query_params = array_filter([ 'site_id' => $selected_site_id, 'start_date' => $filter_start_date, 'end_date' => $filter_end_date ]);
+                                 $base_url = 'reports.php?' . http_build_query($query_params);
                                ?>
                               <a href="<?php echo $base_url . '&page=' . max(1, $current_page - 1); ?>" class="page-btn <?php echo ($current_page <= 1) ? 'disabled' : ''; ?>" aria-label="Previous Page"><i class="fas fa-chevron-left"></i></a>
                               <span>Page <?php echo $current_page; ?> of <?php echo $total_pages; ?></span>
@@ -507,855 +425,588 @@ require_once 'includes/header.php';
 
                  </div> <!-- /.table-container -->
             </div> <!-- /.content-section -->
-        </div> <!-- End Check-in Data Tab Pane -->
+        </div> <!-- End Check-in Reports Tab Pane (Now includes Filters & Data Table) -->
 
-                <!-- Allocation Reports Tab Pane -->
-                <div class="tab-pane fade" id="allocation-reports-pane" role="tabpanel" aria-labelledby="allocations-reports-tab">
-                    <div class="content-section">
-                        <h2 class="section-title">Allocation Reports</h2>
-
-                        <!-- Allocation Filters Section -->
-                        <div class="row mb-3" id="allocation-filters">
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="alloc-filter-fy">Fiscal Year</label>
-                                    <select class="form-control form-control-sm" id="alloc-filter-fy" name="alloc_filter_fy">
-                                        <option value="">All Years</option>
-                                        <?php foreach ($allocation_fiscal_years as $fy_start_date): ?>
-                                            <?php
-                                                // Attempt to determine the fiscal year label (e.g., "FY24-25")
-                                                $start_year = date('Y', strtotime($fy_start_date));
-                                                $start_month = date('n', strtotime($fy_start_date));
-                                                $fy_label = "FY" . substr($start_year, -2);
-                                                // Basic assumption: July 1st starts new FY
-                                                if ($start_month >= 7) {
-                                                    $fy_label .= "-" . substr($start_year + 1, -2);
-                                                } else {
-                                                    $fy_label = "FY" . substr($start_year - 1, -2) . "-" . substr($start_year, -2);
-                                                }
-                                            ?>
-                                            <option value="<?php echo htmlspecialchars($fy_start_date); ?>">
-                                                <?php echo htmlspecialchars($fy_label); ?> (Starts <?php echo htmlspecialchars($fy_start_date); ?>)
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label for="alloc-filter-grant">Grant</label>
-                                    <select class="form-control form-control-sm" id="alloc-filter-grant" name="alloc_filter_grant">
-                                        <option value="">All Grants</option>
-                                        <?php foreach ($allocation_grants as $grant): ?>
-                                            <option value="<?php echo $grant['id']; ?>">
-                                                <?php echo htmlspecialchars($grant['name']); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label for="alloc-filter-department">Department</label>
-                                    <select class="form-control form-control-sm" id="alloc-filter-department" name="alloc_filter_department">
-                                        <option value="">All Departments</option>
-                                        <?php foreach ($allocation_departments as $dept): ?>
-                                            <option value="<?php echo $dept['id']; ?>">
-                                                <?php echo htmlspecialchars($dept['name']); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="alloc-filter-budget">Budget</label>
-                                    <select class="form-control form-control-sm" id="alloc-filter-budget" name="alloc_filter_budget">
-                                        <option value="">All Budgets</option>
-                                        <?php foreach ($allocation_user_budgets as $budget): ?>
-                                            <option value="<?php echo $budget['id']; ?>">
-                                                <?php echo htmlspecialchars($budget['name']); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="alloc-filter-vendor">Vendor</label>
-                                    <select class="form-control form-control-sm" id="alloc-filter-vendor" name="alloc_filter_vendor">
-                                        <option value="">All Vendors</option>
-                                        <?php foreach ($allocation_vendors as $vendor): ?>
-                                            <option value="<?php echo $vendor['id']; ?>">
-                                                <?php echo htmlspecialchars($vendor['name']); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-12">
-                                 <button type="button" id="apply-allocation-filters-btn" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i> Apply Filters</button>
-                                 <button type="button" id="reset-allocation-filters-btn" class="btn btn-secondary btn-sm"><i class="fas fa-undo"></i> Reset</button>
+        <!-- Custom Report Builder Tab Pane -->
+        <div class="tab-pane fade" id="custom-report-builder-pane" role="tabpanel" aria-labelledby="custom-report-builder-tab">
+            <!-- Custom Report Builder Section -->
+            <?php if ($user_can_select_sites): // Show only to Admin/Director ?>
+            <div class="content-section" id="custom-report-builder">
+                <h2 class="section-title">Custom Report Builder</h2>
+                <form id="custom-report-form" class="settings-form" action="#" method="POST"> <!-- Use POST for AJAX, action="#" prevents default nav -->
+                    <div class="form-row" id="customReportSelectRow">
+                        <div class="col">
+                            <div class="form-group">
+                                <label for="custom_metrics" class="form-label">Metrics:</label>
+                                <select id="custom_metrics" name="metrics[]" class="form-control" multiple required size="5"> <!-- Added size attribute -->
+                                    <option value="total_checkins" selected>Total Check-ins</option>
+                                    <?php
+                                    // Dynamically populate with active questions for the current filter
+                                    // We use the $report_column_to_label_map created earlier which maps q_[base_name] => Formatted Label
+                                    if (!empty($report_column_to_label_map)) {
+                                        foreach ($report_column_to_label_map as $prefixed_col => $formatted_label) {
+                                            // Value should be the *prefixed column name* for backend processing
+                                            echo '<option value="' . htmlspecialchars($prefixed_col) . '">Q: ' . htmlspecialchars($formatted_label) . ' (Yes Count)</option>';
+                                        }
+                                    } else {
+                                        echo '<option value="" disabled>No questions active for current filter</option>';
+                                    }
+                                    ?>
+                                </select>
+                                <small class="form-text text-muted">Select one or more metrics (use Ctrl/Cmd to select multiple).</small>
                             </div>
                         </div>
 
-                        <!-- Allocation Report Table Container -->
-                        <div id="allocation-report-table-container" class="mt-4">
-                            <p class="text-center text-muted">Apply filters to view allocation report.</p>
-                            <!-- Table will be loaded here via AJAX -->
+                        <div class="col">
+                            <div class="form-group">
+                                <label for="custom_group_by" class="form-label">Group By:</label>
+                                <select id="custom_group_by" name="group_by" class="form-control" required>
+                                    <option value="none" selected>None (Overall Totals)</option>
+                                    <option value="day">Day</option>
+                                    <option value="week">Week</option>
+                                    <option value="month">Month</option>
+                                    <?php if ($selected_site_id === 'all'): ?>
+                                        <option value="site">Site</option>
+                                    <?php endif; ?>
+                                    <!-- <option value="question">Question (Compare Metrics)</option> <-- More complex, add later if needed -->
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col">
+                            <div class="form-group">
+                                <label for="custom_output_type" class="form-label">Output Type:</label>
+                                <select id="custom_output_type" name="output_type" class="form-control" required>
+                                    <option value="table" selected>Data Table</option>
+                                    <option value="bar">Bar Chart</option>
+                                    <option value="line">Line Chart</option>
+                                    <!-- Add Pie later if suitable -->
+                                </select>
+                                 <small class="form-text text-muted">Line charts work best when grouping by time.</small>
+                            </div>
+                        </div>
+                    </div> <!-- Closing div for form-row -->
+
+                    <div class="form-actions grid-col-full-width"> <!-- Ensure actions span columns -->
+                        <button type="submit" id="generate-custom-report-btn" class="btn btn-primary">
+                            <i class="fas fa-chart-bar"></i> Generate Report
+                        </button>
+                        <span id="custom-report-loading" class="d-none ms-2">
+                            <i class="fas fa-spinner fa-spin"></i> Generating...
+                        </span>
+                    </div>
+                </form>
+
+                <!-- Area to display the generated report -->
+                <div id="custom-report-output-area" class="content-section mt-4 p-3 custom-report-output">
+                    <!-- Report will be loaded here via AJAX -->
+                    <p class="text-center text-muted">Select options above and click "Generate Report".</p>
+                </div>
+            </div>
+            <?php endif; ?>
+        </div> <!-- End Custom Report Builder Tab Pane -->
+
+        <!-- Allocations Reports Tab Pane -->
+        <div class="tab-pane fade" id="allocation-reports-pane" role="tabpanel" aria-labelledby="allocations-reports-tab">
+            <div class="content-section">
+                <h2 class="section-title">Allocation Report Filters</h2>
+                <form id="allocation-report-form" class="settings-form" action="#" method="POST">
+                    <div class="form-row">
+                        <div class="form-group col-md-3">
+                            <label for="allocation_fiscal_year" class="form-label">Fiscal Year:</label>
+                            <select id="allocation_fiscal_year" name="fiscal_year" class="form-control form-control-sm">
+                                <option value="">All Years</option>
+                                <?php foreach ($allocation_fiscal_years as $year): ?>
+                                    <option value="<?php echo htmlspecialchars($year); ?>"><?php echo htmlspecialchars($year); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="form-group col-md-3">
+                            <label for="allocation_grant_id" class="form-label">Grant:</label>
+                            <select id="allocation_grant_id" name="grant_id" class="form-control form-control-sm">
+                                <option value="">All Grants</option>
+                                <?php foreach ($allocation_grants as $grant): ?>
+                                    <option value="<?php echo htmlspecialchars($grant['id']); ?>"><?php echo htmlspecialchars($grant['name']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="form-group col-md-3">
+                            <label for="allocation_department_id" class="form-label">Department:</label>
+                            <select id="allocation_department_id" name="department_id" class="form-control form-control-sm">
+                                <option value="">All Departments</option>
+                                <?php foreach ($allocation_departments as $dept): ?>
+                                    <option value="<?php echo htmlspecialchars($dept['id']); ?>"><?php echo htmlspecialchars($dept['name']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                         <div class="form-group col-md-3">
+                            <label for="allocation_budget_id" class="form-label">Budget:</label>
+                            <select id="allocation_budget_id" name="budget_id" class="form-control form-control-sm">
+                                <option value="">All Budgets</option>
+                                <?php foreach ($allocation_user_budgets as $budget): ?>
+                                    <option value="<?php echo htmlspecialchars($budget['id']); ?>"><?php echo htmlspecialchars($budget['name']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                     </div>
-                </div> <!-- End Allocation Reports Tab Pane -->
+                     <div class="form-row">
+                        <div class="form-group col-md-3">
+                            <label for="allocation_vendor_id" class="form-label">Vendor:</label>
+                            <select id="allocation_vendor_id" name="vendor_id" class="form-control form-control-sm">
+                                <option value="">All Vendors</option>
+                                <?php foreach ($allocation_vendors as $vendor): ?>
+                                    <option value="<?php echo htmlspecialchars($vendor['id']); ?>"><?php echo htmlspecialchars($vendor['name']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="form-group col-md-3">
+                            <label for="allocation_status" class="form-label">Status:</label>
+                            <select id="allocation_status" name="status" class="form-control form-control-sm">
+                                <option value="">All Statuses</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Approved">Approved</option>
+                                <option value="Denied">Denied</option>
+                                <option value="Paid">Paid</option>
+                                <option value="Void">Void</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-md-3">
+                            <label for="allocation_start_date" class="form-label">Start Date:</label>
+                            <input type="date" id="allocation_start_date" name="start_date" class="form-control form-control-sm">
+                        </div>
+                        <div class="form-group col-md-3">
+                            <label for="allocation_end_date" class="form-label">End Date:</label>
+                            <input type="date" id="allocation_end_date" name="end_date" class="form-control form-control-sm">
+                        </div>
+                    </div>
 
-            </div> <!-- End Tab Content Wrapper -->
+                    <div class="form-actions grid-col-full-width">
+                        <button type="submit" id="generate-allocation-report-btn" class="btn btn-primary">
+                            <i class="fas fa-file-invoice-dollar"></i> Generate Allocation Report
+                        </button>
+                         <button type="button" id="export-allocation-report-btn" class="btn btn-outline">
+                            <i class="fas fa-download"></i> Export Allocations
+                        </button>
+                        <span id="allocation-report-loading" class="d-none ms-2">
+                            <i class="fas fa-spinner fa-spin"></i> Generating...
+                        </span>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Area to display the generated allocation report -->
+            <div id="allocation-report-output-area" class="content-section mt-4 p-3 custom-report-output">
+                <p class="text-center text-muted">Select filters and click "Generate Allocation Report".</p>
+            </div>
+        </div> <!-- End Allocations Reports Tab Pane -->
 
 
-    <!-- JavaScript for updating hidden site filter input -->
-    <script>
-        function updateReportFilters() {
-            const siteSelect = document.getElementById('report-site-select');
-            const hiddenSiteInput = document.getElementById('filter_site_id');
-            if (siteSelect && hiddenSiteInput) {
-                hiddenSiteInput.value = siteSelect.value;
-                // Submit form automatically on dropdown change for immediate filtering
-                 document.getElementById('report-filter-form').submit();
-            } else if (hiddenSiteInput) {
-                 // If no dropdown, ensure hidden input value reflects the current state (might be set by PHP)
-                 console.log("No site selector dropdown found, hidden input value:", hiddenSiteInput.value);
-            }
-        }
-         // Set hidden input on initial load based on dropdown (if present)
-         document.addEventListener('DOMContentLoaded', function() {
-             const siteSelect = document.getElementById('report-site-select');
-             const hiddenSiteInput = document.getElementById('filter_site_id');
-             if(siteSelect && hiddenSiteInput) {
-                 hiddenSiteInput.value = siteSelect.value;
-             }
-         });
-    </script>
+    </div> <!-- End Tab Content -->
+
+
+<!-- Include Footer -->
+<?php require_once 'includes/footer.php'; ?>
 
 <!-- Chart.js Library -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<?php
-// --- Include Footer ---
-require_once 'includes/footer.php';
-?>
-
-<!-- Chart Initialization Script (Placeholder - Needs Real Data Integration) -->
-<!-- Chart Initialization Script -->
-<!-- Chart Initialization Script -->
 <script>
+// --- Global Variables for Report State ---
+let currentCustomReportChart = null; // To hold the Chart.js instance for custom reports
+let currentAllocationReportChart = null; // To hold the Chart.js instance for allocation reports
+
+// --- Utility Functions ---
+function debounce(func, delay) {
+    let timeout;
+    return function(...args) {
+        const context = this;
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(context, args), delay);
+    };
+}
+
+function displayMessage(areaId, message, type = 'info') {
+    const area = document.getElementById(areaId);
+    if (area) {
+        area.innerHTML = `<div class="message-area message-${type} p-3">${message}</div>`;
+    }
+}
+
+function clearOutputArea(areaId) {
+    const area = document.getElementById(areaId);
+    if (area) {
+        area.innerHTML = '<p class="text-center text-muted">Report output will appear here.</p>'; // Reset to placeholder
+    }
+}
+
+// --- Site Selector and Date Filter Update Logic ---
+function updateReportFilters() {
+    const siteSelect = document.getElementById('report-site-select');
+    const startDateInput = document.getElementById('start_date');
+    const endDateInput = document.getElementById('end_date');
+    const filterForm = document.getElementById('report-filter-form');
+    const hiddenSiteIdInput = document.getElementById('filter_site_id'); // The hidden input in the main filter form
+
+    if (siteSelect && hiddenSiteIdInput) {
+        hiddenSiteIdInput.value = siteSelect.value; // Update the hidden input
+    }
+
+    // Construct URL with all relevant parameters
+    let params = new URLSearchParams();
+    if (siteSelect) params.append('site_id', siteSelect.value);
+    if (startDateInput) params.append('start_date', startDateInput.value);
+    if (endDateInput) params.append('end_date', endDateInput.value);
+
+    // Preserve current tab if possible
+    const activeTabLink = document.querySelector('#reportTabs .nav-link.active');
+    if (activeTabLink) {
+        params.append('active_tab', activeTabLink.getAttribute('href'));
+    }
+    
+    // Redirect to update the page with new filters
+    window.location.href = 'reports.php?' + params.toString();
+}
+
+
+// --- Custom Report Builder Logic ---
 document.addEventListener('DOMContentLoaded', function() {
-    // --- SINGLE LOG AT THE TOP ---
-    console.log("Report page script loaded. Initializing charts and custom report handler...");
-
-    // --- Chart 1: Check-ins Over Time (Placeholder) ---
-    const ctxTimeReport = document.getElementById('reportCheckinsChart');
-    if (ctxTimeReport) {
-        // --- TODO: Replace with actual PHP data aggregation for time chart ---
-        const timeLabels = ['Day 1', 'Day 2', 'Day 3']; // Example
-        const timeData = [5, 8, 3]; // Example
-        // --- End TODO ---
-
-        if (timeLabels.length > 0) {
-           // console.log("Initializing Time Chart...");
-           new Chart(ctxTimeReport, {
-               type: 'line',
-               data: {
-                   labels: timeLabels,
-                   datasets: [{
-                       label: 'Check-ins',
-                       data: timeData,
-                       tension: 0.1,
-                       borderColor: 'var(--color-primary)',
-                       backgroundColor: 'rgba(30, 58, 138, 0.1)',
-                       fill: true
-                   }]
-               },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true } }
-                }
-           });
-        } else {
-           // --- FIX for TypeError: Only get context and draw if canvas exists ---
-           const ctx = ctxTimeReport.getContext('2d');
-           if (ctx) { // Check if context was successfully obtained
-                ctx.textAlign = 'center';
-                ctx.fillStyle = 'var(--color-gray)';
-                // Use canvas dimensions directly if available
-                const canvasWidth = ctxTimeReport.width || 300; // Default width if needed
-                const canvasHeight = ctxTimeReport.height || 150; // Default height
-                ctx.fillText('No time data available for chart.', canvasWidth / 2, canvasHeight / 2);
-           } else {
-               console.warn("Could not get 2D context for reportCheckinsChart.");
-           }
-        }
-    } else {
-        console.warn("Canvas element #reportCheckinsChart not found.");
-    }
-
-    // --- Chart 2: Question Responses (Using Formatted Labels) ---
-    const ctxQuestionsReport = document.getElementById('reportQuestionsChart');
-    if(ctxQuestionsReport) {
-        // --- Use the JSON variables generated by PHP (for main page table, not custom report) ---
-        const questionChartLabels = <?php echo $chart_labels_json ?? '[]'; ?>; // From main page PHP
-        const questionColumns = <?php echo json_encode($report_question_columns ?? '[]'); ?>; // From main page PHP
-        const reportData = <?php echo empty($report_data) ? '[]' : json_encode($report_data); ?>; // From main page PHP
-
-        let yesCounts = []; // Initialize JS array for counts
-
-        // Calculate counts ONLY if there's data and columns to process
-        if (reportData.length > 0 && questionColumns.length > 0 && questionChartLabels.length === questionColumns.length) {
-            yesCounts = Array(questionColumns.length).fill(0); // Create array of zeros matching column count
-            reportData.forEach(row => {
-                questionColumns.forEach((colName, index) => {
-                    if (row.hasOwnProperty(colName) && row[colName] === 'YES') {
-                        if (index < yesCounts.length) {
-                            yesCounts[index]++;
-                        }
-                    }
-                });
-            });
-        } else if (questionColumns.length > 0) {
-            yesCounts = Array(questionColumns.length).fill(0);
-        }
-
-        // Initialize the chart if there are labels generated from PHP
-        if (questionChartLabels.length > 0) {
-           // console.log("Initializing Questions Chart...");
-            new Chart(ctxQuestionsReport, {
-                type: 'bar',
-                data: {
-                    labels: questionChartLabels,
-                    datasets: [{
-                        label: 'Yes Answers',
-                        data: yesCounts,
-                        backgroundColor: 'rgba(255, 107, 53, 0.7)',
-                        borderColor: 'var(--color-secondary)',
-                        borderWidth: 1
-                   }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                stepSize: 1,
-                                callback: function(value) {if (Number.isInteger(value)) {return value;}}
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: { /* callbacks if needed */ }
-                    }
-                }
-            });
-        } else { // No labels
-           // --- FIX for TypeError: Only get context and draw if canvas exists ---
-           const ctx = ctxQuestionsReport.getContext('2d');
-           if (ctx) { // Check if context was successfully obtained
-                ctx.textAlign = 'center';
-                ctx.fillStyle = 'var(--color-gray)';
-                const canvasWidth = ctxQuestionsReport.width || 300; // Default width
-                const canvasHeight = ctxQuestionsReport.height || 150; // Default height
-                ctx.fillText('No question data available for chart.', canvasWidth / 2, canvasHeight / 2);
-           } else {
-               console.warn("Could not get 2D context for reportQuestionsChart.");
-           }
-        }
-    } else {
-         console.warn("Canvas element #reportQuestionsChart not found.");
-    }
-
-
-    // --- Custom Report Builder AJAX Handler ---
-    // --- Moved INSIDE DOMContentLoaded ---
     const customReportForm = document.getElementById('custom-report-form');
     const generateBtn = document.getElementById('generate-custom-report-btn');
-    const loadingIndicator = document.getElementById('custom-report-loading');
+    const loadingSpinner = document.getElementById('custom-report-loading');
     const outputArea = document.getElementById('custom-report-output-area');
 
-    if (customReportForm && generateBtn && loadingIndicator && outputArea) {
-        // --- ADDED THE EVENT LISTENER WRAPPER ---
+    // Site selector and date inputs for the main page filter
+    const siteSelect = document.getElementById('report-site-select');
+    const startDateInput = document.getElementById('start_date');
+    const endDateInput = document.getElementById('end_date');
+
+    if (customReportForm && generateBtn) {
         customReportForm.addEventListener('submit', function(event) {
-            event.preventDefault(); // Prevent default form submission
-            console.log('Custom report form submitted.');
+            event.preventDefault();
+            if (generateBtn.disabled) return;
 
-            // Show loading indicator
-            loadingIndicator.style.display = 'inline-block';
             generateBtn.disabled = true;
-            outputArea.innerHTML = '<p class="text-center text-muted"><i class="fas fa-spinner fa-spin"></i> Loading report data...</p>'; // Clear previous results
+            if(loadingSpinner) loadingSpinner.classList.remove('d-none');
+            if(outputArea) outputArea.innerHTML = '<p class="text-center text-muted"><i class="fas fa-spinner fa-spin"></i> Loading report data...</p>'; // Initial loading message
 
-            // --- Gather Filter Data ---
-            const siteId = document.getElementById('filter_site_id')?.value || 'all';
-            const startDate = document.getElementById('start_date')?.value || '';
-            const endDate = document.getElementById('end_date')?.value || '';
+            const formData = new FormData(customReportForm);
 
-            // --- Gather Builder Options ---
-            const metricsSelect = document.getElementById('custom_metrics');
-            const selectedMetrics = Array.from(metricsSelect.selectedOptions).map(option => option.value);
-            const groupBy = document.getElementById('custom_group_by')?.value || 'none';
-            const outputType = document.getElementById('custom_output_type')?.value || 'table';
+            // Append site_id, start_date, and end_date from the main page filters
+            // These are crucial for the AJAX handler to know the context of the custom report
+            if (siteSelect) formData.append('site_id', siteSelect.value);
+            if (startDateInput) formData.append('start_date', startDateInput.value);
+            if (endDateInput) formData.append('end_date', endDateInput.value);
+            
+            // Log formData for debugging
+            // console.log("Custom Report FormData being sent:");
+            // for (let [key, value] of formData.entries()) {
+            //     console.log(key, value);
+            // }
 
-            if (selectedMetrics.length === 0) {
-                 outputArea.innerHTML = '<p class="text-center text-danger">Please select at least one metric.</p>';
-                 loadingIndicator.style.display = 'none';
-                 generateBtn.disabled = false;
-                 return;
-            }
 
-            // --- Prepare data for AJAX request ---
-            // --- formData is now correctly defined INSIDE the event handler ---
-            const formData = new FormData();
-            formData.append('action', 'generate_custom_report');
-            formData.append('site_id', siteId);
-            formData.append('start_date', startDate);
-            formData.append('end_date', endDate);
-            selectedMetrics.forEach(metric => {
-                formData.append('metrics[]', metric);
-            });
-            formData.append('group_by', groupBy);
-            formData.append('output_type', outputType);
-
-            console.log('Sending AJAX request with data:', {
-                 action: 'generate_custom_report',
-                 site_id: siteId, start_date: startDate, end_date: endDate,
-                 metrics: selectedMetrics, group_by: groupBy, output_type: outputType
-            });
-
-            // --- Send AJAX Request ---
-            fetch('ajax_report_handler.php', {
+            fetch('ajax_report_handler.php?action=generate_custom_report', {
                 method: 'POST',
-                body: formData // formData is now defined in this scope
+                body: formData
             })
             .then(response => {
                 if (!response.ok) {
-                    return response.text().then(text => {
-                         throw new Error(`HTTP error! status: ${response.status} - ${text}`);
-                    });
+                    return response.text().then(text => { throw new Error('Network response was not ok: ' + text); });
                 }
-                const contentType = response.headers.get('content-type');
-                if (contentType && contentType.includes('application/json')) {
-                    return response.json();
-                } else {
-                    return response.text();
-                }
+                return response.json();
             })
             .then(data => {
-                console.log('Received response from server.');
-                outputArea.innerHTML = ''; // Clear previous content first
-
-                let reportHtml = ''; // Variable to hold the base HTML
-
-                // Handle different response types (string HTML or object with html)
-                if (typeof data === 'string') {
-                    console.log('Rendering HTML response.');
-                    reportHtml = data;
-                    outputArea.innerHTML = reportHtml; // Render base HTML
-                } else if (typeof data === 'object' && data !== null) {
-                    // Render base HTML if provided
-                    if (data.html) {
-                        console.log('Rendering HTML from data object.');
-                        reportHtml = data.html;
-                        outputArea.innerHTML = reportHtml; // Render base HTML
-                    }
-
-                    // Handle chart data if present
-                    if (data.chartData && data.chartType) {
-                         console.log('Rendering chart response.');
-                         // Ensure HTML container exists if not already rendered
-                         if (!outputArea.innerHTML && reportHtml) {
-                             outputArea.innerHTML = reportHtml;
-                         } else if (!outputArea.innerHTML && !reportHtml) {
-                             console.warn("Chart data provided but no base HTML structure found in response. Chart may not render correctly.");
-                             // Attempt to create a basic container if needed, or rely on chart logic
-                             // outputArea.innerHTML = '<div id="chart-container"><canvas id="custom-report-chart"></canvas></div>';
-                         }
-
-                         const canvasElement = outputArea.querySelector('#custom-report-chart');
-                         if (canvasElement) {
-                             const existingChart = Chart.getChart(canvasElement);
-                             if (existingChart) {
-                                 existingChart.destroy();
-                                 console.log('Destroyed previous custom chart instance.');
-                             }
-                             console.log('Creating new chart:', data.chartType, 'with data:', data.chartData);
-                             try {
-                                new Chart(canvasElement, {
-                                    type: data.chartType,
-                                    data: data.chartData,
-                                    options: { /* ... chart options ... */
-                                        responsive: true, maintainAspectRatio: false,
-                                        scales: { y: { beginAtZero: true, ticks: { stepSize: 1, callback: function(value) {if (Number.isInteger(value)) {return value;}} } } },
-                                        plugins: { legend: { display: data.chartData.datasets && data.chartData.datasets.length > 1 }, tooltip: { enabled: true } }
-                                    }
-                                });
-                             } catch (chartError) {
-                                 console.error("Chart.js initialization error:", chartError);
-                                 // Append error message instead of replacing entire output
-                                 outputArea.innerHTML += `<p class="text-center text-danger">Error rendering chart. Check console.</p>`;
-                             }
-                         } else {
-                             console.error('Canvas element #custom-report-chart not found in the response HTML.');
-                             // Append error message
-                             outputArea.innerHTML += '<p class="text-center text-danger">Error: Chart canvas element missing in response.</p>';
-                         }
-                    }
-
-                    // *** NEW: Handle Dynamic Table Headers ***
-                    // Check if dynamic headers are provided in the response object
-                    if (data.dynamic_question_headers && Array.isArray(data.dynamic_question_headers)) {
-                        console.log('Processing dynamic question headers...');
-                        // Find the header row within the rendered HTML.
-                        // Assumes the table has id="custom-report-table" and standard thead > tr structure.
-                        const headerRow = outputArea.querySelector('#custom-report-table thead tr');
-
-                        if (headerRow) {
-                            console.log('Found header row:', headerRow);
-                            // Clear any previously added dynamic headers (marked with class 'dynamic-th')
-                            // This prevents duplication if the report is regenerated.
-                            headerRow.querySelectorAll('.dynamic-th').forEach(th => th.remove());
-                            console.log('Cleared previous dynamic headers.');
-
-                            // Add new headers from the response data
-                            data.dynamic_question_headers.forEach(header => {
-                                // Basic validation of the header object
-                                if (header && typeof header.title !== 'undefined') {
-                                    const newTh = document.createElement('th');
-                                    newTh.textContent = header.title; // Use textContent for safety (prevents XSS)
-                                    newTh.classList.add('dynamic-th'); // Add class for identification and clearing
-                                    headerRow.appendChild(newTh);
-                                } else {
-                                    console.warn('Skipping invalid header object:', header);
-                                }
-                            });
-                            console.log(`Appended ${data.dynamic_question_headers.length} new dynamic headers.`);
-                        } else {
-                            // Warn if the expected table structure isn't found in the HTML response
-                            console.warn('Could not find header row (#custom-report-table thead tr) in the rendered HTML. Dynamic headers not added.');
-                        }
-                    } else if (data.hasOwnProperty('dynamic_question_headers')) {
-                        // Log if the property exists but isn't a valid array
-                        console.log('dynamic_question_headers property found but is not a valid array or is empty. No dynamic headers added.');
-                    }
-                    // *** END NEW DYNAMIC HEADER LOGIC ***
-
-                    // *** NEW: Populate Dynamic Answer Cells ***
-                    // Check if check-in data and headers are available for populating cells
-                    if (data.checkinData && Array.isArray(data.checkinData) &&
-                        data.dynamic_question_headers && Array.isArray(data.dynamic_question_headers) &&
-                        data.dynamic_question_headers.length > 0) {
-
-                        console.log('Processing dynamic answer cells...');
-                        // Find the table body within the rendered HTML.
-                        // Assumes the table has id="custom-report-table" and standard tbody structure.
-                        const tableBody = outputArea.querySelector('#custom-report-table tbody');
-
-                        if (tableBody) {
-                            const rows = tableBody.querySelectorAll('tr');
-                            console.log(`Found ${rows.length} rows and ${data.checkinData.length} check-in records.`);
-
-                            // Ensure the number of rows matches the number of data records
-                            if (rows.length === data.checkinData.length) {
-                                rows.forEach((row, rowIndex) => {
-                                    const checkinRecord = data.checkinData[rowIndex];
-                                    // Ensure the record has the dynamic_answers map
-                                    if (checkinRecord && typeof checkinRecord.dynamic_answers === 'object' && checkinRecord.dynamic_answers !== null) {
-                                        // Iterate through the headers to append cells in the correct order
-                                        data.dynamic_question_headers.forEach(header => {
-                                            if (header && typeof header.title !== 'undefined') {
-                                                const questionTitle = header.title; // Assuming title is the key
-                                                // Get the answer from the map, default to '--' if missing
-                                                const answer = checkinRecord.dynamic_answers.hasOwnProperty(questionTitle)
-                                                               ? checkinRecord.dynamic_answers[questionTitle]
-                                                               : '--';
-
-                                                const newTd = document.createElement('td');
-                                                newTd.textContent = answer !== null && answer !== '' ? answer : '--'; // Use textContent for safety
-                                                row.appendChild(newTd);
-                                            }
-                                        });
-                                    } else {
-                                        console.warn(`Skipping row ${rowIndex}: Missing or invalid dynamic_answers in checkinData.`);
-                                        // Optionally add placeholder cells if answers are missing for a whole row
-                                        data.dynamic_question_headers.forEach(() => {
-                                             const newTd = document.createElement('td');
-                                             newTd.textContent = '--';
-                                             row.appendChild(newTd);
-                                        });
-                                    }
-                                });
-                                console.log('Finished appending dynamic answer cells.');
-                            } else {
-                                console.warn(`Mismatch between number of table rows (${rows.length}) and check-in data records (${data.checkinData.length}). Cannot reliably populate dynamic cells.`);
-                                // Append warning to output area
-                                outputArea.innerHTML += '<p class="text-center text-warning">Warning: Data mismatch prevented dynamic answer population.</p>';
-                            }
-                        } else {
-                            console.warn('Could not find table body (#custom-report-table tbody) in the rendered HTML. Dynamic answer cells not added.');
-                        }
-                    } else if (data.hasOwnProperty('checkinData') || data.hasOwnProperty('dynamic_question_headers')) {
-                         // Log if data exists but isn't the expected format or is empty
-                         console.log('checkinData or dynamic_question_headers missing, empty, or invalid. No dynamic answer cells added.');
-                    }
-                    // *** END NEW DYNAMIC ANSWER CELL LOGIC ***
-
+                if (data.success) {
+                    renderCustomReport(data.data.report_type || data.data.chartType, data.data, data.data.report_title, data.data.error_message);
                 } else {
-                    // Handle cases where data is not a string or a recognized object structure
-                    console.warn('Received unexpected data format:', data);
-                    outputArea.innerHTML = '<p class="text-center text-warning">Received unexpected data format from server.</p>';
+                    const errorMessage = data.error_message || 'An unknown error occurred while generating the report.';
+                    displayMessage('custom-report-output-area', `Error: ${errorMessage}`, 'error');
                 }
             })
             .catch(error => {
-                console.error('Error fetching/processing custom report:', error);
-                outputArea.innerHTML = `<p class="text-center text-danger">Error generating report: ${error.message}. Please check console or server logs.</p>`;
+                console.error('Error generating custom report:', error);
+                displayMessage('custom-report-output-area', `Request failed: ${error.message}. Please check console for details.`, 'error');
             })
             .finally(() => {
-                 loadingIndicator.style.display = 'none';
-                 generateBtn.disabled = false;
-                 console.log('AJAX request finished.');
+                generateBtn.disabled = false;
+                if(loadingSpinner) loadingSpinner.classList.add('d-none');
             });
-        }); // --- END OF addEventListener ---
-
-    } else {
-        console.warn("Custom report builder elements not found. JS functionality disabled.");
-        if (!customReportForm) console.warn("Reason: custom-report-form not found.");
-        if (!generateBtn) console.warn("Reason: generate-custom-report-btn not found.");
-        if (!loadingIndicator) console.warn("Reason: custom-report-loading not found.");
-        if (!outputArea) console.warn("Reason: custom-report-output-area not found.");
-    }
-
-// --- Allocation Report Logic ---
-    const allocationTab = document.getElementById('allocations-reports-tab'); // Corrected ID
-    const allocationFiltersForm = document.getElementById('allocation-filters'); // Container for filters
-    const applyAllocFiltersBtn = document.getElementById('apply-allocation-filters-btn');
-    const resetAllocFiltersBtn = document.getElementById('reset-allocation-filters-btn');
-    const allocationContainer = document.getElementById('allocation-report-table-container');
-
-    // Helper function to format currency
-    function formatCurrency(amount) {
-        const num = parseFloat(amount);
-        if (isNaN(num)) {
-            return amount; // Return original if not a number or null/undefined
-        }
-        // Format as $1,234.56 - adjust locale/options as needed
-        return num.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-    }
-
-    // Helper function to format date/time
-    function formatDate(dateString) {
-        if (!dateString) return 'N/A';
-        try {
-            const date = new Date(dateString);
-            // Format as YYYY-MM-DD HH:MM (adjust locale/options as needed)
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            const hours = String(date.getHours()).padStart(2, '0');
-            const minutes = String(date.getMinutes()).padStart(2, '0');
-            // Check if time is midnight (often indicates date only)
-            if (hours === '00' && minutes === '00') {
-                 return `${year}-${month}-${day}`; // Return only date if time is 00:00
-            }
-            return `${year}-${month}-${day} ${hours}:${minutes}`;
-        } catch (e) {
-            console.warn("Could not format date:", dateString, e);
-            return dateString; // Return original if formatting fails
-        }
-    }
-
-    async function loadAllocationReport(page = 1) {
-        if (!allocationContainer) {
-            console.error("Allocation report container not found.");
-            return;
-        }
-        console.log(`Loading allocation report - Page: ${page}`);
-        allocationContainer.innerHTML = '<p class="text-center text-muted"><i class="fas fa-spinner fa-spin"></i> Loading allocation data...</p>';
-
-        // Gather filter values
-        const filters = {
-            fy: document.getElementById('alloc-filter-fy')?.value || '',
-            grant_id: document.getElementById('alloc-filter-grant')?.value || '', // Assuming value is grant_id
-            department_id: document.getElementById('alloc-filter-department')?.value || '', // Assuming value is department_id
-            budget_id: document.getElementById('alloc-filter-budget')?.value || '', // Assuming value is budget_id
-            vendor_id: document.getElementById('alloc-filter-vendor')?.value || '' // Assuming value is vendor_id
-        };
-
-        // Prepare data for AJAX
-        const formData = new FormData();
-        formData.append('action', 'get_allocation_report_data');
-        formData.append('page', page);
-        // Append filters only if they have a value
-        for (const key in filters) {
-            if (filters[key]) {
-                 formData.append(`filters[${key}]`, filters[key]);
-            }
-        }
-         console.log("Sending allocation filters:", Object.fromEntries(formData)); // Log form data
-
-        try {
-            const response = await fetch('ajax_report_handler.php', {
-                method: 'POST',
-                body: formData
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
-            }
-
-            const result = await response.json();
-            console.log("Allocation data received:", result);
-
-            if (result.success) {
-                renderAllocationTable(result.data, result.pagination);
-            } else {
-                throw new Error(result.message || "Failed to load allocation data.");
-            }
-
-        } catch (error) {
-            console.error('Error fetching allocation report:', error);
-            allocationContainer.innerHTML = `<p class="text-center text-danger">Error loading allocation report: ${error.message}</p>`;
-        }
-    }
-
-    function renderAllocationTable(data, pagination) {
-        if (!allocationContainer) return;
-        allocationContainer.innerHTML = ''; // Clear loading/previous content
-
-        if (!data || data.length === 0) {
-            allocationContainer.innerHTML = '<p class="text-center text-muted">No allocation records found for the selected criteria.</p>';
-            // Still render pagination controls if needed (e.g., to show "0 records")
-             renderAllocationPagination(pagination);
-            return;
-        }
-
-        // Create table structure
-        const table = document.createElement('table');
-        table.className = 'table table-bordered table-striped table-hover table-sm'; // Added table-sm
-
-        // Table Header
-        const thead = table.createTHead();
-        const headerRow = thead.insertRow();
-        // Define headers based on expected data fields from backend
-        const headers = [
-            { key: 'grant_name', label: 'Grant' },
-            { key: 'budget_name', label: 'Budget' },
-            { key: 'vendor_name', label: 'Vendor' },
-            { key: 'client_name', label: 'Client Name' },
-            { key: 'voucher_number', label: 'Voucher #' },
-            { key: 'amount', label: 'Amount' },
-            { key: 'transaction_date', label: 'Transaction Date' },
-            { key: 'entered_by_name', label: 'Entered By' },
-            { key: 'notes', label: 'Notes' }
-        ];
-        headers.forEach(header => {
-            const th = document.createElement('th');
-            th.textContent = header.label;
-            headerRow.appendChild(th);
         });
+    }
+});
 
-        // Table Body
-        const tbody = table.createTBody();
-        data.forEach(record => {
-            const row = tbody.insertRow();
+function renderCustomReport(type, reportDataContainer, title, userProvidedErrorMessage) { // Renamed errorMessage param
+    const outputArea = document.getElementById('custom-report-output-area');
+    if (!outputArea) return;
 
-            headers.forEach(header => {
-                const cell = row.insertCell();
-                let cellData = record[header.key] ?? 'N/A'; // Use nullish coalescing
+    outputArea.innerHTML = ''; // Clear previous content
 
-                // Special handling for specific columns
-                if (header.key === 'client_name') {
-                     cellData = (record.client_first_name || record.client_last_name)
-                               ? `${record.client_first_name || ''} ${record.client_last_name || ''}`.trim()
-                               : 'N/A';
-                } else if (header.key === 'amount') {
-                    cellData = formatCurrency(record.amount);
-                    cell.style.textAlign = 'right';
-                } else if (header.key === 'transaction_date') {
-                    cellData = formatDate(record.transaction_date);
-                } else if (header.key === 'notes') {
-                     cellData = record.notes || ''; // Show empty string instead of N/A for notes
-                     cell.title = cellData; // Add title for potentially long notes
-                     cell.style.maxWidth = '200px';
-                     cell.style.overflow = 'hidden';
-                     cell.style.textOverflow = 'ellipsis';
-                     cell.style.whiteSpace = 'nowrap';
+    // Handle explicit error message from AJAX call if any
+    if (userProvidedErrorMessage) {
+        displayMessage('custom-report-output-area', `Error: ${userProvidedErrorMessage}`, 'error');
+        // Optionally return if the error is fatal, or let it try to render what it can
+    }
+
+    // Handle 'nodata' type from backend first
+    if (type === 'nodata') {
+        if (reportDataContainer && reportDataContainer.html) {
+            outputArea.innerHTML = reportDataContainer.html; // This HTML comes from the backend
+        } else {
+            // Fallback if html is missing for nodata type
+            displayMessage('custom-report-output-area', 'No data available for the selected criteria.', 'info');
+        }
+        return;
+    }
+
+    // Determine actual title for the report
+    let actualTitleText = 'Custom Report'; // Default title
+    if (type === 'table') {
+        actualTitleText = 'Custom Data Table';
+    } else if (type === 'bar') {
+        actualTitleText = 'Custom Bar Chart';
+    } else if (type === 'line') {
+        actualTitleText = 'Custom Line Chart';
+    }
+    
+    const reportTitleElement = document.createElement('h3');
+    reportTitleElement.className = 'report-output-title text-center mb-3';
+    reportTitleElement.textContent = title || actualTitleText; // Use title from AJAX if provided, else default
+    outputArea.appendChild(reportTitleElement);
+
+    // Proceed to render based on type if not 'nodata'
+    if (type === 'table') {
+        if (reportDataContainer && typeof reportDataContainer.html === 'string') {
+            // The title is already added, create a container for the HTML table and append it
+            const tableContentDiv = document.createElement('div');
+            tableContentDiv.innerHTML = reportDataContainer.html;
+            outputArea.appendChild(tableContentDiv);
+        } else {
+            // If HTML is missing for table type (and not 'nodata')
+            displayMessage('custom-report-output-area', 'Report data for table is missing or invalid.', 'error');
+        }
+    } else if (type === 'bar' || type === 'line') {
+        if (reportDataContainer && reportDataContainer.chartData && reportDataContainer.chartData.labels) {
+            const canvasContainer = document.createElement('div');
+            canvasContainer.style.maxWidth = '800px';
+            canvasContainer.style.margin = '0 auto';
+            const canvas = document.createElement('canvas');
+            canvas.id = 'customReportChartCanvas';
+            canvasContainer.appendChild(canvas);
+            outputArea.appendChild(canvasContainer);
+
+            if (currentCustomReportChart) {
+                currentCustomReportChart.destroy();
+            }
+            currentCustomReportChart = new Chart(canvas, {
+                type: type,
+                data: reportDataContainer.chartData, // Use .chartData from the container
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { precision: 0 }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: reportDataContainer.chartData.datasets && reportDataContainer.chartData.datasets.length > 1
+                        },
+                        title: { display: false } // Title is handled by reportTitleElement
+                    }
                 }
-
-                cell.textContent = cellData;
-            });
-        });
-
-        allocationContainer.appendChild(table);
-
-        // Pagination
-        renderAllocationPagination(pagination);
-    }
-
-     function renderAllocationPagination(pagination) {
-        // Remove existing pagination first
-        const existingPagination = allocationContainer.querySelector('.allocation-pagination-controls');
-        if (existingPagination) {
-            existingPagination.remove();
-        }
-         const existingRecordCount = allocationContainer.querySelector('.allocation-record-count');
-         if(existingRecordCount) {
-             existingRecordCount.remove();
-         }
-
-
-        if (!allocationContainer || !pagination || pagination.total_records === undefined) {
-             console.warn("Pagination data missing or invalid.");
-             return; // Exit if pagination data is incomplete
-        }
-
-        const { current_page = 1, total_pages = 0, total_records = 0, results_per_page = 25 } = pagination; // Provide defaults
-
-         // Record count display (always show, even if 0 records)
-         const recordCountDiv = document.createElement('div');
-         recordCountDiv.className = 'allocation-record-count mt-2'; // Separate class for count
-         const startRecord = (total_records > 0) ? (current_page - 1) * results_per_page + 1 : 0;
-         const endRecord = Math.min(startRecord + results_per_page - 1, total_records);
-         recordCountDiv.textContent = `Showing ${startRecord} - ${endRecord} of ${total_records} records`;
-         // Insert record count after the table (if table exists) or at the start of the container
-         const tableElement = allocationContainer.querySelector('table');
-         if (tableElement) {
-             tableElement.insertAdjacentElement('afterend', recordCountDiv);
-         } else {
-             allocationContainer.prepend(recordCountDiv);
-         }
-
-
-        // Only render controls if more than one page
-        if (total_pages <= 1) {
-            return;
-// Get references to all filter dropdowns
-    const allocFilterFY = document.getElementById('alloc-filter-fy');
-    const allocFilterGrant = document.getElementById('alloc-filter-grant');
-    const allocFilterDept = document.getElementById('alloc-filter-department');
-    const allocFilterBudget = document.getElementById('alloc-filter-budget');
-    const allocFilterVendor = document.getElementById('alloc-filter-vendor');
-    const allAllocFilters = [allocFilterFY, allocFilterGrant, allocFilterDept, allocFilterBudget, allocFilterVendor];
-
-    // Add 'change' listener to each filter dropdown
-    allAllocFilters.forEach(filterSelect => {
-        if (filterSelect) {
-            filterSelect.addEventListener('change', () => {
-                console.log(`Filter changed: ${filterSelect.id}, New value: ${filterSelect.value}`);
-                loadAllocationReport(1); // Reload data on any filter change, starting from page 1
             });
         } else {
-             // Log if any filter element wasn't found, though they should exist based on HTML
-             console.warn(`Allocation filter element not found for one of the dropdowns.`);
+            // If chartData is missing for chart types (and not 'nodata')
+            displayMessage('custom-report-output-area', 'Report data for chart is missing or invalid.', 'error');
         }
-    });
-        }
-
-        // Create footer container for controls
-        const footerDiv = document.createElement('div');
-        footerDiv.className = 'table-footer allocation-pagination-controls mt-2 d-flex justify-content-end align-items-center'; // Align controls to the right
-
-        // Pagination controls container
-        const paginationDiv = document.createElement('div');
-        paginationDiv.className = 'table-pagination';
-
-        // Previous Button
-        const prevButton = document.createElement('button');
-        prevButton.className = 'page-btn btn btn-sm btn-outline-secondary me-1';
-        prevButton.innerHTML = '<i class="fas fa-chevron-left"></i>';
-        prevButton.disabled = current_page <= 1;
-        prevButton.setAttribute('aria-label', 'Previous Page');
-        prevButton.dataset.page = current_page - 1;
-        paginationDiv.appendChild(prevButton);
-
-        // Page Number Display
-        const pageInfo = document.createElement('span');
-        pageInfo.className = 'mx-2 align-middle'; // Vertical alignment
-        pageInfo.textContent = `Page ${current_page} of ${total_pages}`;
-        paginationDiv.appendChild(pageInfo);
-
-        // Next Button
-        const nextButton = document.createElement('button');
-        nextButton.className = 'page-btn btn btn-sm btn-outline-secondary ms-1';
-        nextButton.innerHTML = '<i class="fas fa-chevron-right"></i>';
-        nextButton.disabled = current_page >= total_pages;
-        nextButton.setAttribute('aria-label', 'Next Page');
-        nextButton.dataset.page = current_page + 1;
-        paginationDiv.appendChild(nextButton);
-
-        footerDiv.appendChild(paginationDiv);
-
-        // Append controls after the record count
-        recordCountDiv.insertAdjacentElement('afterend', footerDiv);
-    }
-
-
-    // --- Event Listeners for Allocation Report ---
-
-    // Load data when Allocation tab is shown
-    if (allocationTab && typeof $ !== 'undefined') { // Check if jQuery is available
-        $('#allocation-tab').on('shown.bs.tab', function (e) {
-            console.log("Allocation tab shown.");
-            // Load data every time the tab is shown to reflect potential background changes
-            loadAllocationReport(1);
-        });
-    } else if (allocationTab) {
-         console.warn("jQuery not found, cannot bind Bootstrap 'shown.bs.tab' event. Allocation report might not load automatically on tab switch.");
-         // Fallback: Add a simple click listener to the tab itself, though less ideal
-         allocationTab.addEventListener('click', () => {
-             // Basic check if it's not already active (might need refinement)
-             if (!allocationTab.classList.contains('active')) {
-                 setTimeout(() => loadAllocationReport(1), 0); // Load after potential tab switch completes
-             }
-         });
-    }
-     else {
-        console.warn("Allocation tab element not found.");
-    }
-
-    // Apply filters button
-    if (applyAllocFiltersBtn) {
-        applyAllocFiltersBtn.addEventListener('click', () => {
-            loadAllocationReport(1); // Load first page with new filters
-        });
     } else {
-        console.warn("Apply allocation filters button not found.");
+        // Fallback for any other type that wasn't 'nodata', 'table', 'bar', or 'line'
+        displayMessage('custom-report-output-area', 'Unsupported or unknown report type encountered.', 'error');
+    }
+}
+
+
+function createHtmlTable(data) {
+    if (!data || data.length === 0) {
+        const p = document.createElement('p');
+        p.textContent = 'No data to display in table.';
+        return p;
     }
 
-     // Reset filters button
-     if (resetAllocFiltersBtn && allocationFiltersForm) {
-         resetAllocFiltersBtn.addEventListener('click', () => {
-             allocationFiltersForm.querySelectorAll('select').forEach(select => {
-                 select.value = ''; // Reset to default 'All' option (value="")
-             });
-             loadAllocationReport(1); // Reload data with reset filters
-         });
-     } else {
-         console.warn("Reset allocation filters button or form container not found.");
-     }
+    const table = document.createElement('table');
+    table.className = 'table table-striped table-bordered table-hover table-sm custom-report-table'; // Added table-sm for smaller padding
+
+    // Create table header
+    const thead = table.createTHead();
+    const headerRow = thead.insertRow();
+    // Assuming all objects in data array have the same keys for columns
+    const headers = Object.keys(data[0]);
+    headers.forEach(headerText => {
+        const th = document.createElement('th');
+        th.textContent = headerText.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()); // Format header
+        headerRow.appendChild(th);
+    });
+
+    // Create table body
+    const tbody = table.createTBody();
+    data.forEach(rowData => {
+        const row = tbody.insertRow();
+        headers.forEach(header => {
+            const cell = row.insertCell();
+            cell.textContent = rowData[header] !== null && rowData[header] !== undefined ? rowData[header] : 'N/A';
+        });
+    });
+
+    return table;
+}
 
 
-    // Pagination click handler (using event delegation on the container)
-    if (allocationContainer) {
-        allocationContainer.addEventListener('click', function(event) {
-            // Target buttons within the pagination controls specifically
-            const targetButton = event.target.closest('.allocation-pagination-controls button[data-page]');
-            if (targetButton && !targetButton.disabled) {
-                const page = parseInt(targetButton.dataset.page, 10);
-                if (!isNaN(page) && page > 0) {
-                    loadAllocationReport(page);
-                }
+// --- Allocation Report Logic ---
+document.addEventListener('DOMContentLoaded', function() {
+    const allocationReportForm = document.getElementById('allocation-report-form');
+    const generateAllocationBtn = document.getElementById('generate-allocation-report-btn');
+    const exportAllocationBtn = document.getElementById('export-allocation-report-btn');
+    const allocationLoadingSpinner = document.getElementById('allocation-report-loading');
+    const allocationOutputArea = document.getElementById('allocation-report-output-area');
+
+    if (allocationReportForm && generateAllocationBtn) {
+        allocationReportForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            if (generateAllocationBtn.disabled) return;
+
+            generateAllocationBtn.disabled = true;
+            if (exportAllocationBtn) exportAllocationBtn.disabled = true;
+            if (allocationLoadingSpinner) allocationLoadingSpinner.classList.remove('d-none');
+            if (allocationOutputArea) allocationOutputArea.innerHTML = '<p class="text-center text-muted"><i class="fas fa-spinner fa-spin"></i> Loading allocation report...</p>';
+
+            const formData = new FormData(allocationReportForm);
+            
+            // Log formData for debugging
+            console.log("Allocation Report FormData being sent:");
+            for (let [key, value] of formData.entries()) {
+                console.log(key, value);
             }
+            const allocationReportUrl = 'ajax_report_handler.php?action=generate_allocation_report';
+            console.log('Allocation Report Fetch URL:', allocationReportUrl);
+
+            fetch(allocationReportUrl, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => { throw new Error('Network response was not ok: ' + text); });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    renderAllocationReport(data.report_data, data.report_title, data.summary_stats, data.error_message);
+                } else {
+                    const errorMessage = data.error_message || 'An unknown error occurred while generating the allocation report.';
+                    displayMessage('allocation-report-output-area', `Error: ${errorMessage}`, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error generating allocation report:', error);
+                displayMessage('allocation-report-output-area', `Request failed: ${error.message}. Please check console for details.`, 'error');
+            })
+            .finally(() => {
+                generateAllocationBtn.disabled = false;
+                if (exportAllocationBtn) exportAllocationBtn.disabled = false;
+                if (allocationLoadingSpinner) allocationLoadingSpinner.classList.add('d-none');
+            });
         });
     }
+    
+    if (exportAllocationBtn) {
+        exportAllocationBtn.addEventListener('click', function() {
+            const formData = new FormData(allocationReportForm);
+            const queryString = new URLSearchParams(formData).toString();
+            const exportUrl = `ajax_report_handler.php?action=export_allocation_report&${queryString}`;
+            window.open(exportUrl, '_blank');
+        });
+    }
+});
 
-    // --- End Allocation Report Logic ---
-}); // --- END OF DOMContentLoaded ---
+function renderAllocationReport(data, title, summaryStats, errorMessage) {
+    const outputArea = document.getElementById('allocation-report-output-area');
+    if (!outputArea) return;
+
+    outputArea.innerHTML = ''; // Clear previous content
+
+    if (errorMessage) {
+        displayMessage('allocation-report-output-area', `Note: ${errorMessage}`, 'warning');
+    }
+
+    if (!data || data.length === 0) {
+        displayMessage('allocation-report-output-area', 'No allocation data available for the selected criteria.', 'info');
+        return;
+    }
+
+    const reportTitleElement = document.createElement('h3');
+    reportTitleElement.className = 'report-output-title text-center mb-3';
+    reportTitleElement.textContent = title || 'Allocation Report';
+    outputArea.appendChild(reportTitleElement);
+
+    // Display Summary Statistics (if available)
+    if (summaryStats && Object.keys(summaryStats).length > 0) {
+        const summaryDiv = document.createElement('div');
+        summaryDiv.className = 'allocation-summary-stats mb-3 p-3 border rounded bg-light';
+        let summaryHtml = '<h4 class="mb-2">Summary Statistics</h4><dl class="row mb-0">';
+        for (const [key, value] of Object.entries(summaryStats)) {
+            const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            const formattedValue = (typeof value === 'number' && key.toLowerCase().includes('amount')) 
+                                 ? `$${parseFloat(value).toFixed(2)}` 
+                                 : value;
+            summaryHtml += `<dt class="col-sm-4">${formattedKey}:</dt><dd class="col-sm-8">${formattedValue}</dd>`;
+        }
+        summaryHtml += '</dl>';
+        summaryDiv.innerHTML = summaryHtml;
+        outputArea.appendChild(summaryDiv);
+    }
+    
+    // Display Data Table
+    outputArea.appendChild(createHtmlTable(data)); // Re-use the same table creation function
+}
+
+
+// --- Tab Persistence Logic ---
+document.addEventListener('DOMContentLoaded', function () {
+    // Function to activate a tab
+    function activateTab(tabId) {
+        if (tabId) {
+            const tabLink = document.querySelector(`.nav-tabs a[href="${tabId}"]`);
+            if (tabLink) {
+                // Using Bootstrap's JavaScript to show the tab
+                // Ensure jQuery and Bootstrap JS are loaded if using Bootstrap v4
+                $(tabLink).tab('show');
+            }
+        }
+    }
+
+    // Check for active_tab in URL on page load
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeTabFromUrl = urlParams.get('active_tab');
+    if (activeTabFromUrl) {
+        activateTab(activeTabFromUrl);
+    }
+
+    // Store active tab in localStorage when a tab is shown
+    $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+        localStorage.setItem('activeReportTab', $(e.target).attr('href'));
+    });
+
+    // On page load, if no URL param, try to load from localStorage
+    if (!activeTabFromUrl) {
+        const activeTabFromStorage = localStorage.getItem('activeReportTab');
+        if (activeTabFromStorage) {
+            activateTab(activeTabFromStorage);
+        }
+    }
+});
+
+
 </script>
+]]>

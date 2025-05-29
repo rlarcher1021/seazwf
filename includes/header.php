@@ -208,6 +208,12 @@ if (isset($_SESSION['active_role'])) {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Main Stylesheet -->
     <link rel="stylesheet" href="assets/css/main.css?v=<?php echo filemtime(__DIR__ . '/../assets/css/main.css'); // Cache busting ?>">
+<!-- Admin Stylesheet -->
+    <link rel="stylesheet" href="assets/css/admin.css?v=<?php echo filemtime(__DIR__ . '/../assets/css/admin.css'); ?>">
+    <!-- Client Stylesheet -->
+    <link rel="stylesheet" href="assets/css/client.css?v=<?php echo filemtime(__DIR__ . '/../assets/css/client.css'); ?>">
+    <!-- Kiosk Stylesheet -->
+    <link rel="stylesheet" href="assets/css/kiosk.css?v=<?php echo filemtime(__DIR__ . '/../assets/css/kiosk.css'); ?>">
     <!-- Select2 CSS (Add after Bootstrap CSS) -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <!-- Select2 Bootstrap 5 Theme (Optional, but recommended) -->

@@ -1,10 +1,10 @@
-<?php
+<![CDATA[<?php
 /*
  * File: export_report.php
  * Path: /export_report.php
  * Created: 2024-08-01 15:00:00 MST // Adjust if needed
  * Author: Robert Archer
- * Updated: 2025-04-14 - Refactored DB logic to data access layer.
+ * Updated: 2025-05-28 - Modified to include dynamic check-in answers from checkin_answers table.
  *
  * Description: Generates and forces download of a CSV report based on
  *              site and date range filters passed via GET parameters.
@@ -59,8 +59,6 @@ if (in_array($_SESSION['active_role'], ['azwk_staff', 'outside_staff'])) {
     } elseif (is_numeric($filter_site_id)) {
          // Use data access function to validate site
          // Use getActiveSiteById which returns null if site is inactive or not found
-         // Note: The initial require_once at the top of the file should be sufficient,
-         // but we keep this logic structure after the failed isActiveSite attempts.
          $site_details = getActiveSiteById($pdo, (int)$filter_site_id);
          if ($site_details !== null) {
               $effective_site_id_for_query = (int)$filter_site_id; // Site is valid and active
@@ -96,55 +94,28 @@ if (strtotime($filter_start_date) > strtotime($filter_end_date)) {
      die("Export Error: Start date cannot be after end date.");
 }
 
-// --- Fetch Active Questions for Headers and Data Query ---
-require_once 'includes/utils.php'; // Need sanitize_title_to_base_name, format_base_name_for_display
-
-$export_question_columns = []; // Stores sanitized column names WITH prefix (q_...) for data access
-$export_column_to_label_map = []; // Map prefixed name -> formatted label for headers
-
-// Fetch active question base titles using data access function based on the *effective* site ID for the query
-$export_base_titles = getActiveQuestionTitles($pdo, $effective_site_id_for_query); // Use null for 'all'
-
-if ($export_base_titles === false) { // Check for DB error
-    error_log("Export Error: Failed to fetch active question titles for site filter '$effective_site_id_for_query'.");
-    // Proceed without question columns, but log the error
-} elseif (is_array($export_base_titles)) {
-    foreach ($export_base_titles as $base_title) {
-        if (!empty($base_title)) {
-            $sanitized_base = sanitize_title_to_base_name($base_title);
-            if (!empty($sanitized_base)) {
-                $prefixed_col_name = 'q_' . $sanitized_base;
-                // Validate column name format before adding
-                if (preg_match('/^q_[a-z0-9_]+$/', $prefixed_col_name) && strlen($prefixed_col_name) <= 64) {
-                    $formatted_label = format_base_name_for_display($sanitized_base);
-                    $export_question_columns[] = $prefixed_col_name; // Store validated prefixed name for query
-                    $export_column_to_label_map[$prefixed_col_name] = $formatted_label; // Map for headers
-                } else {
-                     error_log("Export Warning: Generated prefixed column name '{$prefixed_col_name}' from base '{$base_title}' is invalid and was skipped.");
-                }
-            }
-        }
-    }
-}
-error_log("Export Debug - Filter ID: {$effective_site_id_for_query} - Active VALID question columns for export data fetch: " . print_r($export_question_columns, true));
-
-
 // --- Fetch Data for Export (No Pagination) ---
 // Prepare date parameters for the function
 $start_date_param = date('Y-m-d 00:00:00', strtotime($filter_start_date));
 $end_date_param = date('Y-m-d 23:59:59', strtotime($filter_end_date));
 
-// Use data access function to fetch all data for export, passing the dynamic columns
-$export_data = getCheckinDataForExport($pdo, $effective_site_id_for_query, $start_date_param, $end_date_param, $export_question_columns);
+// Use data access function to fetch all data for export.
+// The third argument (active_question_columns) is now deprecated in the updated function
+// but kept for signature compatibility if not removed from the function definition yet.
+// The function now returns an array with 'data' and 'dynamic_headers'.
+$export_result = getCheckinDataForExport($pdo, $effective_site_id_for_query, $start_date_param, $end_date_param, []);
 $report_error = ''; // Reset error
 
-if ($export_data === false) {
-    // Error logged within the function
-    $report_error = "Database Error fetching export data.";
+if ($export_result === false || !isset($export_result['data']) || !isset($export_result['dynamic_headers'])) {
+    // Error logged within the function or structure is incorrect
+    $report_error = "Database Error fetching export data or unexpected data structure.";
+    error_log("Export Error: Failed to fetch or process export data. Result: " . print_r($export_result, true));
     http_response_code(500); // Internal Server Error
     die("An error occurred while generating the report data. Please check server logs or contact support.");
 }
-// Note: $export_data now holds all rows, the CSV loop below will iterate over this array.
+
+$export_data = $export_result['data'];
+$csv_dynamic_headers = $export_result['dynamic_headers']; // These are the actual question_text values
 
 // --- Generate CSV Output ---
 
@@ -194,24 +165,17 @@ $headers = [
 ];
 
 // --- Dynamically add Question Headers ---
-$dynamic_question_headers = [];
-if (!empty($export_column_to_label_map)) {
-    foreach ($export_column_to_label_map as $prefixed_col => $formatted_label) {
-        // Use the formatted label for the header
-        $dynamic_question_headers[] = $formatted_label;
-    }
-    // Add the dynamic question headers to the main header array
-    $headers = array_merge($headers, $dynamic_question_headers);
+// The $csv_dynamic_headers already contains the actual question texts.
+if (!empty($csv_dynamic_headers)) {
+    $headers = array_merge($headers, $csv_dynamic_headers);
 }
-
 
 // Write the final header row
 fputcsv($output, $headers);
 
-
 // --- Write Data Rows ---
 // Iterate over the fetched data array
-if ($export_data !== false && !empty($export_data)) {
+if (!empty($export_data)) {
     foreach ($export_data as $row) {
         // Build the row data directly in the order of the headers
         $final_csv_row = [
@@ -221,22 +185,21 @@ if ($export_data !== false && !empty($export_data)) {
             $row['LastName'] ?? '',
             $row['CheckinTime'] ?? '',
             $row['NotifiedStaff'] ?? '',
-            $row['ClientEmail'] ?? '' // Use directly fetched email
+            $row['ClientEmail'] ?? ''
         ];
 
-        // Add dynamic question answers
-        if (!empty($export_question_columns)) {
-            foreach ($export_question_columns as $q_col_name) { // $q_col_name is 'q_age', 'q_interviewing' etc.
-                // Append the answer for this column, defaulting to empty string if not present
-                $final_csv_row[] = $row[$q_col_name] ?? '';
+        // Add dynamic question answers based on the $csv_dynamic_headers
+        if (!empty($csv_dynamic_headers)) {
+            foreach ($csv_dynamic_headers as $header_text) {
+                // The $row from getCheckinDataForExport now contains keys matching $header_text
+                $final_csv_row[] = $row[$header_text] ?? ''; // Default to empty if somehow missing
             }
         }
 
         // Write the row
         fputcsv($output, $final_csv_row);
-
     } // End foreach loop
-} // End if ($export_data)
+} // End if (!empty($export_data))
 
 // Close output stream
 if ($output) {
@@ -246,3 +209,4 @@ if ($output) {
 exit; // Ensure no other output interferes
 
 ?>
+]]>

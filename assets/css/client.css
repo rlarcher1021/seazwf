@@ -1,0 +1,12 @@
+/* Custom styles for client-facing pages */
+
+/* Styles for the login page logo image */
+.login-img-max-width {
+    max-width: 220px;
+    /* height: auto; is typically default or handled by img-fluid */
+}
+
+/* Styles for the registration page logo image */
+.register-logo-max-height {
+    max-height: 70px;
+}

@@ -186,7 +186,7 @@ try {
 
                 // --- Save answers to checkin_answers table ---
                 if ($processedClientAnswers && $new_check_in_id) {
-                    error_log("Kiosk QR Check-in: Preparing to insert into checkin_answers for check_in_id $new_check_in_id. Data: " . print_r($processedClientAnswers, true));
+                    // error_log("Kiosk QR Check-in: Preparing to insert into checkin_answers for check_in_id $new_check_in_id. Data: " . print_r($processedClientAnswers, true));
                     $sql_insert_checkin_answer = "INSERT INTO checkin_answers (check_in_id, question_id, answer)
                                                   VALUES (:check_in_id, :question_id, :answer)";
                     $stmt_insert_answer = $pdo->prepare($sql_insert_checkin_answer);

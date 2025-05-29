@@ -198,6 +198,14 @@ $current_page_basename = basename($_SERVER['PHP_SELF']);
     text-align: left; /* Keep text left-aligned within the right-aligned bubble */
 }
 
+.chat-message.ai p {
+    display: block; /* Ensure paragraphs are block-level */
+    margin-bottom: 0.5em; /* Add some space between paragraphs */
+}
+.chat-message.ai p:last-child {
+    margin-bottom: 0;
+}
+
 .chat-message.error {
     background-color: #f8d7da;
     color: #721c24;
@@ -307,7 +315,7 @@ if (isset($_SESSION['user_id']) && (!isset($_SESSION['role']) || $_SESSION['role
 <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
 <!-- Main Custom JS File (Uncomment if you create/need it) -->
-<!-- <script src="assets/js/main.js?v=<?php // echo filemtime(__DIR__ . '/../assets/js/main.js'); // Path relative to /includes/ ?>"></script> -->
+<script src="assets/js/main.js?v=<?php echo filemtime(__DIR__ . '/../assets/js/main.js'); // Path relative to /includes/ ?>"></script>
 
 
 <!-- Footer Copyright -->
@@ -472,7 +480,7 @@ jQuery(document).ready(function($) { // Use jQuery wrapper
     let chatHistory = []; // Array to hold message objects { sender: '...', text: '...' }
 
     // Initialize markdown-it
-    const markdownit = window.markdownit();
+    const markdownit = window.markdownit({ breaks: true });
 
     // --- Storage Keys ---
     const historyKey = 'aiChatHistory';

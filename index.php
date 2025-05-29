@@ -192,118 +192,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- We will need a specific CSS file or rules for the login page -->
     <link rel="stylesheet" href="assets/css/main.css"> <!-- Use main.css or create login.css -->
-    <style>
-        /* Basic styles directly from mockup_index.php.html for this file */
-        /* Consider moving these to main.css or a dedicated login.css */
-        body.login-page {
-            font-family: 'Inter', sans-serif;
-            background-color: #F4F5F7;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh; /* Use min-height for flexibility */
-        }
-        .login-container {
-            background-color: #FFFFFF;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            width: 400px;
-            padding: 30px;
-            max-width: 90%;
-            margin: 20px; /* Add some margin for smaller screens */
-        }
-        .login-logo {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .login-logo img {
-            max-width: 220px;
-            height: auto;
-        }
-        .login-container h1 {
-            color: #1E3A8A; /* --color-primary */
-            font-size: 24px;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .message-area {
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        .error-message {
-            background-color: #FEE2E2;
-            border: 1px solid #F87171;
-            color: #B91C1C;
-        }
-        .info-message {
-            background-color: #D1FAE5;
-            border: 1px solid #6EE7B7;
-            color: #065F46;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            color: #4B5563; /* --color-dark-gray */
-            font-weight: 500;
-        }
-        input[type="text"],
-        input[type="password"] {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #D1D5DB; /* --color-border */
-            border-radius: 4px;
-            font-size: 16px;
-            box-sizing: border-box;
-        }
-        .form-actions {
-            margin-top: 30px;
-        }
-        .btn {
-            display: block;
-            width: 100%;
-            padding: 12px;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            font-weight: 500;
-            cursor: pointer;
-            text-align: center;
-            transition: background-color 0.2s;
-        }
-        .btn-primary {
-            background-color: #FF6B35; /* --color-secondary */
-            color: white;
-        }
-        .btn-primary:hover {
-            background-color: #E85A29; /* Darker orange */
-        }
-        .login-footer {
-            margin-top: 30px;
-            text-align: center;
-            font-size: 14px;
-            color: #6B7280; /* --color-gray */
-        }
-        .google-translate-container {
-            margin-bottom: 15px;
-            min-height: 30px; /* Give space for widget */
-        }
-         #google_translate_element { padding: 5px 0; }
-        .copyright {
-            font-size: 12px;
-            margin-top: 10px;
-        }
-        /* Remove 'Forgot Password' link style if not needed */
-        /* .form-links { margin-top: 20px; text-align: center; } */
-        /* .form-links a { color: #1E3A8A; text-decoration: none; } */
-        /* .form-links a:hover { text-decoration: underline; } */
-    </style>
 </head>
 <body class="login-page">
     <div class="login-container">
@@ -357,7 +245,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <div id="google_translate_element"></div>
             </div>
 
-<div class="client-links text-center" style="margin-bottom: 15px; font-size: 14px;">
+<div class="client-links text-center mb-3">
                 <p class="mb-0">Are you a client? <a href="client_login.php">Login here</a> or <a href="client_register.php">Register here</a>.</p>
             </div>
             <div class="copyright">

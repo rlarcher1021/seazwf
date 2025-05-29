@@ -498,6 +498,24 @@ td.actions-cell form:first-child, td.actions-cell a:first-child { margin-left: 0
 .table-footer {
     display: flex;
     justify-content: space-between;
+
+/* --- Chat Message Styles --- */
+.chat-message {
+    display: flex; /* This might already be applied by Bootstrap or another rule, but explicitly stating it is fine. */
+    flex-direction: column; /* This is the key fix to stack paragraphs vertically. */
+    /* Add other common chat message styles here if needed */
+}
+
+/* Specific styles for AI and User messages can still be applied if needed,
+   e.g., .chat-message.ai for background color, .chat-message.user for alignment */
+.chat-message.ai {
+    /* Styles specific to AI messages, like background-color, align-self, etc. */
+    /* The flex-direction: column; from .chat-message will be inherited. */
+}
+
+.chat-message.user {
+    /* Styles specific to User messages */
+}
     align-items: center;
     padding: 1rem 1.5rem;
     border-top: 1px solid var(--color-border);
@@ -1850,3 +1868,117 @@ body > .skiptranslate { display: none !important; }
 
 /* Final important overrides if absolutely necessary */
 /* .some-element !important { ... } */
+/* === Login Page Styles (from index.php) === */
+body.login-page {
+    font-family: 'Inter', sans-serif;
+    background-color: #F4F5F7; /* var(--color-light) can be used if defined before this block */
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+.login-container {
+    background-color: #FFFFFF; /* var(--color-white) */
+    border-radius: 8px; /* var(--border-radius) or specific value */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* var(--shadow) or specific value */
+    width: 400px;
+    padding: 30px;
+    max-width: 90%;
+    margin: 20px;
+}
+.login-logo {
+    text-align: center;
+    margin-bottom: 20px;
+}
+.login-logo img {
+    max-width: 220px;
+    height: auto;
+}
+.login-container h1 {
+    color: #1E3A8A; /* var(--color-primary) */
+    font-size: 24px;
+    text-align: center;
+    margin-bottom: 30px;
+}
+.message-area {
+    padding: 10px;
+    border-radius: 4px; /* Consider var(--border-radius) */
+    margin-bottom: 20px;
+    text-align: center;
+}
+.error-message {
+    background-color: #FEE2E2; /* var(--color-error-bg) */
+    border: 1px solid #F87171; /* var(--color-error-border) */
+    color: #B91C1C; /* var(--color-error-text) */
+}
+.info-message {
+    background-color: #D1FAE5; /* var(--color-success-bg) */
+    border: 1px solid #6EE7B7; /* var(--color-success-border) */
+    color: #065F46; /* var(--color-success-text) */
+}
+.form-group {
+    margin-bottom: 20px;
+}
+label { /* Consider scoping to .login-container label if it affects other labels */
+    display: block;
+    margin-bottom: 5px;
+    color: #4B5563; /* var(--color-dark-gray) */
+    font-weight: 500;
+}
+/* Scope input styles to login page if they are too general */
+.login-container input[type="text"],
+.login-container input[type="password"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #D1D5DB; /* var(--color-border) */
+    border-radius: 4px; /* Consider var(--border-radius) */
+    font-size: 16px;
+    box-sizing: border-box;
+}
+.form-actions {
+    margin-top: 30px;
+}
+/* Scope .btn styles if they are too general or conflict with Bootstrap */
+.login-container .btn { /* Scoped to .login-container */
+    display: block;
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 4px; /* Consider var(--border-radius) */
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+    transition: background-color 0.2s;
+}
+.login-container .btn-primary { /* Scoped to .login-container */
+    background-color: #FF6B35; /* var(--color-secondary) */
+    color: white; /* var(--color-white) */
+}
+.login-container .btn-primary:hover { /* Scoped to .login-container */
+    background-color: #E85A29; /* var(--color-secondary-dark) */
+}
+.login-footer {
+    margin-top: 30px;
+    text-align: center;
+    font-size: 14px;
+    color: #6B7280; /* var(--color-gray) */
+}
+.google-translate-container {
+    margin-bottom: 15px;
+    min-height: 30px;
+}
+#google_translate_element { /* This ID is specific enough */
+    padding: 5px 0;
+}
+.login-footer .copyright { /* Scoped to .login-footer */
+    font-size: 12px;
+    margin-top: 10px;
+}
+/* === End Login Page Styles === */
+/* === Chat Message AI Bubble Layout Fix === */
+.chat-message.ai {
+    flex-direction: column;
+}

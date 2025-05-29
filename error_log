@@ -1,307 +1,113 @@
-[15-May-2025 00:45:07 Europe/Berlin] Admin action: Error log cleared by user ID: 1
-[15-May-2025 00:46:59 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 00:46:59 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 00:46:59 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
-[15-May-2025 00:48:30 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 00:48:30 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 00:48:30 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
-[15-May-2025 00:50:01 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 00:50:01 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 00:50:01 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
-[15-May-2025 00:51:32 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 00:51:32 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 00:51:32 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
-[15-May-2025 00:53:03 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 00:53:03 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 00:53:03 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
-[15-May-2025 00:54:34 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 00:54:34 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 00:54:34 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
-[15-May-2025 00:56:05 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 00:56:05 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 00:56:05 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
-[15-May-2025 02:02:47 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:02:47 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:02:47 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
-[15-May-2025 02:04:19 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:04:19 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:04:19 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
-[15-May-2025 02:05:50 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:05:50 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:05:50 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
-[15-May-2025 02:09:04 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:09:04 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:09:04 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
-[15-May-2025 02:12:01 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:12:01 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:12:01 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
-[15-May-2025 02:14:39 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:14:39 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:14:39 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
-[15-May-2025 02:16:10 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:16:10 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:16:10 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
-[15-May-2025 02:17:41 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:17:41 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:17:41 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
-[15-May-2025 02:19:12 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:19:12 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:19:12 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
-[15-May-2025 02:20:43 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:20:43 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:20:43 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
-[15-May-2025 02:22:14 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:22:14 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:22:14 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
-[15-May-2025 02:23:45 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:23:45 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:23:45 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
-[15-May-2025 02:25:16 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:25:16 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:25:16 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
-[15-May-2025 02:26:47 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:26:47 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:26:47 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
-[15-May-2025 02:28:12 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:28:12 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:28:12 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
-[15-May-2025 02:28:12 Europe/Berlin] [DEBUG checkin.php POST] Site ID for checkin: 4
-[15-May-2025 02:28:12 Europe/Berlin] [DEBUG checkin.php POST] Raw $_POST['notify_staff']: 
-[15-May-2025 02:28:12 Europe/Berlin] [DEBUG checkin.php POST] $notified_staff_id (staff_notifications.id or null) before save: 
-[15-May-2025 02:28:12 Europe/Berlin] [DEBUG checkin.php POST] $staff_notifiers array structure (should be keyed by staff_notifications.id): Array
+[29-May-2025 15:23:38 Europe/Berlin] Admin action: Error log cleared by user ID: 1
+[29-May-2025 15:23:39 Europe/Berlin] Dashboard Check-ins Over Time Raw Data for site 'all': Array
 (
-    [2] => Array
-        (
-            [notifier_id] => 2
-            [staff_name] => Administrator User
-            [staff_email] => rlarcher1021@gmail.com
-        )
-
+    [2025-05-28] => 4
+    [2025-05-29] => 3
 )
 
-[15-May-2025 02:28:12 Europe/Berlin] saveCheckin: Attempting to save answers to checkin_answers table for check_in_id: 76
-[15-May-2025 02:28:12 Europe/Berlin] saveCheckinAnswers: Called for checkin_id: 76 with answers: Array
+[29-May-2025 15:23:39 Europe/Berlin] AJAX Report Handler Received Request:
+[29-May-2025 15:23:39 Europe/Berlin] Method: POST
+[29-May-2025 15:23:56 Europe/Berlin] Dashboard Check-ins Over Time Raw Data for site 'all': Array
 (
-    [9] => NO
-    [3] => NO
-    [12] => NO
+    [2025-05-28] => 4
+    [2025-05-29] => 3
 )
 
-[15-May-2025 02:28:12 Europe/Berlin] saveCheckinAnswers: SQL for checkin_id 76: INSERT INTO checkin_answers (check_in_id, question_id, answer, created_at)
-            VALUES (:check_in_id, :question_id, :answer, NOW())
-            ON DUPLICATE KEY UPDATE answer = VALUES(answer)
-[15-May-2025 02:28:12 Europe/Berlin] saveCheckinAnswers: Already in an existing transaction for checkin_id: 76
-[15-May-2025 02:28:12 Europe/Berlin] saveCheckinAnswers: Statement prepared successfully for checkin_id: 76
-[15-May-2025 02:28:12 Europe/Berlin] saveCheckinAnswers: Validation PRE-CHECK for QID key '9': currentQuestionId (after filter_var) = 9, is_id_valid_check = TRUE; answerValue = 'NO', is_answer_valid_check = TRUE
-[15-May-2025 02:28:12 Europe/Berlin] saveCheckinAnswers: Processing original_question_id_key: '9', validated_int_id: 9, answer: 'NO' for checkin_id: 76
-[15-May-2025 02:28:12 Europe/Berlin] saveCheckinAnswers: Params for execute: Array
+[29-May-2025 15:23:56 Europe/Berlin] AJAX Report Handler Received Request:
+[29-May-2025 15:23:56 Europe/Berlin] Method: POST
+[29-May-2025 15:23:59 Europe/Berlin] AJAX Report Handler Received Request:
+[29-May-2025 15:23:59 Europe/Berlin] Method: POST
+[29-May-2025 15:24:12 Europe/Berlin] Dashboard Check-ins Over Time Raw Data for site 'all': Array
 (
-    [:check_in_id] => 76
-    [:question_id] => 9
-    [:answer] => NO
+    [2025-05-28] => 4
+    [2025-05-29] => 3
 )
 
-[15-May-2025 02:28:12 Europe/Berlin] saveCheckinAnswers: Execute successful for question_id 9, checkin_id 76. Rows affected: 1
-[15-May-2025 02:28:12 Europe/Berlin] saveCheckinAnswers: Validation PRE-CHECK for QID key '3': currentQuestionId (after filter_var) = 3, is_id_valid_check = TRUE; answerValue = 'NO', is_answer_valid_check = TRUE
-[15-May-2025 02:28:12 Europe/Berlin] saveCheckinAnswers: Processing original_question_id_key: '3', validated_int_id: 3, answer: 'NO' for checkin_id: 76
-[15-May-2025 02:28:12 Europe/Berlin] saveCheckinAnswers: Params for execute: Array
+[29-May-2025 15:24:12 Europe/Berlin] AJAX Report Handler Received Request:
+[29-May-2025 15:24:12 Europe/Berlin] Method: POST
+[29-May-2025 15:24:15 Europe/Berlin] AJAX Report Handler Received Request:
+[29-May-2025 15:24:15 Europe/Berlin] Method: POST
+[29-May-2025 15:26:12 Europe/Berlin] AJAX Report Handler Received Request:
+[29-May-2025 15:26:12 Europe/Berlin] Method: POST
+[29-May-2025 15:26:36 Europe/Berlin] Dashboard Check-ins Over Time Raw Data for site 'all': Array
 (
-    [:check_in_id] => 76
-    [:question_id] => 3
-    [:answer] => NO
+    [2025-05-28] => 4
+    [2025-05-29] => 3
 )
 
-[15-May-2025 02:28:12 Europe/Berlin] saveCheckinAnswers: Execute successful for question_id 3, checkin_id 76. Rows affected: 1
-[15-May-2025 02:28:12 Europe/Berlin] saveCheckinAnswers: Validation PRE-CHECK for QID key '12': currentQuestionId (after filter_var) = 12, is_id_valid_check = TRUE; answerValue = 'NO', is_answer_valid_check = TRUE
-[15-May-2025 02:28:12 Europe/Berlin] saveCheckinAnswers: Processing original_question_id_key: '12', validated_int_id: 12, answer: 'NO' for checkin_id: 76
-[15-May-2025 02:28:12 Europe/Berlin] saveCheckinAnswers: Params for execute: Array
+[29-May-2025 15:26:36 Europe/Berlin] AJAX Report Handler Received Request:
+[29-May-2025 15:26:36 Europe/Berlin] Method: POST
+[29-May-2025 15:26:53 Europe/Berlin] AJAX Report Handler Received Request:
+[29-May-2025 15:26:53 Europe/Berlin] Method: POST
+[29-May-2025 15:27:03 Europe/Berlin] AJAX Report Handler Received Request:
+[29-May-2025 15:27:03 Europe/Berlin] Method: POST
+[29-May-2025 15:31:15 Europe/Berlin] Dashboard Check-ins Over Time Raw Data for site 'all': Array
 (
-    [:check_in_id] => 76
-    [:question_id] => 12
-    [:answer] => NO
+    [2025-05-28] => 4
+    [2025-05-29] => 3
 )
 
-[15-May-2025 02:28:12 Europe/Berlin] saveCheckinAnswers: Execute successful for question_id 12, checkin_id 76. Rows affected: 1
-[15-May-2025 02:28:12 Europe/Berlin] saveCheckin: Successfully saved answers to checkin_answers for check_in_id: 76
-[15-May-2025 02:28:12 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:28:12 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:28:12 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
-[15-May-2025 02:29:48 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:29:48 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:29:48 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
-[15-May-2025 02:31:19 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:31:19 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:31:19 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
-[15-May-2025 02:32:50 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:32:50 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:32:50 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
-[15-May-2025 02:34:21 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:34:21 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:34:21 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
-[15-May-2025 02:35:52 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:35:52 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:35:52 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
-[15-May-2025 02:37:23 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:37:23 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:37:23 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
-[15-May-2025 02:38:54 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:38:54 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:38:54 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
-[15-May-2025 02:40:25 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:40:25 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:40:25 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
-[15-May-2025 02:41:56 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:41:56 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:41:56 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
-[15-May-2025 02:43:27 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:43:27 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:43:27 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
-[15-May-2025 02:44:58 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:44:58 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:44:58 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
-[15-May-2025 02:46:29 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:46:29 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:46:29 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
-[15-May-2025 02:47:40 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:47:40 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:47:40 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
-[15-May-2025 02:48:08 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:48:08 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:48:08 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
-[15-May-2025 02:48:08 Europe/Berlin] [DEBUG checkin.php POST] Site ID for checkin: 4
-[15-May-2025 02:48:08 Europe/Berlin] [DEBUG checkin.php POST] Raw $_POST['notify_staff']: 
-[15-May-2025 02:48:08 Europe/Berlin] [DEBUG checkin.php POST] $notified_staff_id (staff_notifications.id or null) before save: 
-[15-May-2025 02:48:08 Europe/Berlin] [DEBUG checkin.php POST] $staff_notifiers array structure (should be keyed by staff_notifications.id): Array
+[29-May-2025 15:31:15 Europe/Berlin] AJAX Report Handler Received Request:
+[29-May-2025 15:31:15 Europe/Berlin] Method: POST
+[29-May-2025 15:31:20 Europe/Berlin] AJAX Report Handler Received Request:
+[29-May-2025 15:31:20 Europe/Berlin] Method: POST
+[29-May-2025 15:31:28 Europe/Berlin] AJAX Report Handler Received Request:
+[29-May-2025 15:31:28 Europe/Berlin] Method: POST
+[29-May-2025 15:31:44 Europe/Berlin] AJAX Report Handler Received Request:
+[29-May-2025 15:31:44 Europe/Berlin] Method: POST
+[29-May-2025 15:43:21 Europe/Berlin] Dashboard Check-ins Over Time Raw Data for site 'all': Array
 (
-    [2] => Array
-        (
-            [notifier_id] => 2
-            [staff_name] => Administrator User
-            [staff_email] => rlarcher1021@gmail.com
-        )
-
+    [2025-05-28] => 4
+    [2025-05-29] => 3
 )
 
-[15-May-2025 02:48:08 Europe/Berlin] Checkin Manual: Data being prepared for checkin_answers table: Array
+[29-May-2025 15:46:40 Europe/Berlin] Dashboard Check-ins Over Time Raw Data for site '1': Array
 (
-    [9] => NO
-    [3] => YES
-    [12] => YES
+    [2025-05-28] => 3
+    [2025-05-29] => 3
 )
 
-[15-May-2025 02:48:08 Europe/Berlin] Checkin Manual: Data for q_* columns in check_ins (should be empty or not used for q_* population): Array
+[29-May-2025 15:46:40 Europe/Berlin] AJAX Report Handler Received Request:
+[29-May-2025 15:46:40 Europe/Berlin] Method: POST
+[29-May-2025 15:46:51 Europe/Berlin] AJAX Report Handler Received Request:
+[29-May-2025 15:46:51 Europe/Berlin] Method: POST
+[29-May-2025 15:50:22 Europe/Berlin] Dashboard Check-ins Over Time Raw Data for site '1': Array
 (
+    [2025-05-28] => 3
+    [2025-05-29] => 3
 )
 
-[15-May-2025 02:48:08 Europe/Berlin] saveCheckin: Attempting to save answers to checkin_answers table for check_in_id: 77
-[15-May-2025 02:48:08 Europe/Berlin] saveCheckinAnswers: Called for checkin_id: 77 with answers: Array
+[29-May-2025 15:50:23 Europe/Berlin] AJAX Report Handler Received Request:
+[29-May-2025 15:50:23 Europe/Berlin] Method: POST
+[29-May-2025 15:50:25 Europe/Berlin] AJAX Report Handler Received Request:
+[29-May-2025 15:50:25 Europe/Berlin] Method: POST
+[29-May-2025 15:50:29 Europe/Berlin] AJAX Report Handler Received Request:
+[29-May-2025 15:50:29 Europe/Berlin] Method: POST
+[29-May-2025 15:50:31 Europe/Berlin] AJAX Report Handler Received Request:
+[29-May-2025 15:50:31 Europe/Berlin] Method: POST
+[29-May-2025 16:01:56 Europe/Berlin] Dashboard Check-ins Over Time Raw Data for site '1': Array
 (
-    [9] => NO
-    [3] => YES
-    [12] => YES
+    [2025-05-28] => 3
+    [2025-05-29] => 3
 )
 
-[15-May-2025 02:48:08 Europe/Berlin] saveCheckinAnswers: SQL for checkin_id 77: INSERT INTO checkin_answers (check_in_id, question_id, answer, created_at)
-            VALUES (:check_in_id, :question_id, :answer, NOW())
-            ON DUPLICATE KEY UPDATE answer = VALUES(answer)
-[15-May-2025 02:48:08 Europe/Berlin] saveCheckinAnswers: Already in an existing transaction for checkin_id: 77
-[15-May-2025 02:48:08 Europe/Berlin] saveCheckinAnswers: Statement prepared successfully for checkin_id: 77
-[15-May-2025 02:48:08 Europe/Berlin] saveCheckinAnswers: Validation PRE-CHECK for QID key '9': currentQuestionId (after filter_var) = 9, is_id_valid_check = TRUE; answerValue = 'NO', is_answer_valid_check = TRUE
-[15-May-2025 02:48:08 Europe/Berlin] saveCheckinAnswers: Processing original_question_id_key: '9', validated_int_id: 9, answer: 'NO' for checkin_id: 77
-[15-May-2025 02:48:08 Europe/Berlin] saveCheckinAnswers: Params for execute: Array
+[29-May-2025 16:01:56 Europe/Berlin] AJAX Report Handler Received Request:
+[29-May-2025 16:01:56 Europe/Berlin] Method: POST
+[29-May-2025 16:49:46 Europe/Berlin] Dashboard Check-ins Over Time Raw Data for site '1': Array
 (
-    [:check_in_id] => 77
-    [:question_id] => 9
-    [:answer] => NO
+    [2025-05-28] => 3
+    [2025-05-29] => 3
 )
 
-[15-May-2025 02:48:08 Europe/Berlin] saveCheckinAnswers: Execute successful for question_id 9, checkin_id 77. Rows affected: 1
-[15-May-2025 02:48:08 Europe/Berlin] saveCheckinAnswers: Validation PRE-CHECK for QID key '3': currentQuestionId (after filter_var) = 3, is_id_valid_check = TRUE; answerValue = 'YES', is_answer_valid_check = TRUE
-[15-May-2025 02:48:08 Europe/Berlin] saveCheckinAnswers: Processing original_question_id_key: '3', validated_int_id: 3, answer: 'YES' for checkin_id: 77
-[15-May-2025 02:48:08 Europe/Berlin] saveCheckinAnswers: Params for execute: Array
+[29-May-2025 16:49:47 Europe/Berlin] AJAX Report Handler Received Request:
+[29-May-2025 16:49:47 Europe/Berlin] Method: POST
+[29-May-2025 16:49:56 Europe/Berlin] Dashboard Check-ins Over Time Raw Data for site 'all': Array
 (
-    [:check_in_id] => 77
-    [:question_id] => 3
-    [:answer] => YES
+    [2025-05-28] => 4
+    [2025-05-29] => 3
 )
 
-[15-May-2025 02:48:08 Europe/Berlin] saveCheckinAnswers: Execute successful for question_id 3, checkin_id 77. Rows affected: 1
-[15-May-2025 02:48:08 Europe/Berlin] saveCheckinAnswers: Validation PRE-CHECK for QID key '12': currentQuestionId (after filter_var) = 12, is_id_valid_check = TRUE; answerValue = 'YES', is_answer_valid_check = TRUE
-[15-May-2025 02:48:08 Europe/Berlin] saveCheckinAnswers: Processing original_question_id_key: '12', validated_int_id: 12, answer: 'YES' for checkin_id: 77
-[15-May-2025 02:48:08 Europe/Berlin] saveCheckinAnswers: Params for execute: Array
-(
-    [:check_in_id] => 77
-    [:question_id] => 12
-    [:answer] => YES
-)
-
-[15-May-2025 02:48:08 Europe/Berlin] saveCheckinAnswers: Execute successful for question_id 12, checkin_id 77. Rows affected: 1
-[15-May-2025 02:48:08 Europe/Berlin] saveCheckin: Successfully saved answers to checkin_answers for check_in_id: 77
-[15-May-2025 02:48:08 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:48:08 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:48:08 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
-[15-May-2025 02:49:43 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:49:43 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:49:44 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
-[15-May-2025 02:51:09 Europe/Berlin] Kiosk QR Check-in: Data prepared for check_ins (q_* columns intentionally omitted): Array
-(
-    [site_id] => 4
-    [first_name] => Robert
-    [last_name] => Archer
-    [client_email] => rlarcher1021@gmail.com
-    [client_id] => 1
-)
-
-[15-May-2025 02:51:09 Europe/Berlin] Kiosk QR Check-in: Preparing to insert into checkin_answers for check_in_id 78. Data: Array
-(
-    [0] => Array
-        (
-            [question_id] => 9
-            [question_title] => age
-            [answer] => Yes
-        )
-
-    [1] => Array
-        (
-            [question_id] => 11
-            [question_title] => interviewing
-            [answer] => No
-        )
-
-    [2] => Array
-        (
-            [question_id] => 12
-            [question_title] => resume
-            [answer] => Yes
-        )
-
-    [3] => Array
-        (
-            [question_id] => 3
-            [question_title] => veteran
-            [answer] => Yes
-        )
-
-)
-
-[15-May-2025 02:52:50 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:52:50 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:52:50 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
-[15-May-2025 02:54:21 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:54:21 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:54:21 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
-[15-May-2025 02:55:52 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:55:52 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:55:52 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
-[15-May-2025 02:57:23 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:57:23 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:57:23 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
-[15-May-2025 02:58:42 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:58:42 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:58:42 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
-[15-May-2025 02:58:43 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:58:43 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:58:43 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: test1, Right Ad: resume class
-[15-May-2025 02:58:45 Europe/Berlin] Checkin: Using session_site_id 4 for role kiosk
-[15-May-2025 02:58:45 Europe/Berlin] [DEBUG checkin.php] Site 4 Config Flags: AllowEmail=1, AllowNotifier=1
-[15-May-2025 02:58:45 Europe/Berlin] Checkin Ad Fetch - Site ID 4 - Left Ad: resume class, Right Ad: test1
+[29-May-2025 16:49:56 Europe/Berlin] AJAX Report Handler Received Request:
+[29-May-2025 16:49:56 Europe/Berlin] Method: POST
+[29-May-2025 16:50:03 Europe/Berlin] AJAX Report Handler Received Request:
+[29-May-2025 16:50:03 Europe/Berlin] Method: POST

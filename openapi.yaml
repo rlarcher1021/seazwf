@@ -1,1440 +1,690 @@
 openapi: 3.0.3
 info:
-  title: Arizona@Work Check-In System API
-  description: API for interacting with the Arizona@Work Check-In System, providing access to check-ins, notes, allocations, forum posts, reports, and client data.
-  version: 1.0.1 # Incremented version for client endpoint addition
+  title: Unified API Gateway - Arizona@Work Check-In System
+  version: 1.0.0
+  description: OpenAPI specification for the Unified API Gateway, which serves as a single entry point for AI agents to interact with various backend API functionalities of the Arizona@Work Check-In System.
 servers:
-  - url: /api/v1
-    description: V1 API Base Path
-
+  - url: https://seazwf.com/api/gateway
+    description: Production Unified API Gateway
+tags:
+  - name: Gateway
+    description: Main operations for the Unified API Gateway.
+  - name: Checkins
+    description: Operations related to client check-ins and notes.
+  - name: Allocations
+    description: Operations related to budget and grant allocations.
+  - name: Forum
+    description: Operations related to forum posts and discussions.
+  - name: Clients
+    description: Operations related to client management.
+  - name: Reports
+    description: Operations for generating system reports.
+paths:
+  /index.php:
+    post:
+      tags:
+        - Gateway
+        - Checkins
+        - Allocations
+        - Forum
+        - Clients
+        - Reports
+      summary: Process an agent request via the Unified API Gateway
+      description: >
+        Accepts an 'action' and 'params' to interact with various backend services.
+        The specific 'params' required and 'data' returned depend on the 'action' provided.
+      operationId: processGatewayRequest
+      security:
+        - AgentApiKeyBearerAuth: []
+      requestBody:
+        description: Request payload for the gateway, structure depends on the 'action'.
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/FetchCheckinDetailsRequest'
+                - $ref: '#/components/schemas/QueryCheckinsRequest'
+                - $ref: '#/components/schemas/AddCheckinNoteRequest'
+                - $ref: '#/components/schemas/QueryAllocationsRequest'
+                - $ref: '#/components/schemas/CreateForumPostRequest'
+                - $ref: '#/components/schemas/GenerateReportsRequest'
+                - $ref: '#/components/schemas/ReadAllForumPostsRequest'
+                - $ref: '#/components/schemas/ReadRecentForumPostsRequest'
+                - $ref: '#/components/schemas/FetchClientDetailsRequest'
+                - $ref: '#/components/schemas/QueryClientsRequest'
+      responses:
+        '200':
+          description: Successful response from the gateway. The structure of the 'data' field depends on the action performed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GatewaySuccessResponse'
+        '400':
+          description: Bad Request (e.g., invalid action, missing or invalid parameters).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GatewayErrorResponse'
+        '401':
+          description: Unauthorized (e.g., invalid or missing API key).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GatewayErrorResponse'
+        '403':
+          description: Forbidden (e.g., API key lacks permission for the requested action).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GatewayErrorResponse'
+        '500':
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GatewayErrorResponse'
 components:
   securitySchemes:
-    ApiKeyAuth:
-      type: apiKey
-      in: header
-      name: Authorization # Primary method: Bearer <key>
-      description: API Key authentication. Provide the key prefixed with 'Bearer ' in the 'Authorization' header, OR provide the key directly in the 'X-API-Key' header.
-    ApiKeyAuthAlternative: # Define alternative for documentation clarity
-      type: apiKey
-      in: header
-      name: X-API-Key
-      description: Alternative API Key authentication. Provide the key directly in the 'X-API-Key' header.
-
+    AgentApiKeyBearerAuth:
+      type: http
+      scheme: bearer
+      description: Agent API Key using Bearer token authentication. The token should be the dedicated API key for the agent (e.g., "Bearer <agent_api_key>").
   schemas:
-    ErrorResponse:
+    # Generic Schemas (as requested)
+    GatewayRequest:
       type: object
       properties:
-        error:
+        action:
+          type: string
+          description: The specific action to be performed by the gateway.
+        params:
           type: object
-          properties:
-            message:
-              type: string
-              description: A human-readable error message.
-              example: "Check-in not found for ID: 999."
-            code:
-              type: string
-              description: An optional internal error code string.
-              example: "NOT_FOUND"
-          required:
-            - message
+          description: Parameters for the action. Structure varies based on the 'action'.
+          additionalProperties: true
+      required:
+        - action
 
-    Pagination:
+    GatewaySuccessResponse:
       type: object
       properties:
-        page:
-          type: integer
-          description: The current page number.
-          example: 1
+        status:
+          type: string
+          example: "success"
+          description: Indicates the outcome of the request.
+        data:
+          oneOf:
+            - $ref: '#/components/schemas/CheckinDetails'
+            - $ref: '#/components/schemas/CheckinList'
+            - $ref: '#/components/schemas/CheckinNoteConfirmation'
+            - $ref: '#/components/schemas/AllocationList'
+            - $ref: '#/components/schemas/ForumPostConfirmation'
+            - $ref: '#/components/schemas/ReportData'
+            - $ref: '#/components/schemas/ForumPostList'
+            - $ref: '#/components/schemas/ClientDetails'
+            - $ref: '#/components/schemas/ClientList'
+          description: The data payload of the response. Structure depends on the action.
+          nullable: true
+        message:
+          type: string
+          description: An optional message providing more details about the success.
+          nullable: true
+      required:
+        - status
+
+    GatewayErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "error"
+          description: Indicates the outcome of the request.
+        error:
+          $ref: '#/components/schemas/ErrorObject'
+      required:
+        - status
+        - error
+
+    ErrorObject:
+      type: object
+      properties:
+        code:
+          type: string
+          example: "INVALID_ACTION"
+          description: A machine-readable error code.
+        message:
+          type: string
+          example: "The specified action is not supported."
+          description: A human-readable error message.
+        details:
+          type: object
+          description: Optional additional details about the error (e.g., validation errors).
+          additionalProperties: true
+          nullable: true
+      required:
+        - code
+        - message
+
+    # Action-Specific Request Schemas (for requestBody.oneOf)
+    FetchCheckinDetailsRequest:
+      type: object
+      description: Request to fetch details for a specific check-in.
+      properties:
+        action:
+          type: string
+          enum: [fetchCheckinDetails]
+        params:
+          $ref: '#/components/schemas/FetchCheckinDetailsParams'
+      required: [action, params]
+
+    QueryCheckinsRequest:
+      type: object
+      description: Request to query a list of check-ins based on filters.
+      properties:
+        action:
+          type: string
+          enum: [queryCheckins]
+        params:
+          $ref: '#/components/schemas/QueryCheckinsParams'
+      required: [action] # params can be empty for queryCheckins
+
+    AddCheckinNoteRequest:
+      type: object
+      description: Request to add a note to a specific check-in.
+      properties:
+        action:
+          type: string
+          enum: [addCheckinNote]
+        params:
+          $ref: '#/components/schemas/AddCheckinNoteParams'
+      required: [action, params]
+
+    QueryAllocationsRequest:
+      type: object
+      description: Request to query a list of allocations based on filters.
+      properties:
+        action:
+          type: string
+          enum: [queryAllocations]
+        params:
+          $ref: '#/components/schemas/QueryAllocationsParams'
+      required: [action] # params can be empty
+
+    CreateForumPostRequest:
+      type: object
+      description: Request to create a new forum post.
+      properties:
+        action:
+          type: string
+          enum: [createForumPost]
+        params:
+          $ref: '#/components/schemas/CreateForumPostParams'
+      required: [action, params]
+
+    GenerateReportsRequest:
+      type: object
+      description: Request to generate a report.
+      properties:
+        action:
+          type: string
+          enum: [generateReports]
+        params:
+          $ref: '#/components/schemas/GenerateReportsParams'
+      required: [action, params]
+
+    ReadAllForumPostsRequest:
+      type: object
+      description: Request to read all forum posts, optionally filtered.
+      properties:
+        action:
+          type: string
+          enum: [readAllForumPosts]
+        params:
+          $ref: '#/components/schemas/ReadAllForumPostsParams'
+      required: [action] # params can be empty
+
+    ReadRecentForumPostsRequest:
+      type: object
+      description: Request to read recent forum posts.
+      properties:
+        action:
+          type: string
+          enum: [readRecentForumPosts]
+        params:
+          $ref: '#/components/schemas/ReadRecentForumPostsParams'
+      required: [action] # params can be empty
+
+    FetchClientDetailsRequest:
+      type: object
+      description: Request to fetch details for a specific client.
+      properties:
+        action:
+          type: string
+          enum: [fetchClientDetails]
+        params:
+          $ref: '#/components/schemas/FetchClientDetailsParams'
+      required: [action, params]
+
+    QueryClientsRequest:
+      type: object
+      description: Request to query a list of clients based on filters.
+      properties:
+        action:
+          type: string
+          enum: [queryClients]
+        params:
+          $ref: '#/components/schemas/QueryClientsParams'
+      required: [action] # params can be empty
+
+    # Action-Specific Params Schemas
+    FetchCheckinDetailsParams:
+      type: object
+      properties:
+        checkin_id:
+          type: string
+          description: ID of the check-in to retrieve.
+          example: "chk_123abc"
+      required: [checkin_id]
+
+    QueryCheckinsParams:
+      type: object
+      properties:
+        site_id:
+          type: string
+          description: Filter by site ID.
+          example: "site_001"
+          nullable: true
+        start_date:
+          type: string
+          format: date
+          description: Filter by check-ins on or after this date (YYYY-MM-DD).
+          example: "2023-01-01"
+          nullable: true
+        end_date:
+          type: string
+          format: date
+          description: Filter by check-ins on or before this date (YYYY-MM-DD).
+          example: "2023-01-31"
+          nullable: true
+        client_id:
+          type: string
+          description: Filter by client ID.
+          example: "cli_456def"
+          nullable: true
+        status:
+          type: string
+          description: Filter by check-in status.
+          enum: [active, completed, cancelled]
+          nullable: true
         limit:
           type: integer
-          description: The number of records requested per page.
-          example: 10
-        total_records:
+          format: int32
+          description: Maximum number of records to return.
+          default: 20
+          minimum: 1
+          nullable: true
+        offset:
           type: integer
-          description: The total number of records matching the query.
-          example: 153
-        total_pages:
-          type: integer
-          description: The total number of pages available.
-          example: 16
-      required:
-        - page
-        - limit
-        - total_records
-        - total_pages
+          format: int32
+          description: Number of records to skip for pagination.
+          default: 0
+          minimum: 0
+          nullable: true
 
-    CheckinBase: # Base fields common to check-in responses
+    AddCheckinNoteParams:
       type: object
       properties:
-        id:
-          type: integer
-          format: int64
-          description: Unique identifier for the check-in record.
-          readOnly: true
-        site_id:
-          type: integer
-          format: int64
-          description: ID of the site where the check-in occurred.
-        first_name:
+        checkin_id:
           type: string
-          description: First name of the person checking in.
-        last_name:
-          type: string
-          description: Last name of the person checking in.
-        check_in_time:
-          type: string
-          format: date-time
-          description: Timestamp when the check-in occurred.
-        notified_staff_id:
-          type: integer
-          format: int64
-          nullable: true
-          description: ID of the staff member notified (if any).
-        client_email:
-          type: string
-          format: email
-          nullable: true
-          description: Email address provided during check-in.
-        client_id:
-          type: integer
-          format: int64
-          nullable: true
-          description: ID of the registered client account, if applicable (null for manual check-ins).
-      required:
-        - id
-        - site_id
-        - first_name
-        - last_name
-        - check_in_time
-
-    CheckinFull: # Includes legacy q_* fields from check_ins table
-      allOf:
-        - $ref: '#/components/schemas/CheckinBase'
-        - type: object
-          properties:
-            q_veteran:
-              type: string
-              nullable: true
-              enum: ['Yes', 'No', 'Decline to Answer']
-            q_age:
-              type: string
-              nullable: true
-              enum: ['16-18', '19-24', '25-44', '45-54', '55-64', '65+', 'Decline to Answer']
-            q_interviewing: # Example, add others as needed
-              type: string
-              nullable: true
-              enum: ['Yes', 'No', 'Decline to Answer']
-            # Add other q_* fields from schema if needed for full representation
-
-    CheckinNote:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-          description: Unique identifier for the check-in note.
-          readOnly: true
-        check_in_id:
-          type: integer
-          format: int64
-          description: ID of the check-in this note is associated with.
+          description: ID of the check-in to add the note to.
+          example: "chk_123abc"
         note_text:
           type: string
           description: The content of the note.
-        created_by_user_id:
-          type: integer
-          format: int64
-          nullable: true
-          description: ID of the staff user who created the note (if applicable).
-          readOnly: true
-        created_by_api_key_id:
-          type: integer
-          format: int64
-          nullable: true
-          description: ID of the API key used to create the note (if applicable).
-          readOnly: true
-        created_at:
-          type: string
-          format: date-time
-          description: Timestamp when the note was created.
-          readOnly: true
-        deleted_at:
-          type: string
-          format: date-time
-          nullable: true
-          description: Timestamp when the note was soft-deleted (if applicable).
-          readOnly: true
-      required:
-        - id
-        - check_in_id
-        - note_text
-        - created_at
-
-    Allocation:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-          description: Unique identifier for the allocation record.
-          readOnly: true
-        budget_id:
-          type: integer
-          format: int64
-          description: ID of the budget this allocation belongs to.
-        transaction_date:
-          type: string
-          format: date
-          description: Date of the allocation transaction.
-        vendor_id:
-          type: integer
-          format: int64
-          nullable: true
-          description: ID of the associated vendor (if applicable).
-        client_name:
-          type: string
-          nullable: true
-          description: Name of the client associated with the allocation (if applicable).
-        voucher_number:
-          type: string
-          nullable: true
-          description: Voucher number for the allocation.
-        enrollment_date:
-          type: string
-          format: date
-          nullable: true
-        class_start_date:
-          type: string
-          format: date
-          nullable: true
-        purchase_date:
-          type: string
-          format: date
-          nullable: true
-        payment_status:
-          type: string
-          enum: ['P', 'U', 'Void']
-          description: Payment status (P=Paid, U=Unpaid, Void).
-        program_explanation:
-          type: string
-          nullable: true
-          description: Explanation of the program/service.
-        # funding_* fields (DECIMAL) - Represent as number or string based on precision needs
-        funding_dw:
-          type: number
-          format: float # Or string if exact decimal precision is critical
-          nullable: true
-        funding_dw_admin:
-          type: number
-          format: float
-          nullable: true
-        funding_dw_sus:
-          type: number
-          format: float
-          nullable: true
-        funding_adult:
-          type: number
-          format: float
-          nullable: true
-        funding_adult_admin:
-          type: number
-          format: float
-          nullable: true
-        funding_adult_sus:
-          type: number
-          format: float
-          nullable: true
-        funding_rr:
-          type: number
-          format: float
-          nullable: true
-        funding_h1b:
-          type: number
-          format: float
-          nullable: true
-        funding_youth_is:
-          type: number
-          format: float
-          nullable: true
-        funding_youth_os:
-          type: number
-          format: float
-          nullable: true
-        funding_youth_admin:
-          type: number
-          format: float
-          nullable: true
-        # fin_* fields
-        fin_voucher_received:
-          type: string
-          nullable: true
-        fin_accrual_date:
-          type: string
-          format: date
-          nullable: true
-        fin_obligated_date:
-          type: string
-          format: date
-          nullable: true
-        fin_comments:
-          type: string
-          format: text # Changed from text to string for OpenAPI compatibility
-          nullable: true
-        fin_expense_code:
-          type: string
-          nullable: true
-        fin_processed_by_user_id:
-          type: integer
-          format: int64
-          nullable: true
-          readOnly: true
-        created_by_user_id:
-          type: integer
-          format: int64
-          nullable: true
-          readOnly: true
-        updated_by_user_id:
-          type: integer
-          format: int64
-          nullable: true
-          readOnly: true
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-        updated_at:
-          type: string
-          format: date-time
-          nullable: true
-          readOnly: true
-        deleted_at:
-          type: string
-          format: date-time
-          nullable: true
-          readOnly: true
-        # Fields joined from budgets table
-        budget_name:
-          type: string
-          description: Name of the associated budget.
-          readOnly: true
-        fiscal_year_start:
-          type: string
-          format: date
-          description: Start date of the budget's fiscal year.
-          readOnly: true
-        grant_id:
-          type: integer
-          format: int64
-          description: ID of the grant associated with the budget.
-          readOnly: true
-        department_id:
-          type: integer
-          format: int64
-          description: ID of the department associated with the budget.
-          readOnly: true
-        budget_owner_user_id: # Added for allocation_detail report
-           type: integer
-           format: int64
-           nullable: true
-           description: User ID of the budget owner.
-           readOnly: true
-      required:
-        - id
-        - budget_id
-        - transaction_date
-        - payment_status
-        - created_at
-
-    ForumPost:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-          description: Unique identifier for the forum post.
-          readOnly: true
-        topic_id:
-          type: integer
-          format: int64
-          description: ID of the forum topic this post belongs to.
-        content:
-          type: string
-          description: The content of the forum post.
+          example: "Client requires follow-up."
         user_id:
-          type: integer
-          format: int64
-          nullable: true
-          description: ID of the staff user who created the post (if applicable).
-          readOnly: true
-        created_by_api_key_id:
-          type: integer
-          format: int64
-          nullable: true
-          description: ID of the API key used to create the post (if applicable).
-          readOnly: true
-        created_at:
           type: string
-          format: date-time
-          description: Timestamp when the post was created.
-          readOnly: true
-      required:
-        - id
-        - topic_id
-        - content
-        - created_at
+          description: Optional ID of the user/agent adding the note, if different from authenticated agent.
+          example: "staff_789"
+          nullable: true
+      required: [checkin_id, note_text]
 
-    ForumPostResponse:
-      allOf:
-        - $ref: '#/components/schemas/ForumPost'
-        - type: object
-          properties:
-            topic_title:
-              type: string
-              description: Title of the forum topic the post belongs to.
-              readOnly: true
-              example: "General Discussion"
-            author_full_name:
-              type: string
-              description: Full name of the user who created the post.
-              readOnly: true
-              example: "Jane Doe"
-          required:
-            - topic_title
-            - author_full_name # Assuming these are always returned
-
-    ForumPostListResponse:
+    QueryAllocationsParams:
       type: object
       properties:
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/ForumPostResponse'
-        pagination:
-          $ref: '#/components/schemas/Pagination'
-      required:
-        - data
-        - pagination
-
-    Client: # New Schema for Client Data
-      type: object
-      description: Represents a client record.
-      properties:
-        id:
-          type: integer
-          format: int64
-          description: Unique identifier for the client.
-          readOnly: true
-        first_name:
+        grant_id:
           type: string
-          description: Client's first name.
-          example: "John"
-        last_name:
-          type: string
-          description: Client's last name.
-          example: "Doe"
-        email:
-          type: string
-          format: email
-          description: Client's email address.
-          example: "john.doe@example.com"
-        site_id:
-          type: integer
-          format: int64
-          nullable: true
-          description: ID of the client's primary associated site.
-          example: 1
-        client_qr_identifier:
-          type: string
-          format: uuid # Assuming UUID, adjust if different
-          description: Unique identifier used for the client's QR code.
-          readOnly: true
-          example: "f81d4fae-7dec-11d0-a765-00a0c91e6bf6"
-        email_preference_jobs:
-          type: boolean
-          description: Indicates if the client opted-in to receive job-related emails (true=OptIn, false=OptOut).
-          example: true
-      required:
-        - id
-        - first_name
-        - last_name
-        - email
-        - client_qr_identifier
-        - email_preference_jobs
-
-    ClientListResponse: # New Schema for List of Clients with Pagination
-      type: object
-      description: A paginated list of client records.
-      properties:
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/Client'
-        pagination:
-          $ref: '#/components/schemas/Pagination'
-      required:
-        - data
-        - pagination
-
-paths:
-  /checkins/{checkin_id}:
-    get:
-      tags:
-        - Checkins
-      summary: Fetch Check-in Details
-      description: Retrieves the details of a specific check-in record by its ID.
-      operationId: getCheckinById
-      parameters:
-        - name: checkin_id
-          in: path
-          required: true
-          description: The numeric ID of the check-in record to retrieve.
-          schema:
-            type: integer
-            format: int64
-            minimum: 1
-      security:
-        - ApiKeyAuth: []
-        - ApiKeyAuthAlternative: [] # Document alternative header
-      responses:
-        '200':
-          description: Check-in details retrieved successfully.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CheckinFull' # Use the full schema including q_* fields
-        '400':
-          description: Bad Request - Invalid Check-in ID format.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Invalid Check-in ID format. ID must be a positive integer."
-                  code: "INVALID_ID_FORMAT"
-        '401':
-          description: Unauthorized - Invalid or missing API Key.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Authentication failed. Invalid or missing API Key."
-                  code: "AUTH_FAILED"
-        '403':
-          description: Forbidden - API Key lacks required permission.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Permission denied. API key requires the 'read:checkin_data' permission."
-                  code: "AUTH_FORBIDDEN"
-        '404':
-          description: Not Found - Check-in record with the specified ID does not exist.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Check-in not found for ID: 123."
-                  code: "NOT_FOUND"
-        '500':
-          description: Internal Server Error - Database or unexpected error.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Database error occurred while fetching check-in data."
-                  code: "DB_EXECUTION_ERROR"
-
-  /checkins/{checkin_id}/notes:
-    post:
-      tags:
-        - Checkins
-      summary: Add Check-in Note
-      description: Adds a textual note to an existing check-in record.
-      operationId: addCheckinNote
-      parameters:
-        - name: checkin_id
-          in: path
-          required: true
-          description: The numeric ID of the check-in record to add a note to.
-          schema:
-            type: integer
-            format: int64
-            minimum: 1
-      requestBody:
-        description: The note content.
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                note_text:
-                  type: string
-                  description: The text content of the note.
-                  example: "Client expressed interest in the upcoming workshop."
-              required:
-                - note_text
-      security:
-        - ApiKeyAuth: []
-        - ApiKeyAuthAlternative: []
-      responses:
-        '201':
-          description: Note created successfully.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CheckinNote'
-        '400':
-          description: Bad Request - Invalid Check-in ID format or missing note text.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                invalidId:
-                  summary: Invalid ID Format
-                  value:
-                    error:
-                      message: "Invalid Check-in ID format. ID must be a positive integer."
-                      code: "INVALID_ID_FORMAT"
-                missingNote:
-                  summary: Missing Note Text
-                  value:
-                    error:
-                      message: "Request body must include 'note_text'."
-                      code: "MISSING_PARAMETER"
-        '401':
-          description: Unauthorized - Invalid or missing API Key.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Authentication failed. Invalid or missing API Key."
-                  code: "AUTH_FAILED"
-        '403':
-          description: Forbidden - API Key lacks required permission.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Permission denied. API key requires the 'create:checkin_note' permission."
-                  code: "AUTH_FORBIDDEN"
-        '404':
-          description: Not Found - Check-in record with the specified ID does not exist.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Check-in not found for ID: 456."
-                  code: "NOT_FOUND"
-        '500':
-          description: Internal Server Error - Database or unexpected error.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Database error occurred while adding check-in note."
-                  code: "DB_EXECUTION_ERROR"
-
-  /allocations:
-    get:
-      tags:
-        - Allocations
-      summary: Query Allocations
-      description: Retrieves a list of budget allocations based on specified filter criteria. Requires 'read:budget_allocations' permission.
-      operationId: queryAllocations
-      parameters:
-        - name: fiscal_year
-          in: query
-          required: false
-          description: Filter by fiscal year (e.g., 2024).
-          schema:
-            type: integer
-        - name: grant_id
-          in: query
-          required: false
           description: Filter by grant ID.
-          schema:
-            type: integer
-        - name: department_id
-          in: query
-          required: false
+          example: "grant_xyz"
+          nullable: true
+        department_id:
+          type: string
           description: Filter by department ID.
-          schema:
-            type: integer
-        - name: budget_id
-          in: query
-          required: false
-          description: Filter by budget ID.
-          schema:
-            type: integer
-        - name: page
-          in: query
-          required: false
-          description: Page number for pagination.
-          schema:
-            type: integer
-            default: 1
-            minimum: 1
-        - name: limit
-          in: query
-          required: false
-          description: Number of records per page.
-          schema:
-            type: integer
-            default: 50
-            minimum: 1
-            maximum: 100 # Example maximum limit
-      security:
-        - ApiKeyAuth: []
-        - ApiKeyAuthAlternative: []
-      responses:
-        '200':
-          description: List of allocations retrieved successfully.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Allocation'
-                  pagination:
-                    $ref: '#/components/schemas/Pagination'
-                required:
-                  - data
-                  - pagination
-        '400':
-          description: Bad Request - Invalid filter parameter format.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Invalid format for 'fiscal_year'. Must be an integer."
-                  code: "INVALID_PARAMETER_FORMAT"
-        '401':
-          description: Unauthorized - Invalid or missing API Key.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Authentication failed. Invalid or missing API Key."
-                  code: "AUTH_FAILED"
-        '403':
-          description: Forbidden - API Key lacks required permission.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Permission denied. API key requires the 'read:budget_allocations' permission."
-                  code: "AUTH_FORBIDDEN"
-        '500':
-          description: Internal Server Error - Database or unexpected error.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Database error occurred while querying allocations."
-                  code: "DB_EXECUTION_ERROR"
+          example: "dept_abc"
+          nullable: true
+        start_date:
+          type: string
+          format: date
+          description: Filter by allocations on or after this date (YYYY-MM-DD).
+          nullable: true
+        end_date:
+          type: string
+          format: date
+          description: Filter by allocations on or before this date (YYYY-MM-DD).
+          nullable: true
+        limit:
+          type: integer
+          format: int32
+          description: Maximum number of records to return.
+          default: 20
+          minimum: 1
+          nullable: true
+        offset:
+          type: integer
+          format: int32
+          description: Number of records to skip for pagination.
+          default: 0
+          minimum: 0
+          nullable: true
 
-  /forum/posts:
-    get:
-      tags:
-        - Forum
-      summary: Read All Forum Posts
-      description: Retrieves a paginated list of all forum posts accessible to the API key. Requires 'read:all_forum_posts' permission.
-      operationId: getAllForumPosts
-      parameters:
-        - name: page
-          in: query
-          required: false
-          description: Page number for pagination.
-          schema:
-            type: integer
-            default: 1
-            minimum: 1
-        - name: limit
-          in: query
-          required: false
-          description: Number of posts per page.
-          schema:
-            type: integer
-            default: 25
-            minimum: 1
-            maximum: 100
-      security:
-        - ApiKeyAuth: []
-        - ApiKeyAuthAlternative: []
-      responses:
-        '200':
-          description: List of forum posts retrieved successfully.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ForumPostListResponse'
-        '401':
-          description: Unauthorized - Invalid or missing API Key.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Authentication failed. Invalid or missing API Key."
-                  code: "AUTH_FAILED"
-        '403':
-          description: Forbidden - API Key lacks required permission.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Permission denied. API key requires the 'read:all_forum_posts' permission."
-                  code: "AUTH_FORBIDDEN"
-        '500':
-          description: Internal Server Error.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Database error occurred while fetching forum posts."
-                  code: "DB_EXECUTION_ERROR"
-    post:
-      tags:
-        - Forum
-      summary: Create Forum Post
-      description: Creates a new post in a specified forum topic. Requires 'create:forum_post' permission.
-      operationId: createForumPost
-      requestBody:
-        description: The details of the forum post to create.
-        required: true
+    CreateForumPostParams:
+      type: object
+      properties:
+        topic_id:
+          type: string
+          description: ID of the forum topic to post in.
+          example: "topic_gen_discussion"
+        title:
+          type: string
+          description: Title of the new forum post.
+          example: "New Training Opportunity"
         content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                topic_id:
-                  type: integer
-                  format: int64
-                  description: The ID of the topic to post in.
-                  example: 5
-                post_body:
-                  type: string
-                  description: The content of the forum post.
-                  example: "This is a new post created via the API."
-              required:
-                - topic_id
-                - post_body
-      security:
-        - ApiKeyAuth: []
-        - ApiKeyAuthAlternative: []
-      responses:
-        '201':
-          description: Forum post created successfully.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ForumPost' # Returns the created post object
-        '400':
-          description: Bad Request - Missing required fields, invalid topic ID, or invalid input format.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                missingField:
-                  summary: Missing Field
-                  value:
-                    error:
-                      message: "Request body must include 'topic_id' and 'post_body'."
-                      code: "MISSING_PARAMETER"
-                invalidTopic:
-                  summary: Invalid Topic ID
-                  value:
-                    error:
-                      message: "Invalid Topic ID: 999 does not exist."
-                      code: "INVALID_TOPIC_ID"
-        '401':
-          description: Unauthorized - Invalid or missing API Key.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Authentication failed. Invalid or missing API Key."
-                  code: "AUTH_FAILED"
-        '403':
-          description: Forbidden - API Key lacks required permission.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Permission denied. API key requires the 'create:forum_post' permission."
-                  code: "AUTH_FORBIDDEN"
-        '404': # Added based on checkTopicExists fix
-          description: Not Found - The specified topic_id does not exist.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Topic not found for ID: 999."
-                  code: "NOT_FOUND"
-        '500':
-          description: Internal Server Error - Database or unexpected error.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Database error occurred while creating forum post."
-                  code: "DB_EXECUTION_ERROR"
+          type: string
+          description: Content of the new forum post.
+          example: "Details about the upcoming workshop..."
+        user_id:
+          type: string
+          description: Optional ID of the user on whose behalf the agent is posting.
+          example: "user_client_123"
+          nullable: true
+      required: [topic_id, title, content]
 
-  /forum/posts/recent:
-    get:
-      tags:
-        - Forum
-      summary: Read Recent Forum Posts
-      description: Retrieves a list of the most recent forum posts accessible to the API key. Requires 'read:recent_forum_posts' permission.
-      operationId: getRecentForumPosts
-      parameters:
-        - name: limit
-          in: query
-          required: false
-          description: Maximum number of recent posts to return.
-          schema:
-            type: integer
-            default: 10
-            minimum: 1
-            maximum: 50
-      security:
-        - ApiKeyAuth: []
-        - ApiKeyAuthAlternative: []
-      responses:
-        '200':
-          description: List of recent forum posts retrieved successfully.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/ForumPostResponse' # Use the response schema including topic/author
-                required:
-                  - data
-        '401':
-          description: Unauthorized - Invalid or missing API Key.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Authentication failed. Invalid or missing API Key."
-                  code: "AUTH_FAILED"
-        '403':
-          description: Forbidden - API Key lacks required permission.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Permission denied. API key requires the 'read:recent_forum_posts' permission."
-                  code: "AUTH_FORBIDDEN"
-        '500':
-          description: Internal Server Error.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Database error occurred while fetching recent forum posts."
-                  code: "DB_EXECUTION_ERROR"
-
-  /reports:
-    get:
-      tags:
-        - Reports
-      summary: Generate Reports
-      description: Generates various reports based on the specified type and filters. Requires 'generate:reports' base permission, plus specific scope permissions based on the report type.
-      operationId: generateReport
-      parameters:
-        - name: type
-          in: query
-          required: true
-          description: Specifies the type of report to generate.
-          schema:
-            type: string
-            enum: [checkin_detail, allocation_detail] # Add other report types as they are implemented
-          example: checkin_detail
-        - name: start_date
-          in: query
-          required: false
-          description: Start date for the report data (YYYY-MM-DD).
-          schema:
-            type: string
-            format: date
-        - name: end_date
-          in: query
-          required: false
-          description: End date for the report data (YYYY-MM-DD).
-          schema:
-            type: string
-            format: date
-        - name: site_id # Applicable to checkin_detail with read:all_checkin_data
-          in: query
-          required: false
-          description: Filter check-in reports by site ID (requires 'read:all_checkin_data' permission).
-          schema:
-            type: integer
-        - name: department_id # Applicable to allocation_detail with read:all_allocation_data
-          in: query
-          required: false
-          description: Filter allocation reports by department ID (requires 'read:all_allocation_data' permission).
-          schema:
-            type: integer
-        - name: grant_id # Applicable to allocation_detail with read:all_allocation_data
-          in: query
-          required: false
-          description: Filter allocation reports by grant ID (requires 'read:all_allocation_data' permission).
-          schema:
-            type: integer
-        - name: budget_id # Applicable to allocation_detail with read:all_allocation_data
-          in: query
-          required: false
-          description: Filter allocation reports by budget ID (requires 'read:all_allocation_data' permission).
-          schema:
-            type: integer
-        - name: user_id # Applicable to allocation_detail with read:all_allocation_data
-          in: query
-          required: false
-          description: Filter allocation reports by budget owner user ID (requires 'read:all_allocation_data' permission).
-          schema:
-            type: integer
-        - name: page
-          in: query
-          required: false
-          description: Page number for pagination.
-          schema:
-            type: integer
-            default: 1
-            minimum: 1
-        - name: limit
-          in: query
-          required: false
-          description: Number of records per page.
-          schema:
-            type: integer
-            default: 50
-            minimum: 1
-            maximum: 100
-      security:
-        - ApiKeyAuth: []
-        - ApiKeyAuthAlternative: []
-      responses:
-        '200':
-          description: Report generated successfully. The structure depends on the 'type' parameter.
-          content:
-            application/json:
-              schema:
-                oneOf: # Use oneOf to indicate different possible response structures
-                  - $ref: '#/components/schemas/CheckinReportResponse' # Define this schema below
-                  - $ref: '#/components/schemas/AllocationReportResponse' # Define this schema below
-              examples:
-                checkinReportExample:
-                  summary: Example Check-in Detail Report Response
-                  value:
-                    report_type: "checkin_detail"
-                    generated_at: "2024-05-01T10:30:00Z"
-                    filters:
-                      start_date: "2024-04-01"
-                      end_date: "2024-04-30"
-                    data:
-                      - id: 101
-                        site_id: 1
-                        first_name: "Jane"
-                        last_name: "Smith"
-                        check_in_time: "2024-04-15T09:05:10Z"
-                        client_id: 55
-                        # ... other checkin fields
-                      # ... more checkin records
-                    pagination:
-                      page: 1
-                      limit: 50
-                      total_records: 75
-                      total_pages: 2
-                allocationReportExample:
-                  summary: Example Allocation Detail Report Response
-                  value:
-                    report_type: "allocation_detail"
-                    generated_at: "2024-05-01T10:35:00Z"
-                    filters:
-                      fiscal_year: 2024
-                      department_id: 2
-                    data:
-                      - id: 205
-                        budget_id: 15
-                        transaction_date: "2024-04-20"
-                        vendor_id: 8
-                        client_name: "Workshop Attendee"
-                        payment_status: "P"
-                        funding_dw: 150.00
-                        # ... other allocation fields
-                      # ... more allocation records
-                    pagination:
-                      page: 1
-                      limit: 50
-                      total_records: 30
-                      total_pages: 1
-        '400':
-          description: Bad Request - Missing 'type' parameter, invalid 'type', or invalid filter format.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                missingType:
-                  summary: Missing Type Parameter
-                  value:
-                    error:
-                      message: "Required query parameter 'type' is missing."
-                      code: "MISSING_PARAMETER"
-                invalidType:
-                  summary: Invalid Report Type
-                  value:
-                    error:
-                      message: "Invalid report type specified: 'invalid_report'. Allowed types: checkin_detail, allocation_detail."
-                      code: "INVALID_PARAMETER_VALUE"
-                invalidDate:
-                  summary: Invalid Date Format
-                  value:
-                    error:
-                      message: "Invalid format for 'start_date'. Use YYYY-MM-DD."
-                      code: "INVALID_PARAMETER_FORMAT"
-        '401':
-          description: Unauthorized - Invalid or missing API Key.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Authentication failed. Invalid or missing API Key."
-                  code: "AUTH_FAILED"
-        '403':
-          description: Forbidden - API Key lacks 'generate:reports' permission or required scope permission (e.g., 'read:all_checkin_data', 'read:site_checkin_data', 'read:all_allocation_data', 'read:own_allocation_data') or associated ID is missing/invalid.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                missingBasePermission:
-                  summary: Missing Base Permission
-                  value:
-                    error:
-                      message: "Permission denied. API key requires the 'generate:reports' permission."
-                      code: "AUTH_FORBIDDEN"
-                missingScopePermission:
-                  summary: Missing Scope Permission
-                  value:
-                    error:
-                      message: "Permission denied. API key requires 'read:all_checkin_data' or 'read:site_checkin_data' scope for 'checkin_detail' report."
-                      code: "AUTH_FORBIDDEN_SCOPE"
-                missingAssociatedId:
-                  summary: Missing Associated ID
-                  value:
-                    error:
-                      message: "Permission scope 'read:site_checkin_data' requires an associated_site_id on the API key."
-                      code: "AUTH_MISSING_ASSOCIATED_ID"
-        '500':
-          description: Internal Server Error - Database or unexpected error during report generation.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Database error occurred while generating the report."
-                  code: "DB_EXECUTION_ERROR"
-
-  # --- NEW CLIENT ENDPOINTS ---
-  /clients:
-    get:
-      tags:
-        - Clients
-      summary: List Clients
-      description: Retrieves a paginated list of clients, optionally filtered by name, email, or QR identifier. Requires 'read:client_data' permission. Filters are applied using simple substring matching (LIKE '%value%').
-      operationId: listClients
-      parameters:
-        - name: name
-          in: query
-          required: false
-          description: Filter clients by first OR last name (case-insensitive substring match). For an AND search on both first and last name, use the 'firstName' and 'lastName' parameters instead.
-          schema:
-            type: string
-          example: "Doe"
-        - name: firstName # New parameter
-          in: query
-          required: false
-          description: Filter clients by first name (substring match). Use with lastName for AND search.
-          schema:
-            type: string
-          example: "John"
-        - name: lastName # New parameter
-          in: query
-          required: false
-          description: Filter clients by last name (substring match). Use with firstName for AND search.
-          schema:
-            type: string
-          example: "Smith"
-        - name: email
-          in: query
-          required: false
-          description: Filter clients by email address (case-insensitive substring match).
-          schema:
-            type: string
-            format: email
-          example: "example.com"
-        - name: qr_identifier
-          in: query
-          required: false
-          description: Filter clients by their exact QR identifier.
-          schema:
-            type: string
-            format: uuid # Assuming UUID
-          example: "f81d4fae-7dec-11d0-a765-00a0c91e6bf6"
-        - name: page
-          in: query
-          required: false
-          description: Page number for pagination.
-          schema:
-            type: integer
-            default: 1
-            minimum: 1
-        - name: limit
-          in: query
-          required: false
-          description: Number of clients per page.
-          schema:
-            type: integer
-            default: 10
-            minimum: 1
-            maximum: 100
-      security:
-        - ApiKeyAuth: []
-        - ApiKeyAuthAlternative: []
-      responses:
-        '200':
-          description: A paginated list of clients retrieved successfully.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ClientListResponse'
-        '400':
-          description: Bad Request - Invalid filter parameter format (e.g., non-integer page/limit).
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Invalid format for 'page'. Must be a positive integer."
-                  code: "INVALID_PARAMETER_FORMAT"
-        '401':
-          description: Unauthorized - Invalid or missing API Key.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Authentication failed. Invalid or missing API Key."
-                  code: "AUTH_FAILED"
-        '403':
-          description: Forbidden - API Key lacks required 'read:client_data' permission.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Permission denied. API key requires the 'read:client_data' permission."
-                  code: "AUTH_FORBIDDEN"
-        '500':
-          description: Internal Server Error - Database or unexpected error.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Database error occurred while fetching client list."
-                  code: "DB_EXECUTION_ERROR"
-
-  /clients/{client_id}:
-    get:
-      tags:
-        - Clients
-      summary: Get Client by ID
-      description: Retrieves the details of a specific client by their unique ID. Requires 'read:client_data' permission.
-      operationId: getClientById
-      parameters:
-        - name: client_id
-          in: path
-          required: true
-          description: The numeric ID of the client to retrieve.
-          schema:
-            type: integer
-            format: int64
-            minimum: 1
-      security:
-        - ApiKeyAuth: []
-        - ApiKeyAuthAlternative: []
-      responses:
-        '200':
-          description: Client details retrieved successfully.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Client'
-        '400':
-          description: Bad Request - Invalid Client ID format.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Invalid Client ID format. ID must be a positive integer."
-                  code: "INVALID_ID_FORMAT"
-        '401':
-          description: Unauthorized - Invalid or missing API Key.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Authentication failed. Invalid or missing API Key."
-                  code: "AUTH_FAILED"
-        '403':
-          description: Forbidden - API Key lacks required 'read:client_data' permission.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Permission denied. API key requires the 'read:client_data' permission."
-                  code: "AUTH_FORBIDDEN"
-        '404':
-          description: Not Found - Client with the specified ID does not exist or is deleted.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Client not found for ID: 789."
-                  code: "NOT_FOUND"
-        '500':
-          description: Internal Server Error - Database or unexpected error.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  message: "Database error occurred while fetching client data."
-                  code: "DB_EXECUTION_ERROR"
-
-# --- Helper Schemas for Report Responses ---
-components: # Add these under the main components section if not already there
-  schemas:
-    # ... existing schemas ...
-    CheckinReportResponse:
+    GenerateReportsParams:
       type: object
       properties:
         report_type:
           type: string
-          enum: [checkin_detail]
-        generated_at:
+          description: Type of report to generate.
+          enum: [checkin_summary, client_activity, allocation_summary, forum_activity, site_usage]
+          example: "checkin_summary"
+        start_date:
           type: string
-          format: date-time
-        filters:
-          type: object # Define specific filter properties if needed
-          additionalProperties: true
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/CheckinFull' # Use the full checkin schema
-        pagination:
-          $ref: '#/components/schemas/Pagination'
-      required:
-        - report_type
-        - generated_at
-        - data
-        - pagination
-
-    AllocationReportResponse:
-      type: object
-      properties:
-        report_type:
+          format: date
+          description: Start date for the report period (YYYY-MM-DD).
+          example: "2023-01-01"
+        end_date:
           type: string
-          enum: [allocation_detail]
-        generated_at:
+          format: date
+          description: End date for the report period (YYYY-MM-DD).
+          example: "2023-01-31"
+        site_id:
           type: string
-          format: date-time
+          description: Optional site ID to filter the report.
+          example: "site_001"
+          nullable: true
+        department_id:
+          type: string
+          description: Optional department ID for allocation reports.
+          nullable: true
+        grant_id:
+          type: string
+          description: Optional grant ID for allocation reports.
+          nullable: true
         filters:
           type: object
+          description: Additional key-value pairs for report-specific filters.
           additionalProperties: true
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/Allocation' # Use the detailed allocation schema
-        pagination:
-          $ref: '#/components/schemas/Pagination'
-      required:
-        - report_type
-        - generated_at
-        - data
-        - pagination
-# Ensure indentation is correct if merging this back into the main components/schemas section
+          nullable: true
+          example: {"service_type": "resume_workshop"}
+      required: [report_type, start_date, end_date]
+
+    ReadAllForumPostsParams:
+      type: object
+      properties:
+        topic_id:
+          type: string
+          description: Filter posts by topic ID.
+          example: "topic_jobs"
+          nullable: true
+        user_id:
+          type: string
+          description: Filter posts by author (user ID).
+          example: "user_staff_456"
+          nullable: true
+        limit:
+          type: integer
+          format: int32
+          description: Maximum number of posts to return.
+          default: 20
+          minimum: 1
+          nullable: true
+        offset:
+          type: integer
+          format: int32
+          description: Number of posts to skip for pagination.
+          default: 0
+          minimum: 0
+          nullable: true
+
+    ReadRecentForumPostsParams:
+      type: object
+      properties:
+        limit:
+          type: integer
+          format: int32
+          description: Number of recent posts to return.
+          default: 5
+          minimum: 1
+          maximum: 50
+          nullable: true
+        topic_id:
+          type: string
+          description: Optional topic ID to get recent posts from.
+          example: "topic_announcements"
+          nullable: true
+
+    FetchClientDetailsParams:
+      type: object
+      properties:
+        client_id:
+          type: string
+          description: ID of the client to retrieve.
+          example: "cli_789ghi"
+      required: [client_id]
+
+    QueryClientsParams:
+      type: object
+      properties:
+        first_name:
+          type: string
+          description: Filter by client's first name (partial match).
+          nullable: true
+        last_name:
+          type: string
+          description: Filter by client's last name (partial match).
+          nullable: true
+        email:
+          type: string
+          description: Filter by client's email address (exact match).
+          nullable: true
+        status:
+          type: string
+          description: Filter by client status.
+          enum: [active, inactive, pending_verification]
+          nullable: true
+        site_id:
+          type: string
+          description: Filter by client's registered site ID.
+          nullable: true
+        limit:
+          type: integer
+          format: int32
+          description: Maximum number of records to return.
+          default: 20
+          minimum: 1
+          nullable: true
+        offset:
+          type: integer
+          format: int32
+          description: Number of records to skip for pagination.
+          default: 0
+          minimum: 0
+          nullable: true
+
+    # Action-Specific Data Schemas (for GatewaySuccessResponse.data.oneOf)
+    CheckinDetails:
+      type: object
+      description: Detailed information about a single check-in.
+      properties:
+        checkin_id: { type: string, example: "chk_123" }
+        client_id: { type: string, example: "cli_456" }
+        client_name: { type: string, example: "John Doe" }
+        site_id: { type: string, example: "site_789" }
+        site_name: { type: string, example: "Downtown Office" }
+        checkin_time: { type: string, format: date-time, example: "2023-10-26T10:00:00Z" }
+        checkout_time: { type: string, format: date-time, nullable: true, example: "2023-10-26T11:30:00Z" }
+        status: { type: string, enum: [active, completed, cancelled], example: "active" }
+        purpose_of_visit: { type: string, example: "Job search assistance" }
+        services_received: { type: array, items: { type: string }, example: ["Resume review", "Workshop enrollment"] }
+        notes: { type: array, items: { $ref: '#/components/schemas/CheckinNote' } }
+      required: [checkin_id, client_id, client_name, site_id, site_name, checkin_time, status, purpose_of_visit]
+
+    CheckinNote:
+      type: object
+      description: A note associated with a check-in.
+      properties:
+        note_id: { type: string, example: "note_abc" }
+        note_text: { type: string, example: "Client was very engaged." }
+        created_by_user_id: { type: string, example: "user_xyz", description: "ID of the staff member or agent who added the note." }
+        created_by_user_name: { type: string, example: "Jane Smith (Staff)" }
+        created_at: { type: string, format: date-time, example: "2023-10-26T10:15:00Z" }
+      required: [note_id, note_text, created_by_user_id, created_by_user_name, created_at]
+
+    CheckinList:
+      type: array
+      description: A list of check-in details.
+      items:
+        $ref: '#/components/schemas/CheckinDetails'
+
+    CheckinNoteConfirmation:
+      type: object
+      description: Confirmation of adding a check-in note.
+      properties:
+        note_id: { type: string, example: "note_def" }
+        checkin_id: { type: string, example: "chk_123" }
+        message: { type: string, example: "Note added successfully to check-in." }
+      required: [note_id, checkin_id, message]
+
+    AllocationDetails:
+      type: object
+      description: Detailed information about a single allocation.
+      properties:
+        allocation_id: { type: string, example: "alloc_001" }
+        grant_id: { type: string, example: "grant_abc" }
+        grant_name: { type: string, example: "Workforce Development Grant 2023" }
+        department_id: { type: string, example: "dept_finance" }
+        department_name: { type: string, example: "Finance Department" }
+        amount: { type: number, format: float, example: 5000.00 }
+        allocation_date: { type: string, format: date, example: "2023-07-01" }
+        notes: { type: string, nullable: true, example: "Initial funding for Q3 projects." }
+      required: [allocation_id, grant_id, grant_name, department_id, department_name, amount, allocation_date]
+
+    AllocationList:
+      type: array
+      description: A list of allocation details.
+      items:
+        $ref: '#/components/schemas/AllocationDetails'
+
+    ForumPostConfirmation:
+      type: object
+      description: Confirmation of creating a forum post.
+      properties:
+        post_id: { type: string, example: "post_ghi789" }
+        topic_id: { type: string, example: "topic_gen_discussion" }
+        title: { type: string, example: "New Training Opportunity" }
+        message: { type: string, example: "Forum post created successfully." }
+      required: [post_id, topic_id, title, message]
+
+    ForumPostDetails:
+      type: object
+      description: Detailed information about a single forum post.
+      properties:
+        post_id: { type: string, example: "post_jkl012" }
+        topic_id: { type: string, example: "topic_jobs" }
+        topic_title: { type: string, example: "Job Opportunities" }
+        user_id: { type: string, example: "user_client_123" }
+        author_name: { type: string, example: "Alice Wonderland" }
+        title: { type: string, example: "Looking for a Web Developer Role" }
+        content: { type: string, example: "I have 5 years of experience..." }
+        created_at: { type: string, format: date-time, example: "2023-11-01T14:30:00Z" }
+        updated_at: { type: string, format: date-time, nullable: true, example: "2023-11-01T15:00:00Z" }
+        reply_count: { type: integer, format: int32, example: 5 }
+      required: [post_id, topic_id, topic_title, user_id, author_name, title, content, created_at, reply_count]
+
+    ForumPostList:
+      type: array
+      description: A list of forum post details.
+      items:
+        $ref: '#/components/schemas/ForumPostDetails'
+
+    ReportData:
+      type: object
+      description: >
+        The structure of this object varies based on the 'report_type' requested.
+        It typically contains a title, generation timestamp, parameters used, and the main content of the report.
+      properties:
+        title:
+          type: string
+          example: "Check-in Summary Report (Jan 2023)"
+        generated_at:
+          type: string
+          format: date-time
+          example: "2023-02-01T10:00:00Z"
+        parameters:
+          type: object
+          description: Parameters used to generate this report.
+          additionalProperties: true
+          example: {"report_type": "checkin_summary", "start_date": "2023-01-01", "end_date": "2023-01-31"}
+        content:
+          type: object # Or array, depending on the report. Using object for flexibility.
+          description: The main data of the report. Structure is report-specific.
+          additionalProperties: true
+          example: {"total_checkins": 150, "average_duration_minutes": 45, "by_site": [{"site_id": "site_001", "count": 100}]}
+      required: [title, generated_at, parameters, content]
+
+    ClientDetails:
+      type: object
+      description: Detailed information about a single client.
+      properties:
+        client_id: { type: string, example: "cli_mno345" }
+        first_name: { type: string, example: "Robert" }
+        last_name: { type: string, example: "Smith" }
+        email: { type: string, format: email, example: "robert.smith@example.com" }
+        phone: { type: string, nullable: true, example: "555-0101" }
+        address: { type: string, nullable: true, example: "123 Main St" }
+        city: { type: string, nullable: true, example: "Anytown" }
+        state: { type: string, nullable: true, example: "AZ" }
+        zip_code: { type: string, nullable: true, example: "85001" }
+        registration_date: { type: string, format: date, example: "2022-05-15" }
+        last_activity_date: { type: string, format: date, nullable: true, example: "2023-10-20" }
+        status: { type: string, enum: [active, inactive, pending_verification], example: "active" }
+        site_id: { type: string, nullable: true, example: "site_002", description: "Primary site associated with the client." }
+        site_name: { type: string, nullable: true, example: "North Branch" }
+        preferred_contact_method: { type: string, enum: [email, phone, mail], nullable: true, example: "email" }
+      required: [client_id, first_name, last_name, email, registration_date, status]
+
+    ClientList:
+      type: array
+      description: A list of client details.
+      items:
+        $ref: '#/components/schemas/ClientDetails'

@@ -71,6 +71,8 @@ if (!$is_client_facing_page) {
             'qr_checkin.php' => ['kiosk'], // Allow kiosk role for QR check-in AJAX handler
             'client_editor.php' => ['director', 'administrator'], // Added access for Director and Administrator
             'api_keys_handler.php' => ['administrator'], // Corrected: Use basename for AJAX handler access rule
+            'save_checkin_answers_handler.php' => ['azwk_staff', 'director', 'administrator'], // Allow staff to save check-in answers
+            'get_recent_checkins_handler.php' => ['azwk_staff', 'outside_staff', 'director', 'administrator'], // For dashboard AJAX refresh
             // NOTE: index.php is intentionally NOT listed. Logged-in users might be redirected from index.php elsewhere.
         ];
 
