@@ -5,18 +5,7 @@
 // auth.php is included first. It will attempt to start/resume AZWK_STAFF_SESSION.
 // It also provides is_logged_in() and check_permission().
 require_once '../includes/auth.php';
-error_log("[QR_DEBUG] About to require db_connect.php in qr_code.php");
 require '../includes/db_connect.php'; // For database access; changed from require_once to ensure $db is in global scope
-if (isset($db) && $db !== null) {
-    error_log("[QR_DEBUG] db_connect.php included. \$db IS SET and NOT NULL in qr_code.php.");
-    if ($db instanceof PDO) {
-        error_log("[QR_DEBUG] \$db is an instance of PDO.");
-    } else {
-        error_log("[QR_DEBUG] \$db IS SET but NOT an instance of PDO. Type: " . gettype($db));
-    }
-} else {
-    error_log("[QR_DEBUG] db_connect.php included. \$db IS NULL or NOT SET in qr_code.php. isset(\$db): " . (isset($db) ? 'true' : 'false'));
-}
 
 $client_id_for_qr_display = null; // Actual client ID whose QR is being displayed
 $client_qr_identifier = null;     // The QR identifier string
