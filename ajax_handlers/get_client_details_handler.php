@@ -59,30 +59,11 @@ try {
     $can_view_this_client = false;
     $client_actual_site_id = $client_profile['site_id'];
 
-// --- BEGIN HANDLER PERMISSION DEBUG ---
-        error_log("[HANDLER_DEBUG] Client ID: " . $client_id);
-        error_log("[HANDLER_DEBUG] Session User ID: " . (isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 'NOT SET'));
-        error_log("[HANDLER_DEBUG] Session Username: " . (isset($_SESSION['username']) ? $_SESSION['username'] : 'NOT SET'));
-        error_log("[HANDLER_DEBUG] Session Active Role: " . (isset($_SESSION['active_role']) ? $_SESSION['active_role'] : 'NOT SET'));
-        error_log("[HANDLER_DEBUG] Session Site ID (\$session_site_id): " . (isset($session_site_id) ? $session_site_id : 'NOT SET'));
-        error_log("[HANDLER_DEBUG] Client's Actual Site ID (\$client_actual_site_id): " . (isset($client_actual_site_id) ? $client_actual_site_id : 'NOT SET or NOT YET FETCHED'));
-        
-        // Specifically for the 'azwk_staff' condition that was added:
-        if (isset($_SESSION['active_role']) && $_SESSION['active_role'] === 'azwk_staff') {
-            error_log("[HANDLER_DEBUG] AZWK_STAFF CHECK: Role is 'azwk_staff'.");
-            error_log("[HANDLER_DEBUG] AZWK_STAFF CHECK: isset(\$session_site_id) = " . (isset($session_site_id) ? 'true' : 'false'));
-            if (isset($session_site_id) && isset($client_actual_site_id)) {
-                 error_log("[HANDLER_DEBUG] AZWK_STAFF CHECK: \$client_actual_site_id (" . $client_actual_site_id . ") === \$session_site_id (" . $session_site_id . ") = " . ($client_actual_site_id === $session_site_id ? 'true' : 'false'));
-            } else {
-                 error_log("[HANDLER_DEBUG] AZWK_STAFF CHECK: \$client_actual_site_id or \$session_site_id not set for comparison.");
-            }
-        }
-        // --- END HANDLER PERMISSION DEBUG ---
     if ($is_global_admin_or_director) {
         $can_view_this_client = true;
-    } elseif ($is_site_admin_session && $client_actual_site_id === $session_site_id) {
+    } elseif ($is_site_admin_session && $client_actual_site_id == $session_site_id) { // Changed === to ==
         $can_view_this_client = true;
-} elseif (isset($_SESSION['active_role']) && $_SESSION['active_role'] === 'azwk_staff' && isset($session_site_id) && $client_actual_site_id === $session_site_id) { // azwk_staff viewing their own site's client
+    } elseif (isset($_SESSION['active_role']) && $_SESSION['active_role'] === 'azwk_staff' && isset($session_site_id) && $client_actual_site_id == $session_site_id) { // azwk_staff viewing their own site's client // Changed === to ==
         $can_view_this_client = true;
     }
 
