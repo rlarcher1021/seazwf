@@ -152,7 +152,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $is_staff_viewing && isset($_SESSION['viewing_client_name']) ? htmlspecialchars($_SESSION['viewing_client_name']) . "'s QR Code" : "Your QR Code"; ?> - Arizona@Work</title>
+    <title><?php echo $is_staff_viewing && isset($client_data_staff['first_name']) && isset($client_data_staff['last_name']) ? htmlspecialchars(trim($client_data_staff['first_name'] . ' ' . $client_data_staff['last_name'])) . "'s QR Code" : "Your QR Code"; ?> - Arizona@Work</title>
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <!-- Optional: Add custom CSS if needed -->
@@ -210,11 +210,23 @@ try {
     <!-- Main Content -->
     <div class="container">
         <div class="qr-container">
-            <?php if ($is_staff_viewing && isset($_SESSION['viewing_client_name'])): ?>
-                <h1 class="mb-1">QR Code for <?php echo $_SESSION['viewing_client_name']; ?></h1>
-                <p class="text-muted mb-4">Client ID: <?php echo htmlspecialchars($client_id_for_qr_display); ?></p>
-            <?php else: ?>
-                <h1 class="mb-4">Your Check-In QR Code</h1>
+            <?php
+            if ($is_staff_viewing && isset($client_data_staff['first_name']) && isset($client_data_staff['last_name'])) {
+                $page_main_heading = htmlspecialchars(trim($client_data_staff['first_name'] . ' ' . $client_data_staff['last_name'])) . "'s QR Code";
+            } elseif (!$is_staff_viewing && isset($_SESSION['client_first_name']) && isset($_SESSION['client_last_name'])) { // Assuming client self-view might have these in session
+                $page_main_heading = htmlspecialchars(trim($_SESSION['client_first_name'] . ' ' . $_SESSION['client_last_name'])) . "'s QR Code";
+            } elseif (!$is_staff_viewing) { // Client self-view fallback
+                 $page_main_heading = "Your Check-In QR Code";
+            } else { // Fallback for staff if name isn't available
+                $page_main_heading = "Client QR Code";
+                if (isset($client_id_for_qr_display)) {
+                     $page_main_heading .= " (ID: " . htmlspecialchars($client_id_for_qr_display) . ")";
+                }
+            }
+            ?>
+            <h1 class="mb-1"><?php echo $page_main_heading; ?></h1>
+            <?php if ($is_staff_viewing && isset($client_id_for_qr_display)): ?>
+                <p class="text-muted mb-4">Client ID: <?php echo htmlspecialchars($client_id_for_qr_display); // Keep showing Client ID for staff ?></p>
             <?php endif; ?>
 
             <?php if (!empty($error_message)): ?>
