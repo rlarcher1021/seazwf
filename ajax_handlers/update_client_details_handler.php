@@ -28,12 +28,15 @@ if (!is_logged_in()) {
     exit;
 }
 
-$is_global_admin_or_director = isset($_SESSION['active_role']) && in_array($_SESSION['active_role'], ['administrator', 'director']);
+$session_user_role = $_SESSION['active_role'] ?? null; // Define session role
+$is_global_admin_or_director = $session_user_role && in_array($session_user_role, ['administrator', 'director']);
 $is_site_admin = isset($_SESSION['is_site_admin']) && $_SESSION['is_site_admin'] == 1;
+$is_azwk_staff = $session_user_role === 'azwk_staff'; // Define if user is azwk_staff
 $session_site_id = isset($_SESSION['active_site_id']) && $_SESSION['active_site_id'] !== '' ? (int)$_SESSION['active_site_id'] : null;
 $session_user_id = $_SESSION['user_id'] ?? null;
 
-if (!$is_global_admin_or_director && !$is_site_admin) {
+// Allow administrators, directors, site admins, or azwk_staff to proceed to more specific checks
+if (!($is_global_admin_or_director || $is_site_admin || $is_azwk_staff)) {
     $response['message'] = 'Access Denied: You do not have permission to update client details.';
     echo json_encode($response);
     exit;
@@ -42,8 +45,8 @@ if (!$is_global_admin_or_director && !$is_site_admin) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // 3. Retrieve and Sanitize Input
     $client_id = filter_input(INPUT_POST, 'client_id', FILTER_VALIDATE_INT);
-    $first_name = trim(filter_input(INPUT_POST, 'first_name', FILTER_SANITIZE_STRING));
-    $last_name = trim(filter_input(INPUT_POST, 'last_name', FILTER_SANITIZE_STRING));
+    $first_name = trim(filter_input(INPUT_POST, 'first_name', FILTER_DEFAULT));
+    $last_name = trim(filter_input(INPUT_POST, 'last_name', FILTER_DEFAULT));
     $site_id_form = filter_input(INPUT_POST, 'site_id', FILTER_VALIDATE_INT); // Renamed to avoid conflict
     $email_preference_jobs = isset($_POST['email_preference_jobs']) ? 1 : 0;
 
@@ -81,6 +84,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($is_global_admin_or_director) {
             $can_edit_this_client = true;
         } elseif ($is_site_admin && $original_client_site_id === $session_site_id) {
+            $can_edit_this_client = true;
+        } elseif ($is_azwk_staff && $original_client_site_id === $session_site_id) {
+            // Allow azwk_staff to edit clients if the client belongs to their site
             $can_edit_this_client = true;
         }
     } else {
