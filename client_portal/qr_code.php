@@ -23,7 +23,7 @@ if (is_logged_in()) {
             $target_client_id_from_get = (int)$_GET['client_id'];
 
             $stmt_staff = $db->prepare("SELECT client_qr_identifier, first_name, last_name FROM clients WHERE id = ? AND deleted_at IS NULL");
-            $stmt_staff->bind_param("i", $target_client_id_from_get);
+            $stmt_staff->bindParam(1, $target_client_id_from_get, PDO::PARAM_INT);
             $stmt_staff->execute();
             $result_staff = $stmt_staff->get_result();
 
@@ -68,7 +68,7 @@ if (!$is_staff_viewing) {
             $client_qr_identifier = $_SESSION['qr_identifier'];
         } else {
             $stmt_client = $db->prepare("SELECT client_qr_identifier FROM clients WHERE id = ? AND deleted_at IS NULL");
-            $stmt_client->bind_param("i", $client_id_for_qr_display);
+            $stmt_client->bindParam(1, $client_id_for_qr_display, PDO::PARAM_INT);
             $stmt_client->execute();
             $result_client = $stmt_client->get_result();
             if ($client_data_client = $result_client->fetch_assoc()) {
