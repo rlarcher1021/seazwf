@@ -1,4 +1,5 @@
 <?php
+error_log("[DB_CONNECT_DEBUG] db_connect.php execution started.");
 // includes/db_connect.php
 
 // --- Add PHPMailer use statements at the top (even if not used directly here, good practice) ---
@@ -82,6 +83,14 @@ try {
     exit;
 }
 
+if (isset($pdo) && $pdo !== null && $pdo instanceof PDO) {
+    error_log("[DB_CONNECT_DEBUG] db_connect.php execution finished. \$pdo is a valid PDO object.");
+} elseif (isset($pdo)) {
+    error_log("[DB_CONNECT_DEBUG] db_connect.php execution finished. \$pdo IS SET but is NOT a valid PDO object or is null. Type: " . gettype($pdo));
+} 
+else {
+    error_log("[DB_CONNECT_DEBUG] db_connect.php execution finished. \$pdo IS NOT SET.");
+}
 
 // ===============================================
 // --- Helper Functions ---
