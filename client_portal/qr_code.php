@@ -5,7 +5,7 @@
 // auth.php is included first. It will attempt to start/resume AZWK_STAFF_SESSION.
 // It also provides is_logged_in() and check_permission().
 require_once '../includes/auth.php';
-require_once '../includes/db_connect.php'; // For database access
+require '../includes/db_connect.php'; // For database access; changed from require_once to ensure $db is in global scope
 
 $client_id_for_qr_display = null; // Actual client ID whose QR is being displayed
 $client_qr_identifier = null;     // The QR identifier string
