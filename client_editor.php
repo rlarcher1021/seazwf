@@ -544,8 +544,9 @@ require_once 'includes/header.php'; // Include the standard site header
                 </div>
             </div>
             <div class="modal-footer">
+                <button type="button" class="btn btn-info mr-auto" id="btnViewClientQrCode"><i class="fas fa-qrcode"></i> View/Print QR Code</button>
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" id="saveClientChangesBtn">Save Changes</button> <!-- Save functionality is out of scope for this task, but button is here -->
+                <button type="button" class="btn btn-primary" id="saveClientChangesBtn">Save Changes</button>
             </div>
         </div>
     </div>
@@ -563,6 +564,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var button = $(event.relatedTarget); // Button that triggered the modal
         var clientId = button.data('client-id'); // Extract info from data-* attributes
         var modal = $(this);
+        modal.data('clientId', clientId); // Store clientId on the modal
 
         // Clear previous content and show loading
         modal.find('#editClientModalFormContent').html('<p class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading client data...</p>');
@@ -760,6 +762,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+// Handle View/Print QR Code button click
+    $('#btnViewClientQrCode').on('click', function() {
+        var clientId = $('#editClientModal').data('clientId');
+        if (clientId) {
+            var qrCodeUrl = 'client_portal/qr_code.php?client_id=' + encodeURIComponent(clientId);
+            window.open(qrCodeUrl, '_blank');
+        } else {
+            alert('Could not retrieve client ID to generate QR code.');
+            console.error('Client ID not found on modal for QR code generation.');
+        }
+    });
     function escapeHtml(unsafe) {
         if (typeof unsafe !== 'string') {
             if (unsafe === null || typeof unsafe === 'undefined') return '';
