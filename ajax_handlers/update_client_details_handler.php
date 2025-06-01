@@ -75,6 +75,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+// --- BEGIN UPDATE HANDLER PERMISSION DEBUG ---
+    error_log("[UPDATE_HANDLER_DEBUG] Attempting to update Client ID: " . (isset($client_id) ? $client_id : 'NOT SET'));
+    error_log("[UPDATE_HANDLER_DEBUG] Session User ID: " . (isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 'NOT SET'));
+    error_log("[UPDATE_HANDLER_DEBUG] Session Username: " . (isset($_SESSION['username']) ? $_SESSION['username'] : 'NOT SET'));
+    error_log("[UPDATE_HANDLER_DEBUG] Session Active Role: " . (isset($_SESSION['active_role']) ? $_SESSION['active_role'] : 'NOT SET'));
+    
+    // $session_site_id is usually derived from $_SESSION['active_site_id']
+    $log_session_site_id = isset($_SESSION['active_site_id']) ? $_SESSION['active_site_id'] : 'NOT SET';
+    error_log("[UPDATE_HANDLER_DEBUG] Session Active Site ID (from \$_SESSION['active_site_id']): " . $log_session_site_id);
+
+    // $client_actual_site_id is crucial. It's often fetched from the database based on $client_id.
+    // Ensure $originalClientData (or however client's current data is fetched) is available here.
+    // If $originalClientData is fetched *inside* the permission block, this specific log might need adjustment or duplication.
+    $log_client_actual_site_id = 'NOT YET FETCHED or NOT AVAILABLE';
+    if (isset($originalClientData) && isset($originalClientData['profile']['site_id'])) {
+        $log_client_actual_site_id = $originalClientData['profile']['site_id'];
+    } elseif (isset($client_details) && isset($client_details['site_id'])) { // Alternative if variable name is different
+        $log_client_actual_site_id = $client_details['site_id'];
+    }
+    error_log("[UPDATE_HANDLER_DEBUG] Client's Actual Site ID (e.g., from \$originalClientData['profile']['site_id']): " . $log_client_actual_site_id);
+    
+    // Log the specific 'azwk_staff' check conditions
+    if (isset($_SESSION['active_role']) && $_SESSION['active_role'] === 'azwk_staff') {
+        error_log("[UPDATE_HANDLER_DEBUG] AZWK_STAFF UPDATE CHECK: Role is 'azwk_staff'.");
+        error_log("[UPDATE_HANDLER_DEBUG] AZWK_STAFF UPDATE CHECK: Session Active Site ID is set = " . (isset($_SESSION['active_site_id']) ? 'true' : 'false'));
+        if (isset($_SESSION['active_site_id']) && $log_client_actual_site_id !== 'NOT YET FETCHED or NOT AVAILABLE') {
+             error_log("[UPDATE_HANDLER_DEBUG] AZWK_STAFF UPDATE CHECK: Client Site ID (" . $log_client_actual_site_id . ") == Session Site ID (" . $_SESSION['active_site_id'] . ") = " . ($log_client_actual_site_id == $_SESSION['active_site_id'] ? 'true' : 'false'));
+        } else {
+             error_log("[UPDATE_HANDLER_DEBUG] AZWK_STAFF UPDATE CHECK: Client Site ID or Session Site ID not available for comparison.");
+        }
+    }
+    // --- END UPDATE HANDLER PERMISSION DEBUG ---
+
+    // The actual permission block (if/elseif/else) starts after this logging.
     // 5. Permission Check (Crucial - based on ORIGINAL client data's site_id)
     $can_edit_this_client = false;
     $originalClientData = getClientDetailsForEditing($pdo, $client_id); // Re-fetch for security
