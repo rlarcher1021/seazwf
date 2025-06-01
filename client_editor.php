@@ -722,10 +722,10 @@ document.addEventListener('DOMContentLoaded', function() {
             unsafe = String(unsafe);
         }
         return unsafe
-             .replace(/&/g, "&")
-             .replace(/</g, "<")
-             .replace(/>/g, ">")
-             .replace(/"/g, """)
+.replace(/&amp;/g, "&amp;")
+.replace(/&lt;/g, "&lt;")
+.replace(/&gt;/g, "&gt;")
+.replace(/"/g, "&amp;quot;")
              .replace(/'/g, "&#039;");
     }
 });
