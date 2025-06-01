@@ -1,104 +1,109 @@
 <?php
-// --- Include Staff Auth and DB Connect FIRST ---
-// auth.php will handle staff session start if not a client page,
-// but we need its functions (is_logged_in, check_permission)
-require_once '../includes/auth.php'; // Provides is_logged_in() and check_permission()
+// File: client_portal/qr_code.php
+
+// 1. Include dependencies
+// auth.php is included first. It will attempt to start/resume AZWK_STAFF_SESSION.
+// It also provides is_logged_in() and check_permission().
+require_once '../includes/auth.php';
 require_once '../includes/db_connect.php'; // For database access
 
-// --- Client Session Handling (Attempt) ---
-// Use the distinct session name established in client_login.php
-if (session_status() == PHP_SESSION_NONE) {
-    // If auth.php (for staff) didn't start a session, and we are here,
-    // it's likely a direct access or client context. Start client session.
-    session_name("CLIENT_SESSION");
-    session_start();
-} else {
-    // A session is already started. If it's a staff session, CLIENT_SESSION might not be set.
-    // If it's already a CLIENT_SESSION, session_name() would have been called before.
-    // This logic assumes auth.php handles its own session_name if it starts one.
-    // If current session is default staff and we need CLIENT_SESSION, this needs care.
-    // For now, assume if a session exists, it's either the one we want or staff.
-}
+$client_id_for_qr_display = null; // Actual client ID whose QR is being displayed
+$client_qr_identifier = null;     // The QR identifier string
+$is_staff_viewing = false;        // Flag to adapt UI for staff
+$error_message = null;            // To store any error messages
+// $page_title_info is used to build $_SESSION['viewing_client_name'] for staff
+// and the HTML title defaults to "Your QR Code" if not staff.
 
-$client_id = null;
-$client_qr_identifier = null;
-$is_staff_viewing = false;
-$error_message = null;
-
-// --- Authentication and Data Retrieval Logic ---
-
-// 1. Check for Logged-in Client
-if (isset($_SESSION['CLIENT_SESSION']) && isset($_SESSION['CLIENT_SESSION']['client_id'])) {
-    $client_id = $_SESSION['CLIENT_SESSION']['client_id'];
-    $client_qr_identifier = $_SESSION['CLIENT_SESSION']['qr_identifier'] ?? null;
-
-    if (empty($client_qr_identifier)) {
-        $error_message = "Error: QR Code identifier not found in your client session. Please contact support.";
-    }
-}
-// 2. If Not Client, Check for Logged-in Staff
-// The is_logged_in() function from auth.php checks for staff session variables like $_SESSION['user_id'] and $_SESSION['active_role']
-elseif (is_logged_in()) {
+// 2. Check for Staff Access FIRST
+// is_logged_in() checks AZWK_STAFF_SESSION variables (e.g., $_SESSION['user_id'], $_SESSION['role'])
+if (is_logged_in()) {
     $allowed_staff_roles = ['azwk_staff', 'director', 'administrator'];
     if (check_permission($allowed_staff_roles)) {
-        if (isset($_GET['client_id']) && filter_var($_GET['client_id'], FILTER_VALIDATE_INT)) {
-            $target_client_id = (int)$_GET['client_id'];
+        if (isset($_GET['client_id']) && filter_var($_GET['client_id'], FILTER_VALIDATE_INT) && $_GET['client_id'] > 0) {
+            $target_client_id_from_get = (int)$_GET['client_id'];
 
-            // Fetch client_qr_identifier from the database for the target_client_id
-            $stmt = $db->prepare("SELECT client_qr_identifier, first_name, last_name FROM clients WHERE id = ? AND deleted_at IS NULL");
-            $stmt->bind_param("i", $target_client_id);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            if ($client_data = $result->fetch_assoc()) {
-                $client_qr_identifier = $client_data['client_qr_identifier'];
-                $client_id = $target_client_id; // Set client_id for context, though it's the target
-                $is_staff_viewing = true;
-                // Store client name for display if staff is viewing
-                $_SESSION['viewing_client_name'] = htmlspecialchars($client_data['first_name'] . ' ' . $client_data['last_name']);
+            $stmt_staff = $db->prepare("SELECT client_qr_identifier, first_name, last_name FROM clients WHERE id = ? AND deleted_at IS NULL");
+            $stmt_staff->bind_param("i", $target_client_id_from_get);
+            $stmt_staff->execute();
+            $result_staff = $stmt_staff->get_result();
 
-                if (empty($client_qr_identifier)) {
-                    $error_message = "Error: QR Code identifier not found for the specified client (ID: {$target_client_id}).";
+            if ($client_data_staff = $result_staff->fetch_assoc()) {
+                if (!empty($client_data_staff['client_qr_identifier'])) {
+                    $client_qr_identifier = $client_data_staff['client_qr_identifier'];
+                    $client_id_for_qr_display = $target_client_id_from_get;
+                    $is_staff_viewing = true;
+                    $staff_view_client_name = htmlspecialchars($client_data_staff['first_name'] . ' ' . $client_data_staff['last_name']);
+                    // These session variables are used by the existing HTML template
+                    $_SESSION['viewing_client_name'] = $staff_view_client_name;
+                    $_SESSION['viewing_client_id'] = $client_id_for_qr_display;
+                } else {
+                    $error_message = "Error: QR Code identifier not found for the specified client (ID: {$target_client_id_from_get}). The client may need to complete their profile.";
                 }
             } else {
-                $error_message = "Error: Client not found or no QR identifier available for Client ID {$target_client_id}.";
+                $error_message = "Error: Client not found or access denied for Client ID {$target_client_id_from_get}.";
             }
-            $stmt->close();
+            $stmt_staff->close();
         } else {
-            $error_message = "Error: Client ID not specified or invalid for staff view.";
+            $error_message = "Error: A valid Client ID must be provided for staff to view a QR code. Please use the link from the client management page.";
         }
     } else {
-        // Staff role not permitted to view QR codes this way.
-        // This case should ideally be prevented by the calling page (client_editor.php)
-        // but as a fallback:
-        $error_message = "Access Denied: Your staff role does not permit viewing client QR codes directly.";
-        // Potentially redirect or show a more generic error to avoid info leakage.
-        // For now, we'll let it fall through to the main error display.
+        $error_message = "Access Denied: Your staff role does not permit viewing client QR codes in this manner.";
+        $is_staff_viewing = true; // Treat as a staff interaction that failed, to skip client logic.
     }
-}
-// 3. If Neither Client nor Authorized Staff
-else {
-    // No client session, and no staff session, or staff session without permission.
-    // Redirect to the client login page as a default fallback.
-    header("Location: ../client_login.php?error=session_required_or_permission_denied");
-    exit;
 }
 
-// If there was an error during data retrieval, display it and stop.
-if ($error_message) {
-    // Display error and exit.
-    // We can make this nicer later, for now, a simple die.
-    // Consider a proper error display within the HTML structure.
-    // For now, let's set a session flash message if possible and redirect or die.
-    // Since we might be in client context, set a generic session var for error.
-    $_SESSION['qr_page_error'] = $error_message;
-    // Redirecting to profile might be an option if client was logged in but had an issue.
-    // If staff had an issue, redirecting them back to client_editor might be better.
-    // For simplicity, we'll display the error on this page if we reach the HTML part.
-    // The die() below will prevent HTML rendering if error is critical.
-    if (empty($client_qr_identifier)) { // Critical error if QR ID is still missing
-         // We will display this error within the HTML structure below.
+// 3. If NOT Staff Viewing (i.e., $is_staff_viewing is still false)
+//    Then, it's a client attempting to view their own QR code.
+if (!$is_staff_viewing) {
+    if (session_name() !== 'CLIENT_SESSION') {
+        session_name('CLIENT_SESSION');
+    }
+    if (session_status() == PHP_SESSION_NONE) {
+        session_start();
+    }
+
+    if (isset($_SESSION['client_id'])) {
+        $client_id_for_qr_display = $_SESSION['client_id'];
+        if (isset($_SESSION['qr_identifier']) && !empty($_SESSION['qr_identifier'])) {
+            $client_qr_identifier = $_SESSION['qr_identifier'];
+        } else {
+            $stmt_client = $db->prepare("SELECT client_qr_identifier FROM clients WHERE id = ? AND deleted_at IS NULL");
+            $stmt_client->bind_param("i", $client_id_for_qr_display);
+            $stmt_client->execute();
+            $result_client = $stmt_client->get_result();
+            if ($client_data_client = $result_client->fetch_assoc()) {
+                if (!empty($client_data_client['client_qr_identifier'])) {
+                    $client_qr_identifier = $client_data_client['client_qr_identifier'];
+                    $_SESSION['qr_identifier'] = $client_qr_identifier;
+                } else {
+                    $error_message = "Error: QR Code identifier not found in your profile. Please complete your profile or contact support.";
+                }
+            } else {
+                $error_message = "Error: Could not retrieve your client details. Please try logging in again.";
+                unset($_SESSION['client_id']); // Force re-login
+                unset($_SESSION['qr_identifier']);
+            }
+            $stmt_client->close();
+        }
+    } else {
+        header("Location: ../client_login.php?error=session_expired_or_not_logged_in_qr");
+        exit;
     }
 }
+
+// 4. Final check for QR identifier before proceeding to QR generation
+if (empty($client_qr_identifier) && empty($error_message)) {
+    if ($is_staff_viewing) {
+        // This case should ideally be covered by specific errors in staff logic
+        $error_message = "An unexpected error occurred: Client QR identifier is missing for staff view after initial checks.";
+    } else {
+        // This case should ideally be covered by specific errors in client logic
+        $error_message = "An unexpected error occurred: Your QR identifier is missing after initial checks. Please try again or contact support.";
+    }
+}
+// Note: The original lines 86-101 for general error display are implicitly covered.
+// If $error_message is set, the HTML part will show it.
+// If $client_qr_identifier is still empty, the HTML part has a fallback.
 
 
 require_once '../vendor/autoload.php'; // For QR code library
@@ -140,7 +145,7 @@ try {
     $qr_code_data_uri = $qr_code_result->getDataUri();
 
 } catch (Exception $e) {
-    error_log("QR Code Generation Error for client ID {$client_id}: " . $e->getMessage());
+    error_log("QR Code Generation Error for client ID {$client_id_for_qr_display}: " . $e->getMessage());
     $qr_code_data_uri = null; // Handle error case
 }
 
@@ -210,7 +215,7 @@ try {
         <div class="qr-container">
             <?php if ($is_staff_viewing && isset($_SESSION['viewing_client_name'])): ?>
                 <h1 class="mb-1">QR Code for <?php echo $_SESSION['viewing_client_name']; ?></h1>
-                <p class="text-muted mb-4">Client ID: <?php echo htmlspecialchars($client_id); ?></p>
+                <p class="text-muted mb-4">Client ID: <?php echo htmlspecialchars($client_id_for_qr_display); ?></p>
             <?php else: ?>
                 <h1 class="mb-4">Your Check-In QR Code</h1>
             <?php endif; ?>
