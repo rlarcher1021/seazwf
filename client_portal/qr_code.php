@@ -25,9 +25,7 @@ if (is_logged_in()) {
             $stmt_staff = $db->prepare("SELECT client_qr_identifier, first_name, last_name FROM clients WHERE id = ? AND deleted_at IS NULL");
             $stmt_staff->bindParam(1, $target_client_id_from_get, PDO::PARAM_INT);
             $stmt_staff->execute();
-            $result_staff = $stmt_staff->get_result();
-
-            if ($client_data_staff = $result_staff->fetch_assoc()) {
+            if ($client_data_staff = $stmt_staff->fetch(PDO::FETCH_ASSOC)) {
                 if (!empty($client_data_staff['client_qr_identifier'])) {
                     $client_qr_identifier = $client_data_staff['client_qr_identifier'];
                     $client_id_for_qr_display = $target_client_id_from_get;
@@ -42,7 +40,7 @@ if (is_logged_in()) {
             } else {
                 $error_message = "Error: Client not found or access denied for Client ID {$target_client_id_from_get}.";
             }
-            $stmt_staff->close();
+            $stmt_staff->closeCursor();
         } else {
             $error_message = "Error: A valid Client ID must be provided for staff to view a QR code. Please use the link from the client management page.";
         }
@@ -70,8 +68,7 @@ if (!$is_staff_viewing) {
             $stmt_client = $db->prepare("SELECT client_qr_identifier FROM clients WHERE id = ? AND deleted_at IS NULL");
             $stmt_client->bindParam(1, $client_id_for_qr_display, PDO::PARAM_INT);
             $stmt_client->execute();
-            $result_client = $stmt_client->get_result();
-            if ($client_data_client = $result_client->fetch_assoc()) {
+            if ($client_data_client = $stmt_client->fetch(PDO::FETCH_ASSOC)) {
                 if (!empty($client_data_client['client_qr_identifier'])) {
                     $client_qr_identifier = $client_data_client['client_qr_identifier'];
                     $_SESSION['qr_identifier'] = $client_qr_identifier;
@@ -83,7 +80,7 @@ if (!$is_staff_viewing) {
                 unset($_SESSION['client_id']); // Force re-login
                 unset($_SESSION['qr_identifier']);
             }
-            $stmt_client->close();
+            $stmt_client->closeCursor();
         }
     } else {
         header("Location: ../client_login.php?error=session_expired_or_not_logged_in_qr");
