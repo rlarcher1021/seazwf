@@ -73,6 +73,7 @@ if (!$is_client_facing_page) {
             'api_keys_handler.php' => ['administrator'], // Corrected: Use basename for AJAX handler access rule
             'save_checkin_answers_handler.php' => ['azwk_staff', 'director', 'administrator'], // Allow staff to save check-in answers
             'get_recent_checkins_handler.php' => ['azwk_staff', 'outside_staff', 'director', 'administrator'], // For dashboard AJAX refresh
+            'get_client_details_handler.php' => ['azwk_staff', 'director', 'administrator'], // For client editor modal
             // NOTE: index.php is intentionally NOT listed. Logged-in users might be redirected from index.php elsewhere.
         ];
 
