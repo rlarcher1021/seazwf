@@ -106,6 +106,38 @@ try {
         $client_id = $client['id'];
         $client_first_name = $client['first_name'];
 
+        // --- Cooldown Check ---
+        $sql_last_checkin = "SELECT UNIX_TIMESTAMP(check_in_time) AS last_checkin_timestamp FROM check_ins WHERE client_id = :client_id ORDER BY check_in_time DESC LIMIT 1";
+        $stmt_last_checkin = $pdo->prepare($sql_last_checkin);
+        $stmt_last_checkin->bindParam(':client_id', $client_id, PDO::PARAM_INT);
+        error_log("Cooldown Check - Client ID: " . $client_id); // DEBUG
+        $stmt_last_checkin->execute();
+        $last_checkin = $stmt_last_checkin->fetch(PDO::FETCH_ASSOC);
+        error_log("Cooldown Check - Last Checkin Record: " . print_r($last_checkin, true)); // DEBUG
+
+        if ($last_checkin && isset($last_checkin['last_checkin_timestamp'])) {
+            $last_checkin_time = (int)$last_checkin['last_checkin_timestamp'];
+            $current_time = time();
+            $five_minutes_ago = $current_time - (5 * 60); // 5 minutes in seconds
+
+            // DEBUGGING OUTPUT
+            error_log("Cooldown Debug: Last Checkin Time: $last_checkin_time (" . date('Y-m-d H:i:s', $last_checkin_time) . ")");
+            error_log("Cooldown Debug: Current Time: $current_time (" . date('Y-m-d H:i:s', $current_time) . ")");
+            error_log("Cooldown Debug: Five Minutes Ago: $five_minutes_ago (" . date('Y-m-d H:i:s', $five_minutes_ago) . ")");
+            error_log("Cooldown Debug: Comparison (last_checkin_time > five_minutes_ago): " . ($last_checkin_time > $five_minutes_ago ? 'TRUE' : 'FALSE'));
+            // END DEBUGGING OUTPUT
+
+            if ($last_checkin_time > $five_minutes_ago) {
+                http_response_code(429); // Too Many Requests
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'You have checked in recently. Please wait 5 minutes before checking in again.'
+                ]);
+                exit;
+            }
+        }
+        // --- End Cooldown Check ---
+
         // --- Fetch Client Answers (including question_id and title) ---
         $sql_get_answers = "SELECT gq.id AS question_id, gq.question_title, ca.answer
                             FROM client_answers ca

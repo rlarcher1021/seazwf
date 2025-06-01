@@ -103,44 +103,6 @@ if (empty($client_qr_identifier) && empty($error_message)) {
 // If $client_qr_identifier is still empty, the HTML part has a fallback.
 
 
-// --- BEGIN QR STAFF NAME DEBUG ---
-        if ($is_staff_viewing) { // Double-check we are in the staff path
-            error_log("[QR_STAFF_NAME_DEBUG] In staff viewing path.");
-            if (isset($client_data_staff)) {
-                error_log("[QR_STAFF_NAME_DEBUG] \$client_data_staff dump: " . print_r($client_data_staff, true));
-                $debug_page_title = "Default QR Title";
-                $debug_page_main_heading = "Default QR Heading";
-
-                if (isset($client_data_staff['first_name']) && isset($client_data_staff['last_name']) && !empty(trim($client_data_staff['first_name'])) && !empty(trim($client_data_staff['last_name']))) {
-                    $fullName = trim($client_data_staff['first_name'] . ' ' . $client_data_staff['last_name']);
-                    $debug_page_title = htmlspecialchars($fullName) . "'s QR Code - Arizona@Work";
-                    $debug_page_main_heading = htmlspecialchars($fullName) . "'s QR Code";
-                     error_log("[QR_STAFF_NAME_DEBUG] Name found: " . $fullName);
-                } else {
-                    $debug_page_title = "Client QR Code (ID: " . htmlspecialchars($target_client_id_from_get) . ") - Arizona@Work";
-                    $debug_page_main_heading = "Client QR Code (ID: " . htmlspecialchars($target_client_id_from_get) . ")";
-                    error_log("[QR_STAFF_NAME_DEBUG] Name NOT found or empty in \$client_data_staff. Using ID.");
-                }
-                error_log("[QR_STAFF_NAME_DEBUG] \$debug_page_title = " . $debug_page_title);
-                error_log("[QR_STAFF_NAME_DEBUG] \$debug_page_main_heading = " . $debug_page_main_heading);
-                
-                // Also log the actual variables being used by the HTML template, if different
-                if (isset($page_title)) {
-                     error_log("[QR_STAFF_NAME_DEBUG] Actual \$page_title before HTML: " . $page_title);
-                } else {
-                     error_log("[QR_STAFF_NAME_DEBUG] Actual \$page_title is NOT SET before HTML.");
-                }
-                if (isset($page_main_heading)) {
-                     error_log("[QR_STAFF_NAME_DEBUG] Actual \$page_main_heading before HTML: " . $page_main_heading);
-                } else {
-                     error_log("[QR_STAFF_NAME_DEBUG] Actual \$page_main_heading is NOT SET before HTML.");
-                }
-
-            } else {
-                error_log("[QR_STAFF_NAME_DEBUG] \$client_data_staff is NOT SET.");
-            }
-        }
-        // --- END QR STAFF NAME DEBUG ---
 require_once '../vendor/autoload.php'; // For QR code library
 
 use Endroid\QrCode\Builder\Builder;

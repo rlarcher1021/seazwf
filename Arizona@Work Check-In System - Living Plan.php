@@ -137,7 +137,7 @@ Allocation Modals (includes/modals/add_allocation_modal.php, includes/modals/edi
 AJAX Handlers (Internal Staff UI): ajax_get_budgets.php, ajax_allocation_handler.php (strict permission enforcement), ajax_handlers/vendor_handler.php. CSRF protected.
 users.php: User Management (Administrator). Includes checkbox for granting Site Admin privileges (is_site_admin). Site Admins can view/edit/delete users for their assigned site only (excluding Admins/Directors).
 configurations.php: System & Site Configuration. Includes tabs for various settings. Site Admins can access and modify settings specific to their assigned site (site_questions, site_ads, etc.) via relevant panels (config_panels/). Now includes an "API Keys" tab (config_panels/api_keys_panel.php) for Administrators only, allowing viewing, creation, and revocation of internal V1 API keys (used by the Gateway and other services). (Future: May need a separate UI for agent_api_keys or manage them via Admin for now).
-client_editor.php: New page/interface for authorized staff (Admin, Director, Site Admin matching client's site) to search for and edit client profile information.
+client_editor.php: New page/interface for authorized staff (Admin, Director, Site Admin matching client's site) to search for and edit client profile information. Edit modal functionality implemented, allowing viewing and saving of client details and dynamic answers with appropriate permissions. "View/Print QR Code" button added to modal.
 reports.php: Reports page. Uses standard Bootstrap ul.nav-tabs structure. Includes tabs for "Check-in Data" and "Custom Report Builder". Updated to read dynamic answers SOLELY from checkin_answers.
 Other Pages: account.php, index.php (staff entry), notifications.php, alerts.php, ajax_report_handler.php, dashboard.php. dashboard.php Updated to read dynamic answers SOLELY from checkin_answers. ajax_chat_handler.php.
 Client Facing Portal: (Separate from Staff UI)
@@ -145,7 +145,7 @@ client_register.php: Public page for client account creation.
 client_login.php: Public page for client login.
 client_portal/profile.php: Client landing page for profile/question management.
 client_portal/services.php: Displays service information.
-client_portal/qr_code.php: Displays client's QR code.
+client_portal/qr_code.php: Displays client's QR code. Refactored to handle staff sessions and database interactions correctly when accessed via the client editor.
 Kiosk Interface (checkin.php - accessed by kiosk role):
 Primary Kiosk Interface file.
 Handles both "Scan QR Code" and "Manual Check-in" options.
@@ -194,17 +194,17 @@ vendors: Unchanged.
 (Future Table) user_outreach_sites: (See Section 15).
 9. File Management Structure:
 Root: budget_settings.php, budgets.php, index.php, checkin.php, client_register.php, client_login.php, client_editor.php, reports.php.
-ajax_handlers/: Various AJAX handlers.
+ajax_handlers/: Various AJAX handlers. New handlers added for client editor modal (get_client_details_handler.php, update_client_details_handler.php).
 api/v1/: Internal V1 API entry point (index.php), includes, handlers. openapi.yaml (for V1).
 api/gateway/: Contains index.php (entry point for Unified API Gateway) and any necessary includes/handlers specific to the gateway logic. Directory and index.php created in Phase 1.
 budget_settings_panels/: Include files for budget tabs.
 client_portal/: Client-facing pages.
 config/: DB connection, constants.
-includes/: Common includes (header, footer, modals, helpers).
+includes/: Common includes (header, footer, modals, helpers). New modal for client editor added.
 config_panels/: Configuration page tabs (including api_keys_panel.php for V1 keys).
-data_access/: DAL classes/functions (includes/data_access/checkin_data.php modified to read dynamic answers SOLELY from checkin_answers).
+data_access/: DAL classes/functions (includes/data_access/checkin_data.php modified to read dynamic answers SOLELY from checkin_answers). Audit log data access function updated.
 kiosk/: QR check-in handler logic (/kiosk/qr_checkin).
-assets/: CSS, JS, images.
+assets/: CSS, JS, images. main.js updated for client editor modal.
 Deleted Files (from Server): kiosk_checkin.php, kiosk_manual_handler.php.
 10. Design Specification (Web UI):
 Core staff layout: Bootstrap v4.5.2. Consistent tabbed navigation.
@@ -256,6 +256,7 @@ Reports and Dashboard updated to read dynamic check-in answers solely from the c
 CSS Refactoring and Standardization: Audit, definition of structure/standards, and refactoring of identified inline styles and <style> blocks completed. CSS moved to centralized and area-specific stylesheets.
 Implement Dashboard Check-in Data Correction Feature: Visual highlighting, interactive view button, check-in details modal, dynamic answer editing/adding interface, and server-side save logic with required is_site_admin and site_id matching permission checks have been implemented and verified.
 Enhance Dashboard "Recent Check-ins" Display: Automatic refreshing of the "Recent Check-ins" table using AJAX and a timer, and modification of data retrieval logic to only include check-in records from the last 2 hours have been implemented and verified.
+Client Editor Modal & QR Code Functionality: Implemented the "Edit Client" modal on client_editor.php allowing viewing and saving of client details and dynamic answers with appropriate permissions and audit logging. Added "View/Print QR Code" button to the modal and refactored client_portal/qr_code.php to handle staff access and database interactions correctly.
 Known Issues: None critical not listed as pending.
 Required User Action:
 Perform system backup.
@@ -264,6 +265,7 @@ Continue to manually manage agent_api_keys in the database for testing/setup unt
 Ensure the dedicated internal API key for the Gateway (in api_keys table) remains configured with necessary V1 permissions.
 Required Developer Action (Next Focus - PRIORITY ORDER):
 Refinements to existing Staff UI modules as needed or if critical bugs arise (ongoing/as needed).
+Fix Reports CSV Export: Modify the CSV export functionality on reports.php to correctly include dynamic check-in answers by reading from the checkin_answers table.
 (Deferred to near Deployment):
 Complete Pending Security Items (from Section 12): Upload Directory Hardening, XSS review, Robust FK error handling.
 15. Future Enhancements (Post-MVP, Client System & Gateway Stabilization):
@@ -285,7 +287,7 @@ Expand Gateway capabilities as new internal V1 APIs are developed.
 Deprecate check_ins.q_* columns: As dynamic answers are now stored and retrieved solely from checkin_answers, the q_* columns in check_ins are deprecated for this purpose and can be considered for removal in a future database migration/cleanup as they contain only old testing data.
 16. Implementation Plan & Process:
 Use Living Plan v1.61 as Single Source of Truth.
-Priority: Developer focus is on ongoing refinements and addressing any critical bugs. User focus is on reviewing and approving the plan.
+Priority: Developer focus is on ongoing refinements and addressing any critical bugs, including the specific bug reported with the Reports CSV Export. User focus is on reviewing and approving the plan.
 Iterative development for the Gateway: Phase 1 (core functionality, few actions - COMPLETED), Phase 2 (full action mapping, granular permissions - COMPLETED).
 Require clear code comments, especially around gateway logic (action mapping, auth, internal API calls), V1 API permission logic, session checks, data handling, and security measures.
 User (Robert) responsible for providing context, testing, reporting results, and requesting plan updates.
