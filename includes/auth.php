@@ -78,6 +78,18 @@ if (!$is_client_facing_page) {
         ];
 
         // Check access rules for the current page
+        // --- BEGIN DIAGNOSTIC LOGGING for get_client_details_handler ---
+        if (basename($_SERVER['SCRIPT_NAME']) === 'get_client_details_handler.php') {
+            error_log("[AUTH_DEBUG] Current SCRIPT_NAME: " . $_SERVER['SCRIPT_NAME']);
+            error_log("[AUTH_DEBUG] Current script_basename: " . $script_basename);
+            error_log("[AUTH_DEBUG] Checking key 'get_client_details_handler.php' in \$accessRules: " . (array_key_exists('get_client_details_handler.php', $accessRules) ? 'EXISTS' : 'DOES NOT EXIST'));
+            error_log("[AUTH_DEBUG] Checking key \$script_basename ('" . $script_basename . "') in \$accessRules: " . (array_key_exists($script_basename, $accessRules) ? 'EXISTS' : 'DOES NOT EXIST'));
+            // Optionally, to see the structure of $accessRules if suspecting modification:
+            // error_log("[AUTH_DEBUG] \$accessRules dump: " . print_r($accessRules, true));
+        }
+        // --- END DIAGNOSTIC LOGGING ---
+
+        // Original check:
         if (array_key_exists($script_basename, $accessRules)) {
             if (!in_array($role, $accessRules[$script_basename])) {
                 $accessDenied = true; // Role not allowed for this specific page
@@ -85,16 +97,17 @@ if (!$is_client_facing_page) {
             } else { // Role IS allowed
                  // [AUTH DEBUG] Inside $accessRules check (pass)
             }
-        } else {
-            // Page is not listed in access rules. Deny access unless it's index.php (which handles its own logic).
+        } else { // Page not found by array_key_exists for $script_basename
+            // The specific 'if' block for 'get_client_details_handler.php' has been removed.
+            // The following condition, previously 'elseif', is now 'if'.
             if ($script_basename !== 'index.php') {
-                 // Attempt to safely get username for logging
+                 // For any OTHER script not in $accessRules (and not index.php)
                  $logUsername = isset($_SESSION['username']) ? $_SESSION['username'] : 'Unknown';
                  error_log("Access Attempt to Unlisted Staff Page: User '{$logUsername}' (Role: {$role}) to {$script_basename}");
                  $accessDenied = true;
-                 // [AUTH DEBUG] Inside else (page not listed)
+                 // [AUTH DEBUG] Original "Inside else (page not listed)" branch
             }
-             // If it's index.php, allow script execution to continue (index.php might redirect based on role).
+             // If it's index.php, script execution continues (assuming $accessDenied is false from this block's perspective).
         }
 
         // Kiosk specific restriction (Apply AFTER general rules)
