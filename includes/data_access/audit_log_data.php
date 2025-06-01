@@ -20,7 +20,7 @@ function logClientProfileChange(PDO $pdo, int $clientId, int $changedByUserId, s
         return true; // No change, consider it a success in terms of logging (nothing needed).
     }
 
-    $sql = "INSERT INTO client_profile_audit_log (client_id, changed_by_user_id, field_name, old_value, new_value, change_timestamp)
+    $sql = "INSERT INTO client_profile_audit_log (client_id, changed_by_user_id, field_name, old_value, new_value, timestamp)
             VALUES (:client_id, :changed_by_user_id, :field_name, :old_value, :new_value, NOW())";
 
     try {

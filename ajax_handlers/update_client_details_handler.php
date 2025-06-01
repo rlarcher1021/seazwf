@@ -35,6 +35,13 @@ $is_azwk_staff = $session_user_role === 'azwk_staff'; // Define if user is azwk_
 $session_site_id = isset($_SESSION['active_site_id']) && $_SESSION['active_site_id'] !== '' ? (int)$_SESSION['active_site_id'] : null;
 $session_user_id = $_SESSION['user_id'] ?? null;
 
+// Ensure session_user_id is set, as it's crucial for audit logging
+if ($session_user_id === null) {
+    $response['message'] = 'User session is invalid or user ID is missing. Cannot proceed.';
+    echo json_encode($response);
+    exit;
+}
+
 // Allow administrators, directors, site admins, or azwk_staff to proceed to more specific checks
 if (!($is_global_admin_or_director || $is_site_admin || $is_azwk_staff)) {
     $response['message'] = 'Access Denied: You do not have permission to update client details.';
