@@ -685,36 +685,80 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Note: The 'Save Changes' button functionality is out of scope for this task.
-    // If it were in scope, it would look something like this:
-    // $('#saveClientChangesBtn').on('click', function() {
-    //     var formData = $('#editClientFormInModal').serialize();
-    //     // AJAX POST to client_editor.php (or a dedicated save handler)
-    //     $.ajax({
-    //         url: 'client_editor.php', // Or a new handler like 'ajax_handlers/save_client_details_handler.php'
-    //         type: 'POST',
-    //         data: formData, // This will include client_id, csrf_token, action, and all form fields
-    //         dataType: 'json',
-    //         success: function(response) {
-    //             if (response.success) {
-    //                 $('#editClientModal').modal('hide');
-    //                 // Consider using a more robust notification system than alert
-    //                 alert(response.message || 'Client updated successfully!');
-    //                 // Refresh search results or the page
-    //                 window.location.reload(); // Simple reload for now
-    //             } else {
-    //                 alert('Error updating client: ' + (response.message || 'Unknown error. Check form for details.'));
-    //                 // Optionally display errors within the modal form
-    //                 if(response.errors) {
-    //                     // ... logic to display field-specific errors ...
-    //                 }
-    //             }
-    //         },
-    //         error: function() {
-    //             alert('AJAX error: Could not save client details.');
-    //         }
-    //     });
-    // });
+    // Save Changes button functionality
+    $('#saveClientChangesBtn').on('click', function() {
+        var form = $('#editClientFormInModal');
+        var formData = form.serialize(); // Collects all form data
+
+        // Basic client-side validation (example: check required fields)
+        var isValid = true;
+        form.find('input[required], select[required]').each(function() {
+            if (!$(this).val()) {
+                isValid = false;
+                $(this).addClass('is-invalid'); // Add Bootstrap error class
+                // You could add a more specific error message next to the field
+            } else {
+                $(this).removeClass('is-invalid');
+            }
+        });
+
+        if (!isValid) {
+            // Add a general error message at the top of the modal form
+            if ($('#editClientModalFormContent .alert-danger').length === 0) {
+                $('#editClientModalFormContent').prepend('<div class="alert alert-danger" role="alert">Please fill in all required fields.</div>');
+            } else {
+                $('#editClientModalFormContent .alert-danger').html('Please fill in all required fields.');
+            }
+            return; // Stop if validation fails
+        } else {
+            // Clear previous validation error messages if any
+            $('#editClientModalFormContent .alert-danger').remove();
+            form.find('.is-invalid').removeClass('is-invalid');
+        }
+
+
+        // AJAX POST to the new handler
+        $.ajax({
+            url: 'ajax_handlers/update_client_details_handler.php',
+            type: 'POST',
+            data: formData, // Includes client_id, csrf_token, action, and all form fields
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    $('#editClientModal').modal('hide');
+                    // Display success message (e.g., using a toast or a temporary alert on the main page)
+                    // For simplicity, we'll use a standard alert and then reload.
+                    alert(response.message || 'Client details updated successfully!');
+                    window.location.reload(); // Reload the page to see changes
+                } else {
+                    // Display error message within the modal
+                    var errorMsg = 'Error updating client: ' + (response.message || 'Unknown error.');
+                    if (response.errors) {
+                        errorMsg += '<ul>';
+                        for (var field in response.errors) {
+                            errorMsg += '<li>' + escapeHtml(field) + ': ' + escapeHtml(response.errors[field]) + '</li>';
+                        }
+                        errorMsg += '</ul>';
+                    }
+                    // Add or update an alert div at the top of the modal form content
+                    if ($('#editClientModalFormContent .alert-danger').length === 0) {
+                        $('#editClientModalFormContent').prepend('<div class="alert alert-danger" role="alert">' + errorMsg + '</div>');
+                    } else {
+                        $('#editClientModalFormContent .alert-danger').html(errorMsg);
+                    }
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error("AJAX Error saving client details:", status, error, xhr.responseText);
+                var errorText = 'AJAX error: Could not save client details. Please check the console for more information.';
+                 if ($('#editClientModalFormContent .alert-danger').length === 0) {
+                        $('#editClientModalFormContent').prepend('<div class="alert alert-danger" role="alert">' + errorText + '</div>');
+                    } else {
+                        $('#editClientModalFormContent .alert-danger').html(errorText);
+                    }
+            }
+        });
+    });
 
     function escapeHtml(unsafe) {
         if (typeof unsafe !== 'string') {

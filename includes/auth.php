@@ -171,4 +171,21 @@ function check_permission(array $allowedRoles): bool
     return in_array($userRole, $allowedRolesLower);
 }
 
+/**
+ * Checks if a staff user is currently logged in.
+ * Relies on session variables 'user_id' and 'active_role' being set.
+ *
+ * @return bool True if the user is considered logged in, false otherwise.
+ */
+function is_logged_in(): bool
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        // This should ideally not happen if auth.php is included correctly,
+        // as it starts a session if one isn't active (for non-client pages).
+        // However, as a safeguard:
+        session_start();
+    }
+    return isset($_SESSION['user_id']) && isset($_SESSION['active_role']);
+}
+
 ?>
