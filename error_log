@@ -21,3 +21,19 @@
 [29-May-2025 17:51:54 Europe/Berlin] [DEBUG] get_checkin_details_handler: Received check_in_id: 99
 [29-May-2025 17:51:54 Europe/Berlin] [DEBUG] get_checkin_details_handler: Site ID from checkin_data: 1
 [29-May-2025 17:51:54 Europe/Berlin] [DEBUG] get_checkin_details_handler: Successfully prepared response data.
+[30-May-2025 00:12:31 Europe/Berlin] Dashboard Check-ins Over Time Raw Data for site 'all': Array
+(
+    [2025-05-28] => 4
+    [2025-05-29] => 5
+)
+
+[30-May-2025 00:12:32 Europe/Berlin] AJAX Report Handler Received Request:
+[30-May-2025 00:12:32 Europe/Berlin] Method: POST
+[30-May-2025 23:27:20 Europe/Berlin] Dashboard Check-ins Over Time Raw Data for site 'all': Array
+(
+    [2025-05-28] => 4
+    [2025-05-29] => 5
+)
+
+[30-May-2025 23:27:21 Europe/Berlin] AJAX Report Handler Received Request:
+[30-May-2025 23:27:21 Europe/Berlin] Method: POST

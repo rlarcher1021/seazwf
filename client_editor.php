@@ -381,9 +381,9 @@ require_once 'includes/header.php'; // Include the standard site header
                                     <td><?php echo htmlspecialchars($client['username']); ?></td>
                                     <td><?php echo htmlspecialchars($client['site_name'] ?? 'N/A'); ?></td>
                                     <td>
-                                        <a href="client_editor.php?action=edit&client_id=<?php echo htmlspecialchars($client['id']); ?>" class="btn btn-sm btn-info">
+                                        <button type="button" class="btn btn-sm btn-info edit-client-btn" data-toggle="modal" data-target="#editClientModal" data-client-id="<?php echo htmlspecialchars($client['id']); ?>">
                                             <i class="fas fa-edit"></i> Edit
-                                        </a>
+                                        </button>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -527,6 +527,206 @@ require_once 'includes/header.php'; // Include the standard site header
 
 </div><!-- /.container -->
 
+<!-- Edit Client Modal -->
+<div class="modal fade" id="editClientModal" tabindex="-1" role="dialog" aria-labelledby="editClientModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editClientModalLabel">Edit Client Profile</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Form content will be loaded here by JavaScript -->
+                <div id="editClientModalFormContent">
+                    <p class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading client data...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="saveClientChangesBtn">Save Changes</button> <!-- Save functionality is out of scope for this task, but button is here -->
+            </div>
+        </div>
+    </div>
+</div>
+<!-- End Edit Client Modal -->
+
 <?php
 require_once 'includes/footer.php'; // Include the standard site footer
 ?>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle Edit Client Modal
+    $('#editClientModal').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget); // Button that triggered the modal
+        var clientId = button.data('client-id'); // Extract info from data-* attributes
+        var modal = $(this);
+
+        // Clear previous content and show loading
+        modal.find('#editClientModalFormContent').html('<p class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading client data...</p>');
+        modal.find('#editClientModalLabel').text('Edit Client Profile');
+
+
+        // AJAX request to get client details
+        $.ajax({
+            url: 'ajax_handlers/get_client_details_handler.php',
+            type: 'GET',
+            data: { client_id: clientId },
+            dataType: 'json',
+            success: function(response) {
+                if (response.success && response.data) {
+                    var client = response.data.profile;
+                    var clientAnswers = response.data.answers; // This is an array of objects: {question_id: x, answer: 'Y/N'}
+                    var allQuestions = response.data.all_questions;
+                    var sites = response.data.sites;
+
+                    modal.find('#editClientModalLabel').text('Edit Client Profile: ' + escapeHtml(client.first_name) + ' ' + escapeHtml(client.last_name));
+
+                    var formHtml = '<form id="editClientFormInModal">'; // Add an ID for potential future use
+                    formHtml += '<input type="hidden" name="client_id" value="' + escapeHtml(client.id) + '">';
+                    formHtml += '<input type="hidden" name="csrf_token" value="<?php echo $csrf_token; // Ensure CSRF token is available in JS scope or add it here if needed ?>">';
+                    formHtml += '<input type="hidden" name="action" value="save_client">';
+
+
+                    // Basic Info
+                    formHtml += '<h5>Client Details</h5>';
+                    formHtml += '<div class="form-row">';
+                    formHtml += '  <div class="form-group col-md-6">';
+                    formHtml += '    <label for="modal_first_name">First Name</label>';
+                    formHtml += '    <input type="text" class="form-control" id="modal_first_name" name="first_name" value="' + escapeHtml(client.first_name) + '" required>';
+                    formHtml += '  </div>';
+                    formHtml += '  <div class="form-group col-md-6">';
+                    formHtml += '    <label for="modal_last_name">Last Name</label>';
+                    formHtml += '    <input type="text" class="form-control" id="modal_last_name" name="last_name" value="' + escapeHtml(client.last_name) + '" required>';
+                    formHtml += '  </div>';
+                    formHtml += '</div>';
+
+                    formHtml += '<div class="form-row">';
+                    formHtml += '  <div class="form-group col-md-6">';
+                    formHtml += '    <label for="modal_username">Username</label>';
+                    formHtml += '    <input type="text" class="form-control" id="modal_username" name="username" value="' + escapeHtml(client.username) + '" readonly>';
+                    formHtml += '    <small class="form-text text-muted">Username cannot be changed.</small>';
+                    formHtml += '  </div>';
+                    formHtml += '  <div class="form-group col-md-6">';
+                    formHtml += '    <label for="modal_email">Email</label>';
+                    formHtml += '    <input type="email" class="form-control" id="modal_email" name="email" value="' + escapeHtml(client.email) + '" readonly>';
+                    formHtml += '    <small class="form-text text-muted">Email cannot be changed.</small>';
+                    formHtml += '  </div>';
+                    formHtml += '</div>';
+
+                    formHtml += '<div class="form-row">';
+                    formHtml += '  <div class="form-group col-md-6">';
+                    formHtml += '    <label for="modal_site_id">Primary Site</label>';
+                    formHtml += '    <select class="form-control" id="modal_site_id" name="site_id" required>';
+                    formHtml += '      <option value="">-- Select Site --</option>';
+                    if (sites) {
+                        sites.forEach(function(site) {
+                            formHtml += '<option value="' + escapeHtml(site.id) + '"' + (client.site_id == site.id ? ' selected' : '') + '>' + escapeHtml(site.name) + '</option>';
+                        });
+                    }
+                    formHtml += '    </select>';
+                    formHtml += '  </div>';
+                    formHtml += '  <div class="form-group col-md-6 d-flex align-items-center pt-3">';
+                    formHtml += '    <div class="form-check">';
+                    formHtml += '      <input class="form-check-input" type="checkbox" id="modal_email_preference_jobs" name="email_preference_jobs" value="1" ' + (client.email_preference_jobs == 1 ? 'checked' : '') + '>';
+                    formHtml += '      <label class="form-check-label" for="modal_email_preference_jobs">Opt-in to receive job/event emails</label>';
+                    formHtml += '    </div>';
+                    formHtml += '  </div>';
+                    formHtml += '</div>';
+
+                    // Dynamic Questions
+                    formHtml += '<hr><h5>Dynamic Questions</h5>';
+                    if (allQuestions && allQuestions.length > 0) {
+                        allQuestions.forEach(function(question) {
+                            var questionId = question.id;
+                            var currentAnswer = '';
+                            // Find if client has an answer for this question
+                            var foundAnswer = clientAnswers.find(ans => ans.question_id == questionId);
+                            if (foundAnswer) {
+                                currentAnswer = foundAnswer.answer;
+                            }
+
+                            var inputName = "q_" + questionId;
+                            formHtml += '<div class="form-group">';
+                            formHtml += '  <label>' + escapeHtml(question.question_title) + ': ' + escapeHtml(question.question_text) + '</label>';
+                            formHtml += '  <div>';
+                            formHtml += '    <div class="form-check form-check-inline">';
+                            formHtml += '      <input class="form-check-input" type="radio" name="' + inputName + '" id="modal_' + inputName + '_yes" value="Yes" ' + (currentAnswer === 'Yes' ? 'checked' : '') + '>';
+                            formHtml += '      <label class="form-check-label" for="modal_' + inputName + '_yes">Yes</label>';
+                            formHtml += '    </div>';
+                            formHtml += '    <div class="form-check form-check-inline">';
+                            formHtml += '      <input class="form-check-input" type="radio" name="' + inputName + '" id="modal_' + inputName + '_no" value="No" ' + (currentAnswer === 'No' ? 'checked' : '') + '>';
+                            formHtml += '      <label class="form-check-label" for="modal_' + inputName + '_no">No</label>';
+                            formHtml += '    </div>';
+                            formHtml += '    <div class="form-check form-check-inline">';
+                            formHtml += '      <input class="form-check-input" type="radio" name="' + inputName + '" id="modal_' + inputName + '_na" value="" ' + (currentAnswer === '' ? 'checked' : '') + '>'; // Assuming empty string for 'No Answer'
+                            formHtml += '      <label class="form-check-label" for="modal_' + inputName + '_na">No Answer</label>';
+                            formHtml += '    </div>';
+                            formHtml += '  </div>';
+                            formHtml += '</div>';
+                        });
+                    } else {
+                        formHtml += '<p>No global questions configured.</p>';
+                    }
+
+                    formHtml += '</form>';
+                    modal.find('#editClientModalFormContent').html(formHtml);
+
+                } else {
+                    modal.find('#editClientModalFormContent').html('<div class="alert alert-danger">Error: Could not load client details. ' + escapeHtml(response.message || 'Unknown error.') + '</div>');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error("AJAX Error fetching client details:", status, error, xhr.responseText);
+                modal.find('#editClientModalFormContent').html('<div class="alert alert-danger">Error: Could not connect to the server to load client details. Please try again.</div>');
+            }
+        });
+    });
+
+    // Note: The 'Save Changes' button functionality is out of scope for this task.
+    // If it were in scope, it would look something like this:
+    // $('#saveClientChangesBtn').on('click', function() {
+    //     var formData = $('#editClientFormInModal').serialize();
+    //     // AJAX POST to client_editor.php (or a dedicated save handler)
+    //     $.ajax({
+    //         url: 'client_editor.php', // Or a new handler like 'ajax_handlers/save_client_details_handler.php'
+    //         type: 'POST',
+    //         data: formData, // This will include client_id, csrf_token, action, and all form fields
+    //         dataType: 'json',
+    //         success: function(response) {
+    //             if (response.success) {
+    //                 $('#editClientModal').modal('hide');
+    //                 // Consider using a more robust notification system than alert
+    //                 alert(response.message || 'Client updated successfully!');
+    //                 // Refresh search results or the page
+    //                 window.location.reload(); // Simple reload for now
+    //             } else {
+    //                 alert('Error updating client: ' + (response.message || 'Unknown error. Check form for details.'));
+    //                 // Optionally display errors within the modal form
+    //                 if(response.errors) {
+    //                     // ... logic to display field-specific errors ...
+    //                 }
+    //             }
+    //         },
+    //         error: function() {
+    //             alert('AJAX error: Could not save client details.');
+    //         }
+    //     });
+    // });
+
+    function escapeHtml(unsafe) {
+        if (typeof unsafe !== 'string') {
+            if (unsafe === null || typeof unsafe === 'undefined') return '';
+            unsafe = String(unsafe);
+        }
+        return unsafe
+             .replace(/&/g, "&")
+             .replace(/</g, "<")
+             .replace(/>/g, ">")
+             .replace(/"/g, """)
+             .replace(/'/g, "&#039;");
+    }
+});
+</script>
