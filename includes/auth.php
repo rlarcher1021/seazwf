@@ -42,7 +42,6 @@ if (!$is_client_facing_page) {
         // --- Staff User is Logged In - Perform Role-Based Access Control ---
         $role = $_SESSION['active_role'];
         $accessDenied = false;
-        // [AUTH DEBUG] Start of staff auth block
 
 
         // Define roles allowed for each STAFF page
@@ -78,24 +77,12 @@ if (!$is_client_facing_page) {
         ];
 
         // Check access rules for the current page
-        // --- BEGIN DIAGNOSTIC LOGGING for get_client_details_handler ---
-        if (basename($_SERVER['SCRIPT_NAME']) === 'get_client_details_handler.php') {
-            error_log("[AUTH_DEBUG] Current SCRIPT_NAME: " . $_SERVER['SCRIPT_NAME']);
-            error_log("[AUTH_DEBUG] Current script_basename: " . $script_basename);
-            error_log("[AUTH_DEBUG] Checking key 'get_client_details_handler.php' in \$accessRules: " . (array_key_exists('get_client_details_handler.php', $accessRules) ? 'EXISTS' : 'DOES NOT EXIST'));
-            error_log("[AUTH_DEBUG] Checking key \$script_basename ('" . $script_basename . "') in \$accessRules: " . (array_key_exists($script_basename, $accessRules) ? 'EXISTS' : 'DOES NOT EXIST'));
-            // Optionally, to see the structure of $accessRules if suspecting modification:
-            // error_log("[AUTH_DEBUG] \$accessRules dump: " . print_r($accessRules, true));
-        }
-        // --- END DIAGNOSTIC LOGGING ---
 
         // Original check:
         if (array_key_exists($script_basename, $accessRules)) {
             if (!in_array($role, $accessRules[$script_basename])) {
                 $accessDenied = true; // Role not allowed for this specific page
-                // [AUTH DEBUG] Inside $accessRules check (fail)
             } else { // Role IS allowed
-                 // [AUTH DEBUG] Inside $accessRules check (pass)
             }
         } else { // Page not found by array_key_exists for $script_basename
             // The specific 'if' block for 'get_client_details_handler.php' has been removed.
@@ -105,7 +92,6 @@ if (!$is_client_facing_page) {
                  $logUsername = isset($_SESSION['username']) ? $_SESSION['username'] : 'Unknown';
                  error_log("Access Attempt to Unlisted Staff Page: User '{$logUsername}' (Role: {$role}) to {$script_basename}");
                  $accessDenied = true;
-                 // [AUTH DEBUG] Original "Inside else (page not listed)" branch
             }
              // If it's index.php, script execution continues (assuming $accessDenied is false from this block's perspective).
         }
@@ -115,18 +101,14 @@ if (!$is_client_facing_page) {
              $accessDenied = true; // Kiosk trying to access disallowed page
         }
 
-        // [AUTH DEBUG] Before Site Admin override check
         // Site Admin Override: Allow access to specific pages regardless of primary role rules
         $siteAdminAllowedPages = ['users.php', 'configurations.php', 'client_editor.php'];
-        // [AUTH DEBUG] Inside Site Admin override check
         if (isset($_SESSION['is_site_admin']) && $_SESSION['is_site_admin'] == 1 && in_array($script_basename, $siteAdminAllowedPages)) {
             $accessDenied = false; // Explicitly grant access
         } else {
         }
-        // [AUTH DEBUG] After Site Admin override check
         // Handle Access Denied
         if ($accessDenied) {
-            // [AUTH DEBUG] Inside final if ($accessDenied)
             $username = $_SESSION['username'] ?? 'Unknown'; // Handle case where username might not be set
             // Determine redirect target based on role and situation - MUST HAPPEN BEFORE LOGGING IT
             $redirectTarget = 'index.php?reason=access_denied'; // Default redirect
