@@ -56,18 +56,28 @@ if (!$is_staff_viewing) {
     // Ensure CLIENT_SESSION is correctly initialized if this is a client view.
     // session_name() must be called before session_start().
     // It also cannot be called if a session is already active.
-    if (session_status() == PHP_SESSION_NONE) {
-        // No session is active, so we can safely set the name and start it.
+    // Standard client session handling for client portal pages.
+    // Assumes includes/auth.php has NOT started a session if it's a client-facing page.
+    if (session_status() === PHP_SESSION_NONE) {
+        // No session active, so we can set the name and start.
         session_name('CLIENT_SESSION');
         session_start();
     } elseif (session_name() !== 'CLIENT_SESSION') {
-        // A session is active, but it's not 'CLIENT_SESSION'.
-        // This indicates a potential session conflict (e.g., AZWK_STAFF_SESSION is active).
-        // We do not attempt to change the session name here to avoid the warning.
-        // The subsequent checks for $_SESSION['client_id'] will handle the case
-        // where the wrong session is active (likely leading to a redirect).
+        // A session is active, but it's NOT CLIENT_SESSION.
+        // This is unexpected on a client page if auth.php is working correctly.
+        // For safety, redirect to login to clear state. This should prevent warnings.
+        // Log this occurrence as it might indicate an issue in auth.php or page inclusion order.
+        error_log("qr_code.php: Unexpected active session ('" . session_name() . "') on a client page. Forcing client logout/re-login.");
+        // Unset any potentially conflicting session variables from the wrong session.
+        // We cannot reliably destroy it and restart CLIENT_SESSION without potential warnings.
+        $_SESSION = array(); // Clear the session array
+        // It's safer to redirect to login than to try to fix a mixed-up session state here.
+        header("Location: ../client_login.php?error=session_conflict_qr");
+        exit;
     }
-    // If a session is active and is already 'CLIENT_SESSION', no action is needed here.
+    // If session_status() is PHP_SESSION_ACTIVE and session_name() is 'CLIENT_SESSION',
+    // it means session_start() was already called (e.g., by a previous client page or earlier in this script if we modify it),
+    // or it was just started above. In this case, we just proceed.
 
     if (isset($_SESSION['client_id'])) {
         $client_id_for_qr_display = $_SESSION['client_id'];
