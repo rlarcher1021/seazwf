@@ -36,7 +36,7 @@ if (!$is_client_facing_page) {
             // Check if a client session IS active.
             // This assumes the client session uses $_SESSION['client_id'].
             // The main session_start() earlier (lines 21-25) would have loaded an existing client session if the cookie was present.
-            if (isset($_SESSION['client_id'])) {
+            if (isset($_SESSION['CLIENT_SESSION']['client_id'])) {
                 // Active client trying to access a non-client, staff-only page.
                 // Redirect them to their portal. We do NOT destroy their session.
                 // Path is relative to the web root, consistent with other redirects like "index.php".

@@ -71,30 +71,30 @@ if (isset($_GET['client_id']) && filter_var($_GET['client_id'], FILTER_VALIDATE_
     require_once '../includes/auth.php'; 
     require '../includes/db_connect.php'; 
 
-    if (isset($_SESSION['client_id'])) {
-        $client_id_for_qr_display = $_SESSION['client_id'];
+    if (isset($_SESSION['CLIENT_SESSION']['client_id'])) {
+        $client_id_for_qr_display = $_SESSION['CLIENT_SESSION']['client_id'];
         // Fetch QR identifier if not in session or if it's empty
-        if (empty($_SESSION['qr_identifier'])) {
+        if (empty($_SESSION['CLIENT_SESSION']['qr_identifier'])) {
             $stmt_client_qr_fetch = $db->prepare("SELECT client_qr_identifier FROM clients WHERE id = ? AND deleted_at IS NULL");
             $stmt_client_qr_fetch->bindParam(1, $client_id_for_qr_display, PDO::PARAM_INT);
             $stmt_client_qr_fetch->execute();
             if ($client_qr_data_fetch = $stmt_client_qr_fetch->fetch(PDO::FETCH_ASSOC)) {
                 if (!empty($client_qr_data_fetch['client_qr_identifier'])) {
                     $client_qr_identifier = $client_qr_data_fetch['client_qr_identifier'];
-                    $_SESSION['qr_identifier'] = $client_qr_identifier; 
+                    $_SESSION['CLIENT_SESSION']['qr_identifier'] = $client_qr_identifier; 
                 } else {
                     $error_message = "Error: QR Code identifier not found in your profile. Please complete your profile or contact support.";
                 }
             } else {
                 $error_message = "Error: Could not retrieve your client details. Your session may be invalid. Please try logging in again.";
-                unset($_SESSION['client_id']); 
-                unset($_SESSION['qr_identifier']);
+                unset($_SESSION['CLIENT_SESSION']['client_id']); 
+                unset($_SESSION['CLIENT_SESSION']['qr_identifier']);
                 header("Location: ../client_login.php?error=invalid_client_session_data_qr_v4");
                 exit;
             }
             $stmt_client_qr_fetch->closeCursor();
         } else {
-             $client_qr_identifier = $_SESSION['qr_identifier'];
+             $client_qr_identifier = $_SESSION['CLIENT_SESSION']['qr_identifier'];
         }
     } else {
         // Client is not logged in (no client_id in CLIENT_SESSION)
@@ -157,8 +157,8 @@ if (!empty($client_qr_identifier) && empty($error_message)) {
     <title><?php 
         if ($is_staff_viewing && $client_data_staff) {
             echo htmlspecialchars(trim($client_data_staff['first_name'] . ' ' . $client_data_staff['last_name'])) . "'s QR Code";
-        } elseif (!$is_staff_viewing && isset($_SESSION['client_first_name']) && isset($_SESSION['client_last_name'])) {
-            echo htmlspecialchars(trim($_SESSION['client_first_name'] . ' ' . $_SESSION['client_last_name'])) . "'s QR Code";
+        } elseif (!$is_staff_viewing && isset($_SESSION['CLIENT_SESSION']['first_name']) && isset($_SESSION['CLIENT_SESSION']['last_name'])) {
+            echo htmlspecialchars(trim($_SESSION['CLIENT_SESSION']['first_name'] . ' ' . $_SESSION['CLIENT_SESSION']['last_name'])) . "'s QR Code";
         } elseif (!$is_staff_viewing) {
             echo "Your QR Code";
         } else {
@@ -211,8 +211,8 @@ if (!empty($client_qr_identifier) && empty($error_message)) {
             $page_main_heading = "Client QR Code"; // Default
             if ($is_staff_viewing && $client_data_staff) {
                 $page_main_heading = htmlspecialchars(trim($client_data_staff['first_name'] . ' ' . $client_data_staff['last_name'])) . "'s QR Code";
-            } elseif (!$is_staff_viewing && isset($_SESSION['client_first_name']) && isset($_SESSION['client_last_name'])) {
-                $page_main_heading = htmlspecialchars(trim($_SESSION['client_first_name'] . ' ' . $_SESSION['client_last_name'])) . "'s QR Code";
+            } elseif (!$is_staff_viewing && isset($_SESSION['CLIENT_SESSION']['first_name']) && isset($_SESSION['CLIENT_SESSION']['last_name'])) {
+                $page_main_heading = htmlspecialchars(trim($_SESSION['CLIENT_SESSION']['first_name'] . ' ' . $_SESSION['CLIENT_SESSION']['last_name'])) . "'s QR Code";
             } elseif (!$is_staff_viewing) {
                  $page_main_heading = "Your Check-In QR Code";
             }
