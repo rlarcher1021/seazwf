@@ -1,17 +1,36 @@
 <?php
 // File: client_portal/qr_code.php
 
-// CRITICAL: Set session name for CLIENT_SESSION BEFORE any session_start() is called.
-// This ensures that if a session is started, it's the correct one for the client portal.
-if (session_status() === PHP_SESSION_NONE) {
-    session_name('CLIENT_SESSION');
+// --- Aggressive Session Control for Client Portal Pages ---
+// Goal: Ensure CLIENT_SESSION is the *only* session active.
+if (session_status() === PHP_SESSION_ACTIVE) {
+    // A session is already active. Check its name.
+    if (session_name() !== 'CLIENT_SESSION') {
+        // It's not CLIENT_SESSION (e.g., PHPSESSID or AZWK_STAFF_SESSION). Destroy it.
+        error_log("qr_code.php: Destroying unexpected active session '" . session_name() . "' before starting CLIENT_SESSION.");
+        session_unset();     // Unset all session variables
+        session_destroy();   // Destroy the session data on the server
+        // Cookies are typically handled by the browser, but let's try to clear the old session cookie path.
+        // This might not always work perfectly due to HttpOnly flags or browser behavior,
+        // but it's an attempt to prevent the old session ID from being sent again.
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 42000,
+            $params["path"], $params["domain"],
+            $params["secure"], $params["httponly"]
+        );
+    }
+    // If it was already CLIENT_SESSION, we do nothing here, session_start() later will resume it.
 }
-// Note: session_start() will be called later in the client-specific logic block if needed,
-// or by auth.php if this somehow runs in a staff context (which it shouldn't for QR display by client).
+
+// Now, unconditionally set the session name to CLIENT_SESSION and start it.
+// If a non-CLIENT_SESSION was destroyed, session_status() should now be PHP_SESSION_NONE.
+// If CLIENT_SESSION was already active, session_name() here won't harm, and session_start() will resume.
+// If no session was active, this sets up CLIENT_SESSION correctly.
+session_name('CLIENT_SESSION');
+session_start();
 
 // 1. Include dependencies
-// auth.php is included AFTER potential session_name call for client context.
-// It also provides is_logged_in() and check_permission().
+// auth.php is included AFTER CLIENT_SESSION is definitively started or resumed.
 require_once '../includes/auth.php';
 require '../includes/db_connect.php'; // For database access
 
@@ -64,26 +83,9 @@ if (!$is_staff_viewing) {
     // Ensure CLIENT_SESSION is correctly initialized if this is a client view.
     // session_name() must be called before session_start().
     // It also cannot be called if a session is already active.
-    // Simplified session start for client view.
-    // session_name('CLIENT_SESSION') should have been called at the top of the script if no session was active.
-    if (session_status() === PHP_SESSION_NONE) {
-        // If session_name was set to CLIENT_SESSION and no session started yet, start it.
-        session_start();
-    } elseif (session_name() !== 'CLIENT_SESSION') {
-        // This case should ideally not be reached if session_name was set correctly at the top
-        // and auth.php respects client-facing page context.
-        // If it is reached, it means a non-CLIENT_SESSION (e.g. PHPSESSID or AZWK_STAFF_SESSION) was already active.
-        error_log("qr_code.php: Critical session conflict. Active session is '" . session_name() . "', expected 'CLIENT_SESSION' or none. Forcing client logout.");
-        $_SESSION = array(); // Clear potentially wrong session data
-        // Attempt to close the wrong session and start the correct one.
-        if (session_status() === PHP_SESSION_ACTIVE) {
-             session_write_close(); // Close the problematic session
-        }
-        session_name('CLIENT_SESSION'); // Explicitly set name again
-        session_start(); // Start the CLIENT_SESSION
-        // After this, the client_id check below will likely fail, leading to redirect.
-    }
-    // If CLIENT_SESSION was already active and started, we just use it.
+    // By this point, CLIENT_SESSION should have been definitively started at the top of the script.
+    // No further session_start() or session_name() calls are needed here.
+    // We just proceed to check if the necessary client data is in the now-active CLIENT_SESSION.
 
     if (isset($_SESSION['client_id'])) {
         $client_id_for_qr_display = $_SESSION['client_id'];
