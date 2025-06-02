@@ -73,42 +73,79 @@ if (isset($_GET['client_id']) && filter_var($_GET['client_id'], FILTER_VALIDATE_
 
     if (isset($_SESSION['CLIENT_SESSION']['client_id'])) {
         $client_id_for_qr_display = $_SESSION['CLIENT_SESSION']['client_id'];
-        // Fetch QR identifier if not in session or if it's empty
-        if (empty($_SESSION['CLIENT_SESSION']['qr_identifier'])) {
-            $stmt_client_qr_fetch = $db->prepare("SELECT client_qr_identifier FROM clients WHERE id = ? AND deleted_at IS NULL");
-            $stmt_client_qr_fetch->bindParam(1, $client_id_for_qr_display, PDO::PARAM_INT);
-            $stmt_client_qr_fetch->execute();
-            if ($client_qr_data_fetch = $stmt_client_qr_fetch->fetch(PDO::FETCH_ASSOC)) {
-                if (!empty($client_qr_data_fetch['client_qr_identifier'])) {
-                    $client_qr_identifier = $client_qr_data_fetch['client_qr_identifier'];
-                    $_SESSION['CLIENT_SESSION']['qr_identifier'] = $client_qr_identifier; 
-                } else {
-                    $error_message = "Error: QR Code identifier not found in your profile. Please complete your profile or contact support.";
+        // Check if essential client details (name, QR ID) are in session. If not, fetch them.
+        if (empty($_SESSION['CLIENT_SESSION']['first_name']) ||
+            empty($_SESSION['CLIENT_SESSION']['last_name']) ||
+            empty($_SESSION['CLIENT_SESSION']['qr_identifier'])) {
+
+            $stmt_client_details_fetch = $db->prepare("SELECT first_name, last_name, client_qr_identifier FROM clients WHERE id = ? AND deleted_at IS NULL");
+            $stmt_client_details_fetch->bindParam(1, $client_id_for_qr_display, PDO::PARAM_INT);
+            $stmt_client_details_fetch->execute();
+            
+            if ($client_details_data = $stmt_client_details_fetch->fetch(PDO::FETCH_ASSOC)) {
+                // Populate session with fetched first name if it was missing or empty
+                if (empty($_SESSION['CLIENT_SESSION']['first_name']) && !empty($client_details_data['first_name'])) {
+                    $_SESSION['CLIENT_SESSION']['first_name'] = $client_details_data['first_name'];
                 }
+                // Populate session with fetched last name if it was missing or empty
+                if (empty($_SESSION['CLIENT_SESSION']['last_name']) && !empty($client_details_data['last_name'])) {
+                    $_SESSION['CLIENT_SESSION']['last_name'] = $client_details_data['last_name'];
+                }
+                // Populate session with fetched QR identifier if it was missing or empty
+                if (empty($_SESSION['CLIENT_SESSION']['qr_identifier']) && !empty($client_details_data['client_qr_identifier'])) {
+                    $_SESSION['CLIENT_SESSION']['qr_identifier'] = $client_details_data['client_qr_identifier'];
+                    $client_qr_identifier = $client_details_data['client_qr_identifier'];
+                } elseif (!empty($_SESSION['CLIENT_SESSION']['qr_identifier'])) {
+                    // QR identifier was already in session, ensure $client_qr_identifier is set
+                    $client_qr_identifier = $_SESSION['CLIENT_SESSION']['qr_identifier'];
+                }
+
+                // After attempting to fill, check if QR identifier is now available
+                if (empty($client_qr_identifier) && empty($_SESSION['CLIENT_SESSION']['qr_identifier'])) {
+                     $error_message = "Error: QR Code identifier not found in your profile. Please complete your profile or contact support.";
+                }
+                // Check if names are available for the heading (even if QR ID is missing, we might still want to show name)
+                if (empty($_SESSION['CLIENT_SESSION']['first_name']) || empty($_SESSION['CLIENT_SESSION']['last_name'])) {
+                    // This case is less critical for QR generation but good for user feedback if names are missing.
+                    // The page title/heading logic will handle this by showing a generic title.
+                    // No specific error message here unless QR ID is also missing.
+                }
+
             } else {
+                // Failed to fetch client details from DB, session might be stale or client deleted
                 $error_message = "Error: Could not retrieve your client details. Your session may be invalid. Please try logging in again.";
-                unset($_SESSION['CLIENT_SESSION']['client_id']); 
+                unset($_SESSION['CLIENT_SESSION']['client_id']);
                 unset($_SESSION['CLIENT_SESSION']['qr_identifier']);
-                header("Location: ../client_login.php?error=invalid_client_session_data_qr_v4");
+                unset($_SESSION['CLIENT_SESSION']['first_name']);
+                unset($_SESSION['CLIENT_SESSION']['last_name']);
+                header("Location: ../client_login.php?error=invalid_client_session_data_qr_v5");
                 exit;
             }
-            $stmt_client_qr_fetch->closeCursor();
+            $stmt_client_details_fetch->closeCursor();
         } else {
-             $client_qr_identifier = $_SESSION['CLIENT_SESSION']['qr_identifier'];
+            // All necessary details (first_name, last_name, qr_identifier) were already in session.
+            $client_qr_identifier = $_SESSION['CLIENT_SESSION']['qr_identifier'];
         }
     } else {
         // Client is not logged in (no client_id in CLIENT_SESSION)
-        header("Location: ../client_login.php?error=client_not_logged_in_qr_v4");
+        header("Location: ../client_login.php?error=client_not_logged_in_qr_v5");
         exit;
     }
 }
 
 // 4. Final check for QR identifier before proceeding to QR generation (common to both paths if no error yet)
+// This check is crucial for QR code generation itself.
 if (empty($client_qr_identifier) && empty($error_message)) {
     if ($is_staff_viewing) {
+        // This error should ideally be caught earlier in the staff path if $client_data_staff['client_qr_identifier'] is empty
         $error_message = "An unexpected error occurred: Client QR identifier is missing for staff view after initial checks.";
     } else {
-        $error_message = "An unexpected error occurred: Your QR identifier is missing after initial checks. Please try again or contact support.";
+        // This implies that even after attempting to fetch, the QR identifier is still missing for the client.
+        // The specific error message for client might have been set inside the fetch block already.
+        // If not, set a generic one.
+        if (empty($error_message)) { // Avoid overwriting a more specific error
+             $error_message = "Error: Your QR Code identifier could not be retrieved. Please ensure your profile is complete or contact support.";
+        }
     }
 }
 
