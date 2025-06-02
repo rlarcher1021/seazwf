@@ -53,12 +53,21 @@ if (is_logged_in()) {
 // 3. If NOT Staff Viewing (i.e., $is_staff_viewing is still false)
 //    Then, it's a client attempting to view their own QR code.
 if (!$is_staff_viewing) {
-    if (session_name() !== 'CLIENT_SESSION') {
-        session_name('CLIENT_SESSION');
-    }
+    // Ensure CLIENT_SESSION is correctly initialized if this is a client view.
+    // session_name() must be called before session_start().
+    // It also cannot be called if a session is already active.
     if (session_status() == PHP_SESSION_NONE) {
+        // No session is active, so we can safely set the name and start it.
+        session_name('CLIENT_SESSION');
         session_start();
+    } elseif (session_name() !== 'CLIENT_SESSION') {
+        // A session is active, but it's not 'CLIENT_SESSION'.
+        // This indicates a potential session conflict (e.g., AZWK_STAFF_SESSION is active).
+        // We do not attempt to change the session name here to avoid the warning.
+        // The subsequent checks for $_SESSION['client_id'] will handle the case
+        // where the wrong session is active (likely leading to a redirect).
     }
+    // If a session is active and is already 'CLIENT_SESSION', no action is needed here.
 
     if (isset($_SESSION['client_id'])) {
         $client_id_for_qr_display = $_SESSION['client_id'];

@@ -31,9 +31,22 @@ if (!$is_client_facing_page) {
     if (!isset($_SESSION['user_id']) || !isset($_SESSION['active_role'])) {
         // If session vars aren't set, check if the current page is one that requires login
         if (!in_array($script_basename, $staff_allowed_unauthenticated)) {
-             // It's not an allowed unauthenticated page, so redirect to login
+            // It's not an allowed unauthenticated staff page
+
+            // Check if a client session IS active.
+            // This assumes the client session uses $_SESSION['client_id'].
+            // The main session_start() earlier (lines 21-25) would have loaded an existing client session if the cookie was present.
+            if (isset($_SESSION['client_id'])) {
+                // Active client trying to access a non-client, staff-only page.
+                // Redirect them to their portal. We do NOT destroy their session.
+                // Path is relative to the web root, consistent with other redirects like "index.php".
+                header("Location: client_portal/profile.php?reason=staff_page_access_denied");
+                exit;
+            }
+
+             // No staff session AND no client session, so redirect to staff login (or client_login.php via index.php)
              session_unset(); // Ensure clean state before redirect
-             session_destroy();
+             session_destroy(); // This will destroy any session, including a potential partial/invalid one.
              header("Location: index.php?reason=not_logged_in");
              exit;
         }
