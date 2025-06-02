@@ -53,21 +53,34 @@ if (is_logged_in()) {
 // 3. If NOT Staff Viewing (i.e., $is_staff_viewing is still false)
 //    Then, it's a client attempting to view their own QR code.
 if (!$is_staff_viewing) {
-    // Ensure CLIENT_SESSION is correctly initialized if this is a client view.
-    // session_name() must be called before session_start().
-    // It also cannot be called if a session is already active.
-    if (session_status() == PHP_SESSION_NONE) {
-        // No session is active, so we can safely set the name and start it.
+    // This is the client view path. We need to ensure CLIENT_SESSION is active.
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        // A session is already active.
+        if (session_name() !== 'CLIENT_SESSION') {
+            // It's the wrong session (e.g., PHPSESSID or AZWK_STAFF_SESSION).
+            // We need to close it and start CLIENT_SESSION.
+            error_log("qr_code.php: Client context - Closing active session '" . session_name() . "' to switch to CLIENT_SESSION.");
+            session_write_close(); // Close the interfering session
+
+            // Now, status should be PHP_SESSION_NONE, so we can set name and start.
+            session_name('CLIENT_SESSION');
+            session_start();
+        } else {
+            // Session is active and is already CLIENT_SESSION. Good to go.
+            // session_start() might have already been called if it was resumed,
+            // but calling it again if already active is safe and ensures it's loaded.
+            if (session_status() === PHP_SESSION_ACTIVE && !isset($_SESSION['client_id'])) {
+                 // If CLIENT_SESSION is active but client_id is not set, it might be an old/empty session.
+                 // This can happen if session_start() was called but didn't load data.
+                 // Forcing a restart of the session might help, but can be risky.
+                 // For now, let the check for $_SESSION['client_id'] below handle redirect.
+            }
+        }
+    } else { // PHP_SESSION_NONE
+        // No session active, so we can set the name and start CLIENT_SESSION.
         session_name('CLIENT_SESSION');
         session_start();
-    } elseif (session_name() !== 'CLIENT_SESSION') {
-        // A session is active, but it's not 'CLIENT_SESSION'.
-        // This indicates a potential session conflict (e.g., AZWK_STAFF_SESSION is active).
-        // We do not attempt to change the session name here to avoid the warning.
-        // The subsequent checks for $_SESSION['client_id'] will handle the case
-        // where the wrong session is active (likely leading to a redirect).
     }
-    // If a session is active and is already 'CLIENT_SESSION', no action is needed here.
 
     if (isset($_SESSION['client_id'])) {
         $client_id_for_qr_display = $_SESSION['client_id'];
