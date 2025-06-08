@@ -1,4 +1,17 @@
 <?php
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// --- Server-Side Access Control ---
+// Enforces access control at the very beginning of the script.
+// Only allows users with 'director' or 'administrator' roles.
+if (!isset($_SESSION['active_role']) || !in_array($_SESSION['active_role'], ['director', 'administrator'])) {
+    header('Location: index.php');
+    exit();
+}
+
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
@@ -732,12 +745,12 @@ require_once 'includes/header.php';
                                <input type="text" id="add_job_title" name="job_title" class="form-control" value="<?php echo htmlspecialchars($form_data['job_title'] ?? ''); ?>">
                                <p class="form-description">Optional. User's professional title.</p>
                            </div>
-                            <div class="mb-3">
+                            <div class="form-group">
                                 <label for="add_password" class="form-label">Password:</label>
                                 <input type="password" id="add_password" name="password" class="form-control" required minlength="8">
                                 <p class="form-description">Minimum 8 characters.</p>
                             </div>
-                             <div class="mb-3">
+                             <div class="form-group">
                                 <label for="add_confirm_password" class="form-label">Confirm Password:</label>
                                 <input type="password" id="add_confirm_password" name="confirm_password" class="form-control" required>
                             </div>
@@ -910,15 +923,15 @@ require_once 'includes/header.php';
                          <input type="hidden" name="user_id" value="<?php echo $edit_user_id; ?>">
                          <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
                          <div class="settings-form grid-template-cols-1fr"> <!-- Single column for password -->
-                              <div class="mb-3">
-                                <label for="reset_new_password" class="form-label">New Password:</label>
-                                <input type="password" id="reset_new_password" name="new_password" class="form-control" required minlength="8">
-                                <p class="form-description">Minimum 8 characters.</p>
-                            </div>
-                             <div class="mb-3">
-                                <label for="reset_confirm_new_password" class="form-label">Confirm New Password:</label>
-                                <input type="password" id="reset_confirm_new_password" name="confirm_new_password" class="form-control" required>
-                            </div>
+                              <div class="form-group">
+                                 <label for="reset_new_password" class="form-label">New Password:</label>
+                                 <input type="password" id="reset_new_password" name="new_password" class="form-control" required minlength="8">
+                                 <p class="form-description">Minimum 8 characters.</p>
+                             </div>
+                              <div class="form-group">
+                                 <label for="reset_confirm_new_password" class="form-label">Confirm New Password:</label>
+                                 <input type="password" id="reset_confirm_new_password" name="confirm_new_password" class="form-control" required>
+                             </div>
                          </div>
                          <div class="form-actions">
                             <button type="submit" class="btn btn-primary"><i class="fas fa-key"></i> Reset Password</button>

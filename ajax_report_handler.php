@@ -46,8 +46,6 @@ function send_html_response($html) {
 
 
 // --- Basic Request Validation ---
-error_log("AJAX Report Handler Received Request:");
-error_log("Method: " . $_SERVER['REQUEST_METHOD']);
 // error_log("POST data: " . print_r($_POST, true));
 // error_log("GET data: " . print_r($_GET, true));
 

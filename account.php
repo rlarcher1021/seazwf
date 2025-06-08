@@ -208,20 +208,20 @@ include 'includes/header.php';
             <input type="hidden" name="action" value="change_password">
             <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
 
-            <div class="mb-3">
+            <div class="form-group">
                 <label for="current_password" class="form-label">Current Password</label>
                 <input type="password" class="form-control" id="current_password" name="current_password" required>
             </div>
 
-            <div class="mb-3">
+            <div class="form-group">
                 <label for="new_password" class="form-label">New Password</label>
                 <input type="password" class="form-control" id="new_password" name="new_password" required aria-describedby="passwordHelp">
-                 <div id="passwordHelp" class="form-text">
+                <div id="passwordHelp" class="form-text">
                     Must be at least 10 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character (!@#$%^&*).
                 </div>
             </div>
 
-            <div class="mb-3">
+            <div class="form-group">
                 <label for="confirm_password" class="form-label">Confirm New Password</label>
                 <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
             </div>

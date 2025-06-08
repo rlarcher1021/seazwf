@@ -153,7 +153,6 @@ if ($site_filter_id !== null || ($site_filter_id === 'all' && $user_can_select_s
 
     // --- Check-ins Over Time Data ---
     $daily_checkin_counts_raw = getDailyCheckinCountsLast7Days($pdo, $site_filter_id);
-    error_log("Dashboard Check-ins Over Time Raw Data for site '{$site_filter_id}': " . print_r($daily_checkin_counts_raw, true)); // Logging added
     $chart_time_labels = [];
     $chart_time_data = [];
     for ($i = 6; $i >= 0; $i--) {

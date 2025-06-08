@@ -58,11 +58,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email_preference_jobs = isset($_POST['email_preference_jobs']) ? 1 : 0;
 
     $submitted_answers = [];
-    foreach ($_POST as $key => $value) {
-        if (strpos($key, 'q_') === 0) {
-            $question_id = substr($key, 2);
+    // The new form submission uses names like "dynamic_answers[QUESTION_ID]"
+    if (isset($_POST['dynamic_answers']) && is_array($_POST['dynamic_answers'])) {
+        foreach ($_POST['dynamic_answers'] as $question_id => $answer) {
             if (filter_var($question_id, FILTER_VALIDATE_INT)) {
-                $submitted_answers[(int)$question_id] = in_array($value, ['Yes', 'No', '']) ? $value : null;
+                // Sanitize the answer to ensure it's one of the allowed values
+                $submitted_answers[(int)$question_id] = in_array($answer, ['Yes', 'No', '']) ? $answer : '';
             }
         }
     }
@@ -139,7 +140,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $newValueText = ($field === 'email_preference_jobs') ? ((int)$newValue == 1 ? 'Opted In' : 'Opted Out') : (string)$newValue;
                     if (!logClientProfileChange($pdo, $client_id, $session_user_id, $field, $oldValueText, $newValueText)) {
                         $audit_log_success = false; // Log failure but continue
-                        error_log("Audit log failed for client {$client_id}, field {$field} in update_client_details_handler.php");
                     }
                 }
             }
@@ -185,7 +185,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                          $newLogValue = ($newValueComparable === '') ? 'No Answer' : $newValueComparable;
                          if (!logClientProfileChange($pdo, $client_id, $session_user_id, "question_id_{$qid}", $oldLogValue, $newLogValue)) {
                              $audit_log_success = false;
-                             error_log("Audit log failed for client {$client_id}, field question_id_{$qid} in update_client_details_handler.php");
                          }
                     }
                 }

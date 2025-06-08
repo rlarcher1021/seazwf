@@ -89,12 +89,9 @@ function getClientAnswers(PDO $pdo, int $clientId): array
 
         $stmt->execute([':client_id' => $clientId]);
 
-        // Fetch results into an associative array [question_id => answer]
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $answers[$row['question_id']] = $row['answer'];
-        }
+        // The function was returning an associative array, but the handler expects a simple array of objects.
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-        return $answers;
 
     } catch (PDOException $e) {
         error_log("EXCEPTION in getClientAnswers for client ID {$clientId}: " . $e->getMessage());
@@ -195,7 +192,7 @@ function searchClients(PDO $pdo, string $searchTerm, string $session_role, ?int 
  * @param int $clientId The ID of the client to fetch.
  * @return array|null An associative array containing 'profile' and 'answers' keys, or null if client not found or on error.
  *                    'profile': Associative array of client details (id, first_name, last_name, site_id, email_preference_jobs, username, email).
- *                    'answers': Array of associative arrays, each containing (question_id, question_text, question_title, answer).
+ *                    'answers': Array of associative arrays, each containing (question_id, answer).
  */
 function getClientDetailsForEditing(PDO $pdo, int $clientId): ?array
 {
@@ -221,16 +218,12 @@ function getClientDetailsForEditing(PDO $pdo, int $clientId): ?array
         return null; // Return null on profile fetch error
     }
 
-    // 2. Fetch Client Answers with Question Details
+    // 2. Fetch Client Answers (just IDs and answers)
     $answersSql = "SELECT
                        ca.question_id,
-                       gq.question_text,
-                       gq.question_title,
                        ca.answer
                    FROM
                        client_answers ca
-                   JOIN
-                       global_questions gq ON ca.question_id = gq.id
                    WHERE
                        ca.client_id = :client_id";
     try {
@@ -241,7 +234,6 @@ function getClientDetailsForEditing(PDO $pdo, int $clientId): ?array
 
     } catch (PDOException $e) {
         error_log("EXCEPTION in getClientDetailsForEditing (Answers Fetch) for client ID {$clientId}: " . $e->getMessage());
-        // Decide if partial data is acceptable or return null. Returning null for consistency.
         return null;
     }
 

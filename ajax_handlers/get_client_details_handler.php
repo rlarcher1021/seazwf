@@ -38,32 +38,30 @@ if (!$client_id) {
     exit;
 }
 
-// Permission checks
-$is_global_admin_or_director = isset($_SESSION['active_role']) && in_array($_SESSION['active_role'], ['administrator', 'director']);
-$is_site_admin_session = isset($_SESSION['is_site_admin']) && $_SESSION['is_site_admin'] == 1;
-$session_site_id = isset($_SESSION['active_site_id']) && $_SESSION['active_site_id'] !== '' ? (int)$_SESSION['active_site_id'] : null;
-
 try {
-    $client_details_full = getClientDetailsForEditing($pdo, $client_id);
+    // 1. Get client's site_id and profile details
+    $stmt_client = $pdo->prepare("SELECT id, username, first_name, last_name, email, site_id, email_preference_jobs FROM clients WHERE id = ? AND deleted_at IS NULL");
+    $stmt_client->execute([$client_id]);
+    $client_profile = $stmt_client->fetch(PDO::FETCH_ASSOC);
 
-    if (!$client_details_full || !$client_details_full['profile']) {
+    if (!$client_profile) {
         $response['message'] = 'Client not found.';
         echo json_encode($response);
         exit;
     }
+    $client_site_id = $client_profile['site_id'];
 
-    $client_profile = $client_details_full['profile'];
-    $client_answers = $client_details_full['answers']; // This is an array of {question_id, answer}
-
-    // Perform permission check based on fetched client's site_id
+    // Permission checks
+    $is_global_admin_or_director = isset($_SESSION['active_role']) && in_array($_SESSION['active_role'], ['administrator', 'director']);
+    $is_site_admin_session = isset($_SESSION['is_site_admin']) && $_SESSION['is_site_admin'] == 1;
+    $session_site_id = isset($_SESSION['active_site_id']) && $_SESSION['active_site_id'] !== '' ? (int)$_SESSION['active_site_id'] : null;
+    
     $can_view_this_client = false;
-    $client_actual_site_id = $client_profile['site_id'];
-
     if ($is_global_admin_or_director) {
         $can_view_this_client = true;
-    } elseif ($is_site_admin_session && $client_actual_site_id == $session_site_id) { // Changed === to ==
+    } elseif ($is_site_admin_session && $client_site_id == $session_site_id) {
         $can_view_this_client = true;
-    } elseif (isset($_SESSION['active_role']) && $_SESSION['active_role'] === 'azwk_staff' && isset($session_site_id) && $client_actual_site_id == $session_site_id) { // azwk_staff viewing their own site's client // Changed === to ==
+    } elseif (isset($_SESSION['active_role']) && $_SESSION['active_role'] === 'azwk_staff' && isset($session_site_id) && $client_site_id == $session_site_id) {
         $can_view_this_client = true;
     }
 
@@ -73,17 +71,47 @@ try {
         exit;
     }
 
-    // Fetch all global questions and all sites for the form
-    $all_global_questions = getAllGlobalQuestions($pdo);
+    // 2. Fetch questions for the client's site
+    $stmt_questions = $pdo->prepare("
+        SELECT gq.id, gq.question_text, gq.question_title
+        FROM site_questions sq
+        JOIN global_questions gq ON sq.global_question_id = gq.id
+        WHERE sq.site_id = ? AND sq.is_active = 1
+        ORDER BY sq.display_order
+    ");
+    $stmt_questions->execute([$client_site_id]);
+    $questions = $stmt_questions->fetchAll(PDO::FETCH_ASSOC);
+
+    // 3. Fetch client's answers for those questions
+    $question_ids = array_column($questions, 'id');
+    $client_answers = [];
+    if (!empty($question_ids)) {
+        $placeholders = implode(',', array_fill(0, count($question_ids), '?'));
+        $stmt_answers = $pdo->prepare("
+            SELECT question_id, answer
+            FROM client_answers
+            WHERE client_id = ? AND question_id IN ($placeholders)
+        ");
+        $params = array_merge([$client_id], $question_ids);
+        $stmt_answers->execute($params);
+        $answers_raw = $stmt_answers->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Re-key the array by question_id for easier lookup on the client-side
+        foreach ($answers_raw as $answer) {
+            $client_answers[$answer['question_id']] = $answer['answer'];
+        }
+    }
+    
+    // For the site dropdown in the modal
     $all_sites = getAllSites($pdo);
 
     $response['success'] = true;
     $response['message'] = 'Client details fetched successfully.';
     $response['data'] = [
         'profile' => $client_profile,
-        'answers' => $client_answers, // Array of {question_id, answer}
-        'all_questions' => $all_global_questions, // Array of {id, question_text, question_title}
-        'sites' => $all_sites // Array of {id, name}
+        'answers' => $client_answers, // Now an object like { question_id: "Yes", ... }
+        'questions' => $questions,     // Array of {id, question_text, question_title}
+        'sites' => $all_sites       // Array of {id, name}
     ];
 
 } catch (PDOException $e) {
@@ -93,7 +121,7 @@ try {
     error_log("General error in get_client_details_handler: " . $e->getMessage());
     $response['message'] = 'An unexpected error occurred. Please try again later.';
 }
-
+ 
 echo json_encode($response);
 exit;
 ?>

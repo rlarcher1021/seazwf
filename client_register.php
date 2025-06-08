@@ -9,6 +9,8 @@
 
 // Start session BEFORE any output
 if (session_status() === PHP_SESSION_NONE) {
+    // Set a specific session name for client-related pages
+    session_name("CLIENT_SESSION");
     session_start();
 }
 
@@ -259,18 +261,34 @@ $encoded_username = htmlspecialchars($input_data['username'], ENT_QUOTES, 'UTF-8
                     <p>You can also access your personal QR code for quick check-ins here: <a href="{$qr_code_url}">Your QR Code</a></p>
                     <p>We look forward to assisting you!</p>
                     <p>Sincerely,<br>The Arizona@Work Team</p>
-                    HTML;
+HTML;
 
                     if (!sendTransactionalEmail($email_recipient, $email_recipient_name, $email_subject, $email_htmlBody)) {
                         error_log("Failed to send welcome email to: " . $email_recipient . " during client registration.");
                     }
                     // --- End Send Welcome Email ---
 
-                    // Set flash message for success (will be displayed after potential redirect or on page reload)
-                    set_flash_message('register_success', 'Registration successful! You can now log in.', 'success');
-                    // Redirect to login page upon successful registration
-                    header('Location: client_login.php');
-                    exit; // Important: Stop script execution after sending the header
+                    // --- Auto Login Client ---
+                    // Set the specific session name for the client portal
+                    // Session name is now set at the top of the script.
+                    // Regenerate session ID to prevent session fixation attacks
+                    session_regenerate_id(true);
+
+                    // Set session variables inside the CLIENT_SESSION array
+                    $_SESSION['CLIENT_SESSION'] = [
+                        'client_id' => $new_client_id,
+                        'username' => $input_data['username'],
+                        'role' => 'client',
+                        'login_time' => time(),
+                        'first_name' => $input_data['first_name']
+                    ];
+
+                    // Set flash message for success
+                    set_flash_message('login_success', 'Registration successful! You are now logged in.', 'success');
+
+                    // Redirect to the client portal instead of the login page
+                    header('Location: client_portal/profile.php');
+                    exit; // Stop script execution after redirect
                     // Success message below is now unreachable due to exit, which is intended.
                 } else {
                     throw new PDOException("Failed to execute registration insert statement.");
@@ -565,4 +583,3 @@ $encoded_username = htmlspecialchars($input_data['username'], ENT_QUOTES, 'UTF-8
 
 </body>
 </html>
-]]>

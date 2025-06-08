@@ -318,11 +318,9 @@ if (isset($_SESSION['active_role'])) {
                         <li><a href="configurations.php" <?php echo $current_page_basename === 'configurations.php' ? 'class="active"' : ''; ?>><i class="fas fa-cog"></i> Configurations</a></li>
                     <?php endif; ?>
 
-                    <?php // User Management Link: Admin, Site Admin
-                    if (
-                        (isset($_SESSION['active_role']) && $_SESSION['active_role'] === 'administrator') ||
-                        (isset($_SESSION['is_site_admin']) && $_SESSION['is_site_admin'] == 1)
-                    ): ?>
+                    <?php // User Management Link: Admin, Director
+                    if (isset($_SESSION['active_role']) && in_array($_SESSION['active_role'], ['administrator', 'director'])):
+                    ?>
                         <li><a href="users.php" <?php echo $current_page_basename === 'users.php' ? 'class="active"' : ''; ?>><i class="fas fa-users-cog"></i> User Management</a></li>
                     <?php endif; ?>
 

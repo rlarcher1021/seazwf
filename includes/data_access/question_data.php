@@ -252,7 +252,7 @@ function getAllGlobalQuestionTitles(PDO $pdo): array
  */
 function getActiveQuestionsForSite(PDO $pdo, int $site_id): array
 {
-    $sql = "SELECT sq.global_question_id AS id, gq.question_text, gq.question_title -- Alias global_question_id as id
+    $sql = "SELECT gq.id, gq.question_text, gq.question_title
             FROM site_questions sq
             JOIN global_questions gq ON sq.global_question_id = gq.id
             WHERE sq.site_id = :site_id AND sq.is_active = TRUE

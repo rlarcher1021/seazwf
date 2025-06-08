@@ -209,4 +209,3 @@ if ($output) {
 exit; // Ensure no other output interferes
 
 ?>
-]]>

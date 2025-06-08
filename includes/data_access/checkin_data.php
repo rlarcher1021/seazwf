@@ -61,8 +61,8 @@ function getTodaysCheckinCount(PDO $pdo, $site_filter_id): int
 function getLastHourCheckinCount(PDO $pdo, $site_filter_id): int
 {
     $sql = "SELECT COUNT(ci.id) FROM check_ins ci";
-    $params = [':one_hour_ago' => date('Y-m-d H:i:s', strtotime('-1 hour'))];
-    $where_clauses = ["ci.check_in_time >= :one_hour_ago"];
+    $params = []; // Initialize params array
+    $where_clauses = ["ci.check_in_time >= DATE_SUB(NOW(), INTERVAL 1 HOUR)"]; // Use DATE_SUB(NOW(), INTERVAL 1 HOUR)
 
     if ($site_filter_id !== 'all' && is_numeric($site_filter_id) && $site_filter_id > 0) {
         $where_clauses[] = "ci.site_id = :site_id_filter";
@@ -81,8 +81,7 @@ function getLastHourCheckinCount(PDO $pdo, $site_filter_id): int
          if (!$stmt) {
              error_log("ERROR getLastHourCheckinCount: Prepare failed. PDO Error: " . implode(" | ", $pdo->errorInfo()));
              return 0;
-
-        } // Closing brace for the if (!$stmt) check
+         } // Closing brace for the if (!$stmt) check - adjusted this line
         $stmt->execute($params);
         return (int)($stmt->fetchColumn() ?: 0);
     } catch (PDOException $e) {
@@ -971,76 +970,76 @@ function getCheckinDataForExport(PDO $pdo, ?int $site_filter_id, string $start_d
  */
 function getAggregatedQuestionResponses(PDO $pdo, $site_filter_id, string $time_frame): ?array
 {
-    $sql_answers = "SELECT
-                        gq.question_text,
-                        ca.answer,
-                        COUNT(ca.id) as response_count
-                    FROM checkin_answers ca
-                    JOIN global_questions gq ON ca.question_id = gq.id
-                    JOIN check_ins ci ON ca.check_in_id = ci.id";
+   $sql_answers = "SELECT
+                       gq.question_text,
+                       ca.answer,
+                       COUNT(ca.id) as response_count
+                   FROM checkin_answers ca
+                   JOIN global_questions gq ON ca.question_id = gq.id
+                   JOIN check_ins ci ON ca.check_in_id = ci.id";
 
-    $params = [];
-    $where_clauses = [];
+   $params = [];
+   $where_clauses = [];
 
-    // Time Frame Filter
-    // error_log("getAggregatedQuestionResponses: Received time_frame = '" . $time_frame . "'"); // Log removed
-    switch ($time_frame) {
-        case 'today':
-            $where_clauses[] = "DATE(ci.check_in_time) = CURDATE()";
-            break;
-        case 'last_7_days': // Corrected case
-        case 'last7days':   // Keep old case for compatibility if used elsewhere
-            $where_clauses[] = "ci.check_in_time >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND ci.check_in_time < DATE_ADD(CURDATE(), INTERVAL 1 DAY)";
-            break;
-        case 'last_30_days': // Corrected case
-        case 'last30days':   // Keep old case for compatibility
-            $where_clauses[] = "ci.check_in_time >= DATE_SUB(CURDATE(), INTERVAL 29 DAY) AND ci.check_in_time < DATE_ADD(CURDATE(), INTERVAL 1 DAY)";
-            break;
-        case 'last_365_days': // Added new case
-            $where_clauses[] = "ci.check_in_time >= DATE_SUB(CURDATE(), INTERVAL 364 DAY) AND ci.check_in_time < DATE_ADD(CURDATE(), INTERVAL 1 DAY)";
-            break;
-        default:
-            error_log("getAggregatedQuestionResponses: Invalid time_frame '{$time_frame}'");
-            return null;
-    }
+   // Time Frame Filter
+   // error_log("getAggregatedQuestionResponses: Received time_frame = '" . $time_frame . "'"); // Log removed
+   switch ($time_frame) {
+       case 'today':
+           $where_clauses[] = "DATE(ci.check_in_time) = CURDATE()";
+           break;
+       case 'last_7_days': // Corrected case
+       case 'last7days':   // Keep old case for compatibility if used elsewhere
+           $where_clauses[] = "ci.check_in_time >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND ci.check_in_time < DATE_ADD(CURDATE(), INTERVAL 1 DAY)";
+           break;
+       case 'last_30_days': // Corrected case
+       case 'last30days':   // Keep old case for compatibility
+           $where_clauses[] = "ci.check_in_time >= DATE_SUB(CURDATE(), INTERVAL 29 DAY) AND ci.check_in_time < DATE_ADD(CURDATE(), INTERVAL 1 DAY)";
+           break;
+       case 'last_365_days': // Added new case
+           $where_clauses[] = "ci.check_in_time >= DATE_SUB(CURDATE(), INTERVAL 364 DAY) AND ci.check_in_time < DATE_ADD(CURDATE(), INTERVAL 1 DAY)";
+           break;
+       default:
+           error_log("getAggregatedQuestionResponses: Invalid time_frame '{$time_frame}'");
+           return null;
+   }
 
-    // Site Filter
-    if ($site_filter_id !== 'all' && is_numeric($site_filter_id) && $site_filter_id > 0) {
-        $where_clauses[] = "ci.site_id = :site_id_filter";
-        $params[':site_id_filter'] = (int)$site_filter_id;
-    } elseif ($site_filter_id !== 'all' && $site_filter_id !== null) {
-        error_log("getAggregatedQuestionResponses: Invalid site_filter_id: " . print_r($site_filter_id, true));
-        return null;
-    }
+   // Site Filter
+   if ($site_filter_id !== 'all' && is_numeric($site_filter_id) && $site_filter_id > 0) {
+       $where_clauses[] = "ci.site_id = :site_id_filter";
+       $params[':site_id_filter'] = (int)$site_filter_id;
+   } elseif ($site_filter_id !== 'all' && $site_filter_id !== null) {
+       error_log("getAggregatedQuestionResponses: Invalid site_filter_id: " . print_r($site_filter_id, true));
+       return null;
+   }
 
-    if (!empty($where_clauses)) {
-        $sql_answers .= " WHERE " . implode(" AND ", $where_clauses);
-    }
+   if (!empty($where_clauses)) {
+       $sql_answers .= " WHERE " . implode(" AND ", $where_clauses);
+   }
 
-    $sql_answers .= " GROUP BY gq.question_text, ca.answer ORDER BY gq.question_text, ca.answer";
+   $sql_answers .= " GROUP BY gq.question_text, ca.answer ORDER BY gq.question_text, ca.answer";
 
-    try {
-        $stmt = $pdo->prepare($sql_answers);
-        if (!$stmt) {
-            error_log("ERROR getAggregatedQuestionResponses: Prepare failed. PDO Error: " . implode(" | ", $pdo->errorInfo()));
-            return null;
-        }
-        $stmt->execute($params);
-        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+   try {
+       $stmt = $pdo->prepare($sql_answers);
+       if (!$stmt) {
+           error_log("ERROR getAggregatedQuestionResponses: Prepare failed. PDO Error: " . implode(" | ", $pdo->errorInfo()));
+           return null;
+       }
+       $stmt->execute($params);
+       $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        $aggregated_responses = [];
-        foreach ($results as $row) {
-            if (!isset($aggregated_responses[$row['question_text']])) {
-                $aggregated_responses[$row['question_text']] = [];
-            }
-            $aggregated_responses[$row['question_text']][$row['answer']] = (int)$row['response_count'];
-        }
-        return $aggregated_responses;
+       $aggregated_responses = [];
+       foreach ($results as $row) {
+           if (!isset($aggregated_responses[$row['question_text']])) {
+               $aggregated_responses[$row['question_text']] = [];
+           }
+           $aggregated_responses[$row['question_text']][$row['answer']] = (int)$row['response_count'];
+       }
+       return $aggregated_responses;
 
-    } catch (PDOException $e) {
-        error_log("EXCEPTION in getAggregatedQuestionResponses: " . $e->getMessage() . " | SQL: " . $sql_answers);
-        return null;
-    }
+   } catch (PDOException $e) {
+       error_log("EXCEPTION in getAggregatedQuestionResponses: " . $e->getMessage() . " | SQL: " . $sql_answers);
+       return null;
+   }
 }
 
 

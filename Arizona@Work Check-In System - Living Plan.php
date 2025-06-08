@@ -145,7 +145,7 @@ client_register.php: Public page for client account creation.
 client_login.php: Public page for client login.
 client_portal/profile.php: Client landing page for profile/question management.
 client_portal/services.php: Displays service information.
-client_portal/qr_code.php: Displays client's QR code. Refactored to handle staff sessions and database interactions correctly when accessed via the client editor.
+client_portal/qr_code.php: Displays client's QR code. Refactored to handle staff sessions and database interactions correctly when accessed via the client editor. Also fixed issues causing incorrect redirects and name display for logged-in clients viewing their own QR code.
 Kiosk Interface (checkin.php - accessed by kiosk role):
 Primary Kiosk Interface file.
 Handles both "Scan QR Code" and "Manual Check-in" options.
@@ -256,7 +256,9 @@ Reports and Dashboard updated to read dynamic check-in answers solely from the c
 CSS Refactoring and Standardization: Audit, definition of structure/standards, and refactoring of identified inline styles and <style> blocks completed. CSS moved to centralized and area-specific stylesheets.
 Implement Dashboard Check-in Data Correction Feature: Visual highlighting, interactive view button, check-in details modal, dynamic answer editing/adding interface, and server-side save logic with required is_site_admin and site_id matching permission checks have been implemented and verified.
 Enhance Dashboard "Recent Check-ins" Display: Automatic refreshing of the "Recent Check-ins" table using AJAX and a timer, and modification of data retrieval logic to only include check-in records from the last 2 hours have been implemented and verified.
-Client Editor Modal & QR Code Functionality: Implemented the "Edit Client" modal on client_editor.php allowing viewing and saving of client details and dynamic answers with appropriate permissions and audit logging. Added "View/Print QR Code" button to the modal and refactored client_portal/qr_code.php to handle staff access and database interactions correctly.
+Client Editor Modal & QR Code Functionality: Implemented the "Edit Client" modal on client_editor.php allowing viewing and saving of client details and dynamic answers with appropriate permissions and audit logging. Added "View/Print QR Code" button to the modal and refactored client_portal/qr_code.php to handle staff access and database interactions correctly. Also fixed issues causing incorrect redirects and name display for logged-in clients viewing their own QR code.
+Fix Reports CSV Export: Modified the CSV export functionality on reports.php to correctly include dynamic check-in answers by reading from the checkin_answers table.
+Password Visibility Toggle: The custom password visibility toggle feature has been removed from users.php, index.php, client_register.php, client_login.php, and account.php. The application now relies on browser-native password reveal UIs.
 Known Issues: None critical not listed as pending.
 Required User Action:
 Perform system backup.
@@ -265,7 +267,6 @@ Continue to manually manage agent_api_keys in the database for testing/setup unt
 Ensure the dedicated internal API key for the Gateway (in api_keys table) remains configured with necessary V1 permissions.
 Required Developer Action (Next Focus - PRIORITY ORDER):
 Refinements to existing Staff UI modules as needed or if critical bugs arise (ongoing/as needed).
-Fix Reports CSV Export: Modify the CSV export functionality on reports.php to correctly include dynamic check-in answers by reading from the checkin_answers table.
 (Deferred to near Deployment):
 Complete Pending Security Items (from Section 12): Upload Directory Hardening, XSS review, Robust FK error handling.
 15. Future Enhancements (Post-MVP, Client System & Gateway Stabilization):
@@ -287,7 +288,7 @@ Expand Gateway capabilities as new internal V1 APIs are developed.
 Deprecate check_ins.q_* columns: As dynamic answers are now stored and retrieved solely from checkin_answers, the q_* columns in check_ins are deprecated for this purpose and can be considered for removal in a future database migration/cleanup as they contain only old testing data.
 16. Implementation Plan & Process:
 Use Living Plan v1.61 as Single Source of Truth.
-Priority: Developer focus is on ongoing refinements and addressing any critical bugs, including the specific bug reported with the Reports CSV Export. User focus is on reviewing and approving the plan.
+Priority: Developer focus is on ongoing refinements and addressing any critical bugs. User focus is on reviewing and approving the plan.
 Iterative development for the Gateway: Phase 1 (core functionality, few actions - COMPLETED), Phase 2 (full action mapping, granular permissions - COMPLETED).
 Require clear code comments, especially around gateway logic (action mapping, auth, internal API calls), V1 API permission logic, session checks, data handling, and security measures.
 User (Robert) responsible for providing context, testing, reporting results, and requesting plan updates.
